@@ -246,7 +246,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
             colors: ['#FFD700', '#FFA500'],
             scalar: 0.8,
           });
-          setShowXPDetails(true);
+          onOpenView?.("XP_MAIN");
         }}
         className="absolute top-[42px] left-[130px] z-40 w-[140px] border-0 outline-none p-0 bg-transparent cursor-pointer hover:scale-105 active:scale-95 transition-all text-left"
         style={{ WebkitTapHighlightColor: "transparent" }}
@@ -266,7 +266,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
               colors: ['#FFD700', '#FFA500'],
               scalar: 0.8,
             });
-            triggerToast("Loading Video Ad...");
+            onOpenView?.("REWARD_CENTER");
           }}
           className="w-[30px] h-[30px] p-0 border-0 outline-none bg-transparent hover:scale-110 active:scale-[0.96] transition-transform cursor-pointer"
           style={{ WebkitTapHighlightColor: "transparent" }}
@@ -312,7 +312,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
               colors: ['#FFD700', '#FFA500', '#FFD54F', '#FFF8DC'],
               scalar: 0.85,
             });
-            triggerToast("Lucky Roll: Spin to win multipliers & tokens!");
+            onOpenView?.("DICE_MAIN");
           }}
           className="w-[30px] h-[30px] p-0 border-0 outline-none bg-transparent hover:scale-110 active:scale-[0.96] transition-transform cursor-pointer"
           style={{ WebkitTapHighlightColor: "transparent" }}
@@ -430,7 +430,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
       <div className="absolute top-[48px] right-[10px] z-40 flex flex-col gap-[10px] items-center">
         {/* Settings */}
         <button
-          onClick={() => onOpenView?.("PROFILE")}
+          onClick={() => onOpenView?.("SETTINGS")}
           className="w-[34px] h-[34px] p-0 border-0 outline-none bg-transparent hover:scale-110 active:scale-95 transition-transform cursor-pointer"
           style={{ WebkitTapHighlightColor: "transparent" }}
           aria-label="Settings"

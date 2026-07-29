@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { LudoPageBackground } from "../../../components/effects/LudoPageBackground";
+import { useUserStore } from "../../../user/user.store";
 
 interface RewardsPageProps {
   onBack?: () => void;
@@ -9,6 +10,10 @@ interface RewardsPageProps {
 export const RewardsPage: React.FC<RewardsPageProps> = ({ onBack, onClaim }) => {
   const [activeTab, setActiveTab] = useState<"DAILY" | "WEEKLY" | "ACHIEVEMENTS">("DAILY");
   const [claimedDays, setClaimedDays] = useState<number[]>([1]);
+  const [claimedDay7, setClaimedDay7] = useState(false);
+
+  const userStore = useUserStore();
+  const user = userStore.user;
 
   const days = [
     { day: 1, amount: "100", icon: "🪙", status: "CLAIMED" },
@@ -23,8 +28,28 @@ export const RewardsPage: React.FC<RewardsPageProps> = ({ onBack, onClaim }) => 
   const handleClaimClick = (dayNum: number) => {
     if (!claimedDays.includes(dayNum)) {
       setClaimedDays([...claimedDays, dayNum]);
+      
+      if (user) {
+        const targetDay = days.find((d) => d.day === dayNum);
+        if (targetDay) {
+          const amt = parseInt(targetDay.amount);
+          userStore.updateUser({ coins: user.coins + amt });
+        }
+      }
       onClaim?.(dayNum);
     }
+  };
+
+  const handleClaimDay7 = () => {
+    if (claimedDay7) return;
+    setClaimedDay7(true);
+    if (user) {
+      userStore.updateUser({
+        coins: user.coins + 1000,
+        gems: user.gems + 10,
+      });
+    }
+    onClaim?.(7);
   };
 
   return (
@@ -113,9 +138,18 @@ export const RewardsPage: React.FC<RewardsPageProps> = ({ onBack, onClaim }) => 
               <span className="text-sm font-black text-amber-100 block">+1,000 COINS & GEMS</span>
             </div>
           </div>
-          <button className="bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-slate-950 px-4 py-2 rounded-xl text-xs font-black uppercase shadow hover:scale-105 active:scale-95 border border-yellow-200 transition-all">
-            CLAIM
-          </button>
+          {claimedDay7 ? (
+            <span className="text-xs font-black text-green-400 uppercase bg-green-500/10 border border-green-500/20 px-4 py-2 rounded-xl">
+              CLAIMED ✓
+            </span>
+          ) : (
+            <button
+              onClick={handleClaimDay7}
+              className="bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-slate-950 px-4 py-2 rounded-xl text-xs font-black uppercase shadow hover:scale-105 active:scale-95 border border-yellow-200 transition-all"
+            >
+              CLAIM
+            </button>
+          )}
         </div>
 
         {/* Next Reward Timer Footer */}

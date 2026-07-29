@@ -19,6 +19,9 @@ import { ClubPage } from "./features/club/pages/ClubPage";
 import { InventoryPage } from "./features/inventory/pages/InventoryPage";
 import { MatchHistoryPage } from "./features/history/pages/MatchHistoryPage";
 import { LuckySpinModal } from "./features/events/LuckySpinModal";
+import { XPPage } from "./features/xp-level";
+import { DicePage } from "./features/dice";
+import { RewardCenterPage, AdsSettingsPage } from "./features/ads";
 
 import { useUserStore } from "./user/user.store";
 import { useQueueStore } from "./features/matchmaking/queue/QueueStore";
@@ -42,7 +45,11 @@ export type AppView =
   | "SHOP"
   | "CLUB"
   | "INVENTORY"
-  | "MATCH_HISTORY";
+  | "MATCH_HISTORY"
+  | "XP_MAIN"
+  | "DICE_MAIN"
+  | "REWARD_CENTER"
+  | "ADS_SETTINGS";
 
 const MainApp: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>("SPLASH");
@@ -183,6 +190,7 @@ const MainApp: React.FC = () => {
           <SettingsPage
             onBack={() => setCurrentView("HOME")}
             onLogout={() => setCurrentView("AUTH")}
+            onOpenView={(v) => setCurrentView(v as AppView)}
           />
         );
 
@@ -208,6 +216,18 @@ const MainApp: React.FC = () => {
 
       case "MATCH_HISTORY":
         return <MatchHistoryPage onBack={() => setCurrentView("PROFILE")} />;
+
+      case "XP_MAIN":
+        return <XPPage onBack={() => setCurrentView("HOME")} />;
+
+      case "DICE_MAIN":
+        return <DicePage onBack={() => setCurrentView("HOME")} />;
+
+      case "REWARD_CENTER":
+        return <RewardCenterPage onBack={() => setCurrentView("HOME")} />;
+
+      case "ADS_SETTINGS":
+        return <AdsSettingsPage onBack={() => setCurrentView("HOME")} />;
 
       default:
         return <HomePage onSelectMode={handleSelectMode} onOpenView={(v) => setCurrentView(v as AppView)} />;

@@ -1,4 +1,5 @@
 import React from 'react';
+import confetti from 'canvas-confetti';
 
 interface GameModeGridProps {
   onSelectMode: (modeKey: string) => void;
@@ -44,19 +45,38 @@ export const GameModeGrid: React.FC<GameModeGridProps> = ({ onSelectMode }) => {
     },
   ];
 
+  const handleButtonClick = (e: React.MouseEvent<HTMLButtonElement>, modeKey: string) => {
+    // Firing a gold sparkle effect relative to click coordinates
+    const x = e.clientX / window.innerWidth;
+    const y = e.clientY / window.innerHeight;
+
+    confetti({
+      particleCount: 22,
+      spread: 50,
+      origin: { x, y },
+      colors: ['#FFD700', '#FFA500', '#FFD54F', '#FFF8DC'], // Luxury golds and yellows
+      scale: 0.85,
+      ticks: 60,
+      disableForced3d: true,
+    });
+
+    onSelectMode(modeKey);
+  };
+
   return (
     <div className="w-full grid grid-cols-2 gap-2">
       {modes.map((mode) => (
         <button
           key={mode.id}
-          onClick={() => onSelectMode(mode.modeKey)}
-          className="w-full h-[72px] relative rounded-[14px] overflow-hidden hover:scale-[1.03] active:scale-95 transition-transform duration-150 shadow-[0_4px_12px_rgba(0,0,0,0.6)] cursor-pointer bg-transparent border-0 outline-none p-0"
+          onClick={(e) => handleButtonClick(e, mode.modeKey)}
+          className="w-full h-[72px] relative rounded-[14px] overflow-hidden hover:scale-[1.03] active:scale-[0.96] gold-breathing-glow transition-all duration-150 cursor-pointer bg-transparent border-0 outline-none p-0"
           style={{ WebkitTapHighlightColor: "transparent" }}
         >
           <img
             src={mode.imgSrc}
             alt={mode.title}
             className="w-full h-full object-fill rounded-[14px]"
+            draggable={false}
           />
         </button>
       ))}

@@ -301,3 +301,22 @@
     z-index: 50;
   }
 }
+
+/* ── Golden Breathing Glow Animation for Luxury Cards ── */
+@keyframes goldenBreathing {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), 0 0 6px rgba(255, 215, 0, 0.15);
+    border-color: rgba(255, 215, 0, 0.25);
+  }
+  50% {
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.75), 0 0 14px rgba(255, 215, 0, 0.45);
+    border-color: rgba(255, 215, 0, 0.6);
+  }
+}
+
+.gold-breathing-glow {
+  animation: goldenBreathing 3s ease-in-out infinite;
+  border: 1.5px solid rgba(255, 215, 0, 0.25) !important;
+  transition: all 0.2s ease-in-out;
+}
+

@@ -8,6 +8,7 @@ import { BottomNavigation } from "../components/BottomNavigation";
 import { LuckySpinModal } from "../../events/LuckySpinModal";
 import { XPBar } from "../components/Profile/XPBar";
 import { useUserStore } from "../../../user/user.store";
+import confetti from 'canvas-confetti';
 
 const formatCurrency = (val: number): string => {
   if (val < 1000) {
@@ -41,13 +42,26 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
   const user = useUserStore((s) => s.user);
   const level = user?.level || 25;
   const [showLuckySpin, setShowLuckySpin] = useState(false);
+  const [showXPDetails, setShowXPDetails] = useState(false);
+  const [showNameEdit, setShowNameEdit] = useState(false);
+  const [tempName, setTempName] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [activeNav, setActiveNav] = useState("home");
-  const [playerName, setPlayerName] = useState("Tasavvur");
-  const [playerPhoto, setPlayerPhoto] = useState<string | null>(null);
+  const [playerName, setPlayerName] = useState(() => {
+    return localStorage.getItem("ludo_player_name") || "TASAVVUR";
+  });
+  const [playerPhoto, setPlayerPhoto] = useState<string | null>(() => {
+    return localStorage.getItem("ludo_player_photo");
+  });
   const [showPhotoAdjust, setShowPhotoAdjust] = useState(false);
-  const [photoScale, setPhotoScale] = useState(1);
-  const [photoOffsetY, setPhotoOffsetY] = useState(0);
+  const [photoScale, setPhotoScale] = useState(() => {
+    const val = localStorage.getItem("ludo_player_photo_scale");
+    return val ? parseFloat(val) : 1;
+  });
+  const [photoOffsetY, setPhotoOffsetY] = useState(() => {
+    const val = localStorage.getItem("ludo_player_photo_offset");
+    return val ? parseFloat(val) : 0;
+  });
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const triggerToast = (msg: string) => {
@@ -61,6 +75,29 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
     else if (nav === "friends") onOpenView?.("FRIENDS");
     else if (nav === "rewards") onOpenView?.("REWARDS");
     else if (nav === "profile") onOpenView?.("PROFILE");
+  };
+
+  const handleTwoPlayerClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const x = e.clientX / window.innerWidth;
+    const y = e.clientY / window.innerHeight;
+
+    confetti({
+      particleCount: 22,
+      spread: 50,
+      origin: { x, y },
+      colors: ['#FFD700', '#FFA500', '#FFD54F', '#FFF8DC'],
+      scale: 0.85,
+      ticks: 60,
+      disableForced3d: true,
+    });
+
+    triggerToast("Joining 2 Player Mode...");
+    onSelectMode?.("2P Classic");
+  };
+
+  const handleNameClick = () => {
+    setTempName(playerName);
+    setShowNameEdit(true);
   };
 
   return (
@@ -102,11 +139,18 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) {
-            const url = URL.createObjectURL(file);
-            setPlayerPhoto(url);
-            setPhotoScale(1);
-            setPhotoOffsetY(0);
-            setShowPhotoAdjust(true);
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              const base64Str = event.target?.result as string;
+              setPlayerPhoto(base64Str);
+              localStorage.setItem("ludo_player_photo", base64Str);
+              setPhotoScale(1);
+              setPhotoOffsetY(0);
+              localStorage.setItem("ludo_player_photo_scale", "1");
+              localStorage.setItem("ludo_player_photo_offset", "0");
+              setShowPhotoAdjust(true);
+            };
+            reader.readAsDataURL(file);
           }
         }}
       />
@@ -147,24 +191,42 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
           />
         </button>
 
-        {/* Name Banner — tight below frame, no gap */}
-        <div className="relative w-[108px] -mt-[10px]">
+        {/* Name Banner — tight below frame, no gap, clickable to change name (text shifted 4px left) */}
+        <button
+          onClick={handleNameClick}
+          className="relative w-[108px] -mt-[10px] cursor-pointer hover:scale-105 active:scale-95 transition-all border-0 outline-none p-0 bg-transparent flex flex-col items-center justify-center"
+          style={{ WebkitTapHighlightColor: "transparent" }}
+          aria-label="Change Player Name"
+        >
           <img
             src="/assets/images/icons/name_banner_v2.png"
             alt="Name Banner"
             className="w-full h-auto object-contain pointer-events-none"
             draggable={false}
           />
-          <span className="absolute inset-0 flex items-center justify-center font-black text-amber-200 uppercase tracking-widest drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)] pointer-events-none" style={{ fontSize: '8px' }}>
+          <span className="absolute inset-0 flex items-center justify-center font-black text-amber-200 uppercase tracking-widest drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)] pointer-events-none translate-x-[-8px]" style={{ fontSize: '8px' }}>
             {playerName}
           </span>
-        </div>
+        </button>
       </div>
 
       {/* ── LUXURY XP PROGRESS BAR ── */}
-      <div className="absolute top-[42px] left-[130px] z-40 w-[140px]">
+      <button
+        onClick={() => {
+          confetti({
+            particleCount: 15,
+            spread: 30,
+            colors: ['#FFD700', '#FFA500'],
+            scale: 0.8,
+          });
+          setShowXPDetails(true);
+        }}
+        className="absolute top-[42px] left-[130px] z-40 w-[140px] border-0 outline-none p-0 bg-transparent cursor-pointer hover:scale-105 active:scale-95 transition-all text-left"
+        style={{ WebkitTapHighlightColor: "transparent" }}
+        aria-label="View XP Details"
+      >
         <XPBar progressPercent={0.75} level={level} />
-      </div>
+      </button>
 
       {/* ── LUXURY LEFT SIDE ICON BAR (Video Ads & VIP Club) ── */}
       <div className="absolute top-[142px] left-[12px] z-40 flex flex-col gap-[10px] items-center">
@@ -238,11 +300,21 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
 
           {/* Action Buttons */}
           <div className="flex gap-3 mt-1">
-            <button onClick={() => setShowPhotoAdjust(false)}
+            <button onClick={() => {
+              localStorage.setItem("ludo_player_photo_scale", photoScale.toString());
+              localStorage.setItem("ludo_player_photo_offset", photoOffsetY.toString());
+              setShowPhotoAdjust(false);
+            }}
               className="px-5 py-2 rounded-xl bg-amber-500 text-black font-black text-xs tracking-wider hover:bg-amber-400 active:scale-95 transition-all">
               ✓ Done
             </button>
-            <button onClick={() => { setPlayerPhoto(null); setShowPhotoAdjust(false); }}
+            <button onClick={() => {
+              setPlayerPhoto(null);
+              localStorage.removeItem("ludo_player_photo");
+              localStorage.removeItem("ludo_player_photo_scale");
+              localStorage.removeItem("ludo_player_photo_offset");
+              setShowPhotoAdjust(false);
+            }}
               className="px-4 py-2 rounded-xl bg-slate-700 text-white font-black text-xs tracking-wider hover:bg-slate-600 active:scale-95 transition-all">
               Remove
             </button>
@@ -339,11 +411,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
         <div className="w-full max-w-[420px] relative">
           {/* 2 Player Mode Custom Graphic Overlay (Overlaying the BG slot) */}
           <button
-            onClick={() => {
-              triggerToast("Joining 2 Player Mode...");
-              onSelectMode?.("2P Classic");
-            }}
-            className="absolute top-[-96px] left-0 right-0 h-[88px] z-30 cursor-pointer border-0 outline-none p-0 bg-transparent flex items-center justify-center hover:scale-[1.02] active:scale-95 transition-transform"
+            onClick={handleTwoPlayerClick}
+            className="absolute top-[-96px] left-0 right-0 h-[88px] z-30 cursor-pointer border-0 outline-none p-0 bg-transparent flex items-center justify-center hover:scale-[1.02] active:scale-[0.96] transition-transform"
             style={{ WebkitTapHighlightColor: "transparent" }}
             aria-label="2 Player Mode"
           >
@@ -433,6 +502,174 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
         onClose={() => setShowLuckySpin(false)}
         onSpinWin={(reward) => triggerToast(`You won ${reward}!`)}
       />
+
+      {/* XP & Quests Detail Modal */}
+      {showXPDetails && (
+        <div className="absolute inset-0 z-[110] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-[320px] bg-gradient-to-b from-[#2B1440] to-[#12061F] border-2 border-amber-500/70 rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] text-white relative overflow-hidden animate-in fade-in zoom-in-95 duration-200 animate-fade-in">
+            {/* Top Ornate gold light glow */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-2 bg-gradient-to-r from-transparent via-amber-400 to-transparent blur-md"></div>
+            
+            {/* Header */}
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🏆</span>
+                <span className="text-sm font-black text-amber-200 tracking-widest uppercase">Level & Quests</span>
+              </div>
+              <button 
+                onClick={() => setShowXPDetails(false)}
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-purple-950/80 border border-amber-500/30 text-amber-200 hover:bg-purple-900 active:scale-90 font-bold transition-all cursor-pointer"
+                style={{ WebkitTapHighlightColor: "transparent" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Level Info Card */}
+            <div className="bg-purple-950/50 border border-purple-800/60 rounded-2xl p-4 flex flex-col items-center gap-3 mb-4 shadow-inner">
+              <div className="flex items-center gap-4 w-full">
+                {/* Shield Circle */}
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-600 border-2 border-yellow-200 flex items-center justify-center shadow-[0_0_12px_rgba(245,158,11,0.4)] flex-shrink-0">
+                  <span className="text-lg font-black text-purple-950 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">{level}</span>
+                </div>
+                <div className="flex-1">
+                  <div className="flex justify-between items-end mb-1">
+                    <span className="text-xs font-bold text-purple-200 italic">Level {level} Progress</span>
+                    <span className="text-[10px] font-black text-amber-300">75 / 100 XP</span>
+                  </div>
+                  {/* Large Progress Track */}
+                  <div className="w-full h-3 bg-purple-950/80 rounded-full border border-purple-900/60 p-[1.5px] overflow-hidden">
+                    <div className="h-full w-[75%] bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full shadow-[0_0_6px_rgba(251,191,36,0.8)]"></div>
+                  </div>
+                </div>
+              </div>
+              <p className="text-[9px] text-purple-300 text-center italic">Earn 25 more XP to level up to Level {level + 1}!</p>
+            </div>
+
+            {/* Quests Section */}
+            <div className="flex flex-col gap-2">
+              <p className="text-[10px] font-black text-amber-200 tracking-wider uppercase">Active Quests</p>
+              
+              {/* Quest 1 */}
+              <div className="flex justify-between items-center bg-purple-950/30 border border-purple-900/40 rounded-xl p-2.5">
+                <div className="flex flex-col">
+                  <span className="text-xs font-black text-white">Win 1 Classic Game</span>
+                  <span className="text-[9px] text-amber-400/80 font-bold">Reward: +20 XP</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-900/80 font-bold border border-purple-800 text-purple-200">0 / 1</span>
+                  <span className="text-xs text-slate-500">⏳</span>
+                </div>
+              </div>
+
+              {/* Quest 2 */}
+              <div className="flex justify-between items-center bg-purple-950/30 border border-purple-900/40 rounded-xl p-2.5">
+                <div className="flex flex-col">
+                  <span className="text-xs font-black text-white">Send 3 Chat Emotes</span>
+                  <span className="text-[9px] text-amber-400/80 font-bold">Reward: +10 XP</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-900/80 font-bold border border-purple-800 text-purple-200">2 / 3</span>
+                  <span className="text-xs text-slate-500">⏳</span>
+                </div>
+              </div>
+
+              {/* Quest 3 */}
+              <div className="flex justify-between items-center bg-emerald-950/20 border border-emerald-900/40 rounded-xl p-2.5">
+                <div className="flex flex-col opacity-75">
+                  <span className="text-xs font-black text-white line-through">Play 1 Private Match</span>
+                  <span className="text-[9px] text-emerald-400 font-bold">Reward: +25 XP</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 font-bold border border-emerald-800">1 / 1</span>
+                  <span className="text-emerald-400 text-xs">✓</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Claim Button */}
+            <button 
+              onClick={() => {
+                triggerToast("Reward claimed! +25 XP");
+                setShowXPDetails(false);
+              }}
+              className="w-full mt-4 py-2.5 rounded-xl bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 hover:from-yellow-300 hover:to-orange-400 text-purple-950 font-black text-xs tracking-widest uppercase transition-all duration-200 active:scale-95 shadow-[0_4px_15px_rgba(245,158,11,0.35)] cursor-pointer border-0 outline-none"
+              style={{ WebkitTapHighlightColor: "transparent" }}
+            >
+              Claim Completed Rewards
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Name Modal */}
+      {showNameEdit && (
+        <div className="absolute inset-0 z-[110] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-[290px] bg-gradient-to-b from-[#2B1440] to-[#12061F] border-2 border-amber-500/70 rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] text-white relative overflow-hidden animate-in fade-in zoom-in-95 duration-200 animate-fade-in">
+            {/* Top Ornate gold light glow */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-2 bg-gradient-to-r from-transparent via-amber-400 to-transparent blur-md"></div>
+            
+            {/* Header */}
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">✏️</span>
+                <span className="text-xs font-black text-amber-200 tracking-widest uppercase">Edit Name</span>
+              </div>
+              <button 
+                onClick={() => setShowNameEdit(false)}
+                className="w-6 h-6 flex items-center justify-center rounded-full bg-purple-950/80 border border-amber-500/30 text-amber-200 hover:bg-purple-900 active:scale-90 font-bold transition-all cursor-pointer"
+                style={{ WebkitTapHighlightColor: "transparent" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Input Card Container */}
+            <div className="bg-purple-950/50 border border-purple-800/60 rounded-2xl p-4 flex flex-col gap-3 mb-4 shadow-inner">
+              <span className="text-[10px] font-bold text-purple-200 uppercase tracking-wider text-center">Enter New Profile Name</span>
+              <input
+                type="text"
+                maxLength={12}
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+                placeholder="TASAVVUR"
+                className="w-full py-2 bg-[#0C0416] border border-amber-500/40 rounded-xl text-center font-black text-amber-200 uppercase tracking-widest text-sm focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400/50 transition-all placeholder:opacity-30 text-white"
+                autoFocus
+              />
+              <p className="text-[9px] text-purple-300 text-center italic">Max length: 12 characters</p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2">
+              <button 
+                onClick={() => {
+                  const cleaned = tempName.trim();
+                  if (cleaned.length > 0) {
+                    const formatted = cleaned.toUpperCase();
+                    setPlayerName(formatted);
+                    localStorage.setItem("ludo_player_name", formatted);
+                    triggerToast(`Name updated to ${formatted}`);
+                    setShowNameEdit(false);
+                  } else {
+                    triggerToast("Name cannot be empty!");
+                  }
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 text-purple-950 font-black text-xs tracking-widest uppercase transition-all duration-200 active:scale-95 shadow-[0_4px_12px_rgba(245,158,11,0.25)] cursor-pointer border-0 outline-none"
+                style={{ WebkitTapHighlightColor: "transparent" }}
+              >
+                Save
+              </button>
+              <button 
+                onClick={() => setShowNameEdit(false)}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black text-xs tracking-widest uppercase transition-all duration-200 active:scale-95 cursor-pointer border-0 outline-none"
+                style={{ WebkitTapHighlightColor: "transparent" }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

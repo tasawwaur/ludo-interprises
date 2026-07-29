@@ -13,6 +13,10 @@ export interface UserProfile {
   level?: number;
   xp?: number;
   nextLevelXp?: number;
+  loginProvider?: 'guest' | 'google' | 'facebook' | 'phone';
+  facebookId?: string;
+  syncedFBFriends?: Array<{ id: string; name: string; avatarUrl?: string; isOnline: boolean }>;
+  crowns?: number;
 }
 
 interface UserState {
@@ -50,12 +54,24 @@ const getInitialProfile = (): UserProfile => {
     level: 2,
     xp: 450,
     nextLevelXp: 1000,
+    crowns: 2,
   };
 };
 
+// Check if a saved user is a real logged-in user (not just the default guest)
+const isRealLoggedInUser = (user: UserProfile | null): boolean => {
+  if (!user) return false;
+  // Default guest profile ID se identify karo
+  if (user.id === 'usr_guest4296') return false;
+  // loginProvider hona chahiye (fb, google, phone)
+  return !!user.loginProvider;
+};
+
+const _initialProfile = getInitialProfile();
+
 export const useUserStore = create<UserState>((set) => ({
-  user: getInitialProfile(),
-  isAuthenticated: true,
+  user: _initialProfile,
+  isAuthenticated: isRealLoggedInUser(_initialProfile),
 
   setUser: (user) => {
     if (user && typeof window !== 'undefined') {
@@ -65,7 +81,7 @@ export const useUserStore = create<UserState>((set) => ({
         console.warn('Failed to save user to localStorage:', e);
       }
     }
-    set({ user, isAuthenticated: !!user });
+    set({ user, isAuthenticated: isRealLoggedInUser(user) });
   },
 
   updateUser: (updates) => {

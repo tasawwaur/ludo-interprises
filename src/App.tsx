@@ -47,8 +47,19 @@ const MainApp: React.FC = () => {
   const [showLuckySpin, setShowLuckySpin] = useState(false);
 
   const user = useUserStore((s) => s.user);
+  const isAuthenticated = useUserStore((s) => s.isAuthenticated);
   const { startQueue, cancelQueue } = useQueueStore();
   const { createRoom } = useRoomStore();
+
+  // ✅ Splash ke baad: agar pehle se login hai to HOME, warna AUTH
+  const handleSplashFinish = () => {
+    if (isAuthenticated) {
+      setCurrentView("HOME");
+    } else {
+      setCurrentView("AUTH");
+    }
+  };
+
 
   // Global Touch/Click Sparkle Effect
   useEffect(() => {
@@ -94,7 +105,7 @@ const MainApp: React.FC = () => {
   const renderCurrentView = () => {
     switch (currentView) {
       case "SPLASH":
-        return <SplashScreen onFinish={() => setCurrentView("AUTH")} />;
+        return <SplashScreen onFinish={handleSplashFinish} />;
 
       case "AUTH":
         return <LoginPage onSuccessLogin={() => setCurrentView("HOME")} />;

@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useUserStore } from "../../../user/user.store";
 import { LudoPageBackground } from "../../../components/effects/LudoPageBackground";
+import confetti from "canvas-confetti";
 
 interface ProfilePageProps {
   onBack?: () => void;
@@ -10,16 +11,149 @@ interface ProfilePageProps {
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory, onLogout }) => {
   const user = useUserStore((s) => s.user);
+  const setUser = useUserStore((s) => s.setUser);
+  const updateUser = useUserStore((s) => s.updateUser);
   const logout = useUserStore((s) => s.logout);
 
-  const displayName = user?.displayName || user?.username || "Govind";
+  // States
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  
+  // Modals
+  const [showEditName, setShowEditName] = useState(false);
+  const [newName, setNewName] = useState("");
+  
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currPassword, setCurrPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Embedded Settings states
-  const [showSettings, setShowSettings] = useState(false);
-  const [sound, setSound] = useState(true);
-  const [music, setMusic] = useState(true);
-  const [voiceChat, setVoiceChat] = useState(true);
-  const [notifications, setNotifications] = useState(true);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeEmail, setUpgradeEmail] = useState("");
+  const [upgradePassword, setUpgradePassword] = useState("");
+
+  // Simulated link states stored in localStorage or store
+  const [isFBLinked, setIsFBLinked] = useState(() => {
+    return user?.loginProvider === 'facebook' || localStorage.getItem("ludo_fb_linked") === "true";
+  });
+  const [isGoogleLinked, setIsGoogleLinked] = useState(() => {
+    return user?.loginProvider === 'google' || localStorage.getItem("ludo_google_linked") === "true";
+  });
+  const [isPhoneLinked, setIsPhoneLinked] = useState(() => {
+    return user?.loginProvider === 'phone' || localStorage.getItem("ludo_phone_linked") === "true";
+  });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Custom Toast helper
+  const triggerToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  // Sync state changes with localStorage
+  useEffect(() => {
+    localStorage.setItem("ludo_fb_linked", isFBLinked ? "true" : "false");
+  }, [isFBLinked]);
+
+  useEffect(() => {
+    localStorage.setItem("ludo_google_linked", isGoogleLinked ? "true" : "false");
+  }, [isGoogleLinked]);
+
+  useEffect(() => {
+    localStorage.setItem("ludo_phone_linked", isPhoneLinked ? "true" : "false");
+  }, [isPhoneLinked]);
+
+  // Load avatar and name fallbacks
+  const playerName = user?.displayName || user?.username || "TASAVVUR";
+  const playerUID = user?.id ? `LUDO-${user.id.toUpperCase().replace("USR_", "").replace("FB_SIM_", "").replace("FB_", "").slice(0, 8)}` : "LUDO-4829-1029";
+
+  // Actions
+  const handleCopyUID = () => {
+    navigator.clipboard.writeText(playerUID);
+    triggerToast("UID Copied to Clipboard!");
+  };
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        const base64 = uploadEvent.target?.result as string;
+        // Save to localStorage for compatibility with HomePage
+        localStorage.setItem("ludo_player_photo", base64);
+        updateUser({ avatar: base64 });
+        triggerToast("Avatar Updated Successfully!");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveName = () => {
+    if (!newName.trim()) return;
+    const finalName = newName.trim().toUpperCase();
+    localStorage.setItem("ludo_player_name", finalName);
+    updateUser({ username: finalName, displayName: finalName });
+    setShowEditName(false);
+    triggerToast("Name Updated Successfully!");
+  };
+
+  const handleChangePasswordSubmit = () => {
+    if (!currPassword || !newPassword || !confirmPassword) {
+      triggerToast("Please fill all fields!");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      triggerToast("Passwords do not match!");
+      return;
+    }
+    localStorage.setItem("ludo_player_password", newPassword);
+    setShowChangePassword(false);
+    setCurrPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    triggerToast("Password Updated Successfully!");
+  };
+
+  const handleUpgradeAccount = () => {
+    if (!upgradeEmail || !upgradePassword) {
+      triggerToast("Please fill all fields!");
+      return;
+    }
+    confetti({
+      particleCount: 40,
+      spread: 60,
+      colors: ['#FFD700', '#FFA500', '#FFD54F']
+    });
+    updateUser({
+      email: upgradeEmail,
+      loginProvider: 'phone' // Upgraded to permanent provider
+    });
+    setIsPhoneLinked(true);
+    setShowUpgradeModal(false);
+    triggerToast("Account Upgraded Successfully!");
+  };
+
+  const handleLinkAccount = (provider: 'facebook' | 'google' | 'phone') => {
+    confetti({
+      particleCount: 20,
+      spread: 40,
+      colors: ['#FFD700', '#FFA500', '#FFF8DC']
+    });
+    if (provider === 'facebook') {
+      setIsFBLinked(true);
+      triggerToast("Facebook Linked Successfully!");
+    } else if (provider === 'google') {
+      setIsGoogleLinked(true);
+      triggerToast("Google Linked Successfully!");
+    } else if (provider === 'phone') {
+      setIsPhoneLinked(true);
+      triggerToast("Phone Linked Successfully!");
+    }
+  };
 
   const handleLogoutClick = () => {
     logout();
@@ -28,238 +162,320 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
 
   return (
     <div className="min-h-screen w-full bg-[#12061F] text-white flex flex-col items-center relative overflow-hidden select-none font-sans">
-      {/* 1. Ludo Themed Background */}
       <LudoPageBackground variant="profile" />
 
-      <div className="w-full max-w-[430px] h-screen flex flex-col relative z-10 px-3 py-3 overflow-y-auto no-scrollbar">
-        {/* Top Navigation Row */}
-        <div className="flex items-center justify-between w-full mb-6">
+      {/* Hidden file input for avatar */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+        accept="image/*"
+      />
+
+      <div className="w-full max-w-[430px] h-screen flex flex-col relative z-10 px-3 py-3 overflow-y-auto no-scrollbar pb-6">
+        {/* Navigation Header */}
+        <div className="flex items-center justify-between w-full mb-5">
           <button
             onClick={onBack}
             className="w-9 h-9 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-lg hover:bg-black/60 hover:scale-105 active:scale-95 transition-transform"
           >
             ❮
           </button>
-          <h1 className="text-xl font-black tracking-widest bg-gradient-to-r from-yellow-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent uppercase glow-amber-text">
-            PROFILE
+          <h1 className="text-xl font-black tracking-widest bg-gradient-to-r from-yellow-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent uppercase glow-amber-text flex items-center gap-2">
+            <span>👤</span> Account Settings
           </h1>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="w-9 h-9 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-sm hover:bg-black/60 hover:scale-105 active:scale-95 transition-transform"
-          >
-            ⚙️
-          </button>
+          <div className="w-9 h-9"></div>
         </div>
 
-        {/* Profile Header Block */}
-        <div className="bg-gradient-to-b from-purple-900/80 to-purple-950/90 border-2 border-amber-400/50 rounded-3xl p-4 flex flex-col items-center shadow-2xl mb-4 relative overflow-hidden glow-gold-border">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-400"></div>
+        {/* ── CARD 1: PROFILE DETAILS ── */}
+        <div className="bg-gradient-to-b from-[#2E0B4E]/90 to-[#1F0736]/90 border-2 border-purple-500/40 rounded-3xl p-5 shadow-2xl mb-4 relative flex flex-col items-center gap-4 glow-purple-border">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500"></div>
 
           {/* Avatar Ring */}
-          <div className="relative mb-2">
-            <div className="w-20 h-20 rounded-full border-[3px] border-double border-amber-400 p-0.5 shadow-[0_0_20px_rgba(255,193,7,0.7)] bg-slate-900 flex items-center justify-center relative">
-              <div className="absolute inset-0 rounded-full border border-yellow-200/40 pointer-events-none"></div>
+          <div className="relative cursor-pointer" onClick={handleAvatarClick}>
+            <div className="w-24 h-24 rounded-full border-[3px] border-double border-amber-400 p-0.5 shadow-[0_0_20px_rgba(255,193,7,0.7)] bg-slate-900 flex items-center justify-center overflow-hidden">
               {user?.avatar ? (
                 <img src={user.avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
               ) : (
-                <span className="text-4xl">👤</span>
+                <span className="text-5xl">👤</span>
               )}
             </div>
-            <button className="absolute bottom-0 right-0 bg-amber-500 text-slate-950 rounded-full w-6 h-6 flex items-center justify-center text-xs font-black shadow border border-amber-200 hover:scale-110 active:scale-95 transition-transform">
-              ✏️
+            <div className="absolute bottom-1 right-1 bg-amber-500 text-slate-950 rounded-full w-7 h-7 flex items-center justify-center shadow-lg border border-amber-200 hover:scale-110 active:scale-95 transition-all">
+              📷
+            </div>
+          </div>
+
+          <div className="w-full flex flex-col gap-3">
+            {/* Display Name Row */}
+            <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-purple-300 font-bold uppercase tracking-wider">Profile Name</span>
+                <span className="text-sm font-black text-white">{playerName}</span>
+              </div>
+              <button
+                onClick={() => {
+                  setNewName(playerName);
+                  setShowEditName(true);
+                }}
+                className="px-3.5 py-1.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-[10px] rounded-xl hover:scale-105 active:scale-95 transition-transform uppercase"
+              >
+                Edit Name
+              </button>
+            </div>
+
+            {/* UID Row */}
+            <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-purple-300 font-bold uppercase tracking-wider">Player ID / UID</span>
+                <span className="text-xs font-black text-amber-300 font-mono tracking-wider">{playerUID}</span>
+              </div>
+              <button
+                onClick={handleCopyUID}
+                className="px-3.5 py-1.5 bg-purple-800 text-white font-black text-[10px] rounded-xl border border-purple-500 hover:bg-purple-700 active:scale-95 transition-transform uppercase"
+              >
+                UID Copy
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── CARD 2: ACCOUNT SECURITY ── */}
+        <div className="bg-gradient-to-b from-[#2E0B4E]/90 to-[#1F0736]/90 border-2 border-purple-500/40 rounded-3xl p-5 shadow-2xl mb-4 relative glow-purple-border">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-500"></div>
+          
+          <h3 className="text-xs font-black text-amber-300 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <span>🔒</span> Account Security
+          </h3>
+
+          <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
+            <div className="flex flex-col">
+              <span className="text-[10px] text-purple-300 font-bold uppercase tracking-wider font-sans">Password</span>
+              <span className="text-sm font-black text-white tracking-widest font-mono">••••••••</span>
+            </div>
+            <button
+              onClick={() => setShowChangePassword(true)}
+              className="px-4 py-1.5 bg-purple-800 text-white font-black text-[10px] rounded-xl border border-purple-500 hover:bg-purple-700 active:scale-95 transition-transform uppercase"
+            >
+              Change
             </button>
           </div>
+        </div>
 
-          <h2 className="text-xl font-black text-white mb-0.5">{displayName}</h2>
-          <span className="text-[10px] text-purple-300 font-mono mb-2">ID: 1129385</span>
+        {/* ── CARD 3: LINKED ACCOUNTS ── */}
+        <div className="bg-gradient-to-b from-[#2E0B4E]/90 to-[#1F0736]/90 border-2 border-purple-500/40 rounded-3xl p-5 shadow-2xl mb-4 relative glow-purple-border">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-400"></div>
 
-          {/* Level & XP Bar */}
-          <div className="w-full max-w-[240px] flex flex-col gap-1 mb-3">
-            <div className="flex justify-between items-center text-[10px] font-black">
-              <span className="text-amber-400">LEVEL 25</span>
-              <span className="text-purple-300">75%</span>
-            </div>
-            <div className="w-full h-3 bg-purple-950/80 rounded-full overflow-hidden border border-amber-400/60 shadow-inner relative flex p-[1px]">
-              <div 
-                className="h-full bg-gradient-to-r from-yellow-500 via-amber-300 to-yellow-400 rounded-full shadow-[0_0_8px_rgba(251,191,36,0.8)]" 
-                style={{ width: "75%" }}
-              ></div>
-            </div>
-          </div>
+          <h3 className="text-xs font-black text-amber-300 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <span>🔗</span> Linked Accounts
+          </h3>
 
-          {/* Badge Rank */}
-          <div className="bg-black/50 px-4 py-1.5 rounded-full border border-amber-400/40 flex items-center gap-2">
-            <span className="text-sm">🛡️</span>
-            <div>
-              <span className="text-[10px] font-black text-amber-300 block uppercase leading-none">Bronze League</span>
-              <span className="text-[8px] text-gray-400 leading-none">Current Rank</span>
+          <div className="space-y-2.5">
+            {/* Facebook Link Row */}
+            <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
+              <div className="flex items-center gap-2.5">
+                <span className="text-lg">📘</span>
+                <span className="text-xs font-black text-white">Facebook</span>
+              </div>
+              {isFBLinked ? (
+                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">Linked ✓</span>
+              ) : (
+                <button
+                  onClick={() => handleLinkAccount('facebook')}
+                  className="px-3.5 py-1.5 bg-[#1877F2] text-white font-black text-[10px] rounded-xl hover:bg-blue-600 active:scale-95 transition-transform uppercase"
+                >
+                  Link
+                </button>
+              )}
             </div>
+
+            {/* Google Link Row */}
+            <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
+              <div className="flex items-center gap-2.5">
+                <span className="text-lg">🔴</span>
+                <span className="text-xs font-black text-white">Google</span>
+              </div>
+              {isGoogleLinked ? (
+                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">Linked ✓</span>
+              ) : (
+                <button
+                  onClick={() => handleLinkAccount('google')}
+                  className="px-3.5 py-1.5 bg-red-600 text-white font-black text-[10px] rounded-xl hover:bg-red-700 active:scale-95 transition-transform uppercase"
+                >
+                  Link
+                </button>
+              )}
+            </div>
+
+            {/* Phone Link Row */}
+            <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
+              <div className="flex items-center gap-2.5">
+                <span className="text-lg">📱</span>
+                <span className="text-xs font-black text-white">Phone</span>
+              </div>
+              {isPhoneLinked ? (
+                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">Linked ✓</span>
+              ) : (
+                <button
+                  onClick={() => handleLinkAccount('phone')}
+                  className="px-3.5 py-1.5 bg-emerald-600 text-white font-black text-[10px] rounded-xl hover:bg-emerald-700 active:scale-95 transition-transform uppercase"
+                >
+                  Link
+                </button>
+              )}
+            </div>
+
+            {/* Guest Upgrade Option */}
+            {user?.loginProvider === 'guest' && (
+              <button
+                onClick={() => setShowUpgradeModal(true)}
+                className="w-full mt-3 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[11px] tracking-wider rounded-2xl border border-amber-300 hover:scale-[1.01] active:scale-95 transition-transform uppercase"
+              >
+                Guest Account Upgrade 💎
+              </button>
+            )}
           </div>
         </div>
 
-        {/* 3 Quick Stats Row */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="bg-purple-950/80 border-2 border-purple-500/30 rounded-2xl p-2.5 text-center shadow-lg hover:scale-105 transition-transform">
-            <span className="text-[10px] text-purple-300 block font-bold">Matches</span>
-            <span className="text-base font-black text-white">245</span>
-          </div>
-          <div className="bg-purple-950/80 border-2 border-purple-500/30 rounded-2xl p-2.5 text-center shadow-lg hover:scale-105 transition-transform">
-            <span className="text-[10px] text-purple-300 block font-bold">Win Rate</span>
-            <span className="text-base font-black text-green-400">68%</span>
-          </div>
-          <div className="bg-purple-950/80 border-2 border-purple-500/30 rounded-2xl p-2.5 text-center shadow-lg hover:scale-105 transition-transform">
-            <span className="text-[10px] text-purple-300 block font-bold">Win Streak</span>
-            <span className="text-base font-black text-amber-400">12</span>
-          </div>
-        </div>
-
-        {/* Currencies Pill Row */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="bg-black/50 border-2 border-amber-400/30 rounded-2xl p-3 flex items-center justify-between shadow-lg glow-gold-border hover:scale-105 transition-transform cursor-pointer">
-            <div className="flex items-center gap-2">
-              <img src="/assets/images/icons/luxury_coin.png" className="w-6 h-6 object-contain" alt="Coins" />
-              <span className="text-xs font-black text-amber-400">259.8K</span>
-            </div>
-            <span className="text-xs text-gray-400">❯</span>
-          </div>
-          <div className="bg-black/50 border-2 border-blue-400/30 rounded-2xl p-3 flex items-center justify-between shadow-lg glow-purple-border hover:scale-105 transition-transform cursor-pointer">
-            <div className="flex items-center gap-2">
-              <img src="/assets/images/icons/luxury_gem.png" className="w-6 h-6 object-contain" alt="Gems" />
-              <span className="text-xs font-black text-blue-400">1,250</span>
-            </div>
-            <span className="text-xs text-gray-400">❯</span>
-          </div>
-        </div>
-
-        {/* Menu Items List */}
-        <div className="space-y-2 mb-6">
-          <button className="w-full bg-purple-950/80 border-2 border-purple-500/35 rounded-2xl p-3.5 flex items-center justify-between hover:scale-[1.02] hover:border-purple-400 active:scale-95 transition-all shadow-md">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">🏆</span>
-              <span className="text-xs font-black text-white">Achievements</span>
-            </div>
-            <span className="text-xs text-gray-400">❯</span>
-          </button>
-
-          <button className="w-full bg-purple-950/80 border-2 border-purple-500/35 rounded-2xl p-3.5 flex items-center justify-between hover:scale-[1.02] hover:border-purple-400 active:scale-95 transition-all shadow-md">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">🎒</span>
-              <span className="text-xs font-black text-white">Inventory</span>
-            </div>
-            <span className="text-xs text-gray-400">❯</span>
-          </button>
-
-          <button
-            onClick={onOpenHistory}
-            className="w-full bg-purple-950/80 border-2 border-purple-500/35 rounded-2xl p-3.5 flex items-center justify-between hover:scale-[1.02] hover:border-purple-400 active:scale-95 transition-all shadow-md"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-xl">📜</span>
-              <span className="text-xs font-black text-white">History</span>
-            </div>
-            <span className="text-xs text-gray-400">❯</span>
-          </button>
-
-          <button className="w-full bg-purple-950/80 border-2 border-purple-500/35 rounded-2xl p-3.5 flex items-center justify-between hover:scale-[1.02] hover:border-purple-400 active:scale-95 transition-all shadow-md">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">📊</span>
-              <span className="text-xs font-black text-white">Statistics</span>
-            </div>
-            <span className="text-xs text-gray-400">❯</span>
-          </button>
-        </div>
+        {/* Logout Button */}
+        <button
+          onClick={handleLogoutClick}
+          className="w-full mt-2 py-4 bg-gradient-to-r from-red-600 via-rose-600 to-red-700 rounded-3xl text-white font-black text-xs tracking-widest uppercase shadow-xl hover:scale-[1.01] active:scale-95 transition-all border border-red-400"
+        >
+          Logout Account
+        </button>
       </div>
 
-      {/* Embedded Settings Modal Sheet (Full-Height Top Aligned) */}
-      {showSettings && (
-        <div className="absolute inset-0 bg-[#12061F] z-50 flex flex-col transition-all animate-in fade-in duration-200">
-          {/* Settings background */}
-          <LudoPageBackground variant="settings" />
-
-          <div className="w-full h-full flex flex-col relative z-10 px-6 py-6 overflow-y-auto no-scrollbar justify-between">
-            <div>
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6 pb-2 border-b border-purple-500/20">
-                <h2 className="text-lg font-black tracking-widest text-white uppercase glow-amber-text">
-                  ⚙️ GAME SETTINGS
-                </h2>
-                <button
-                  onClick={() => setShowSettings(false)}
-                  className="w-8 h-8 rounded-full bg-black/40 border border-white/10 flex items-center justify-center font-black text-xs hover:bg-black/60 active:scale-90 transition-transform"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Toggle Controls List */}
-              <div className="space-y-3 mb-6">
-                <ToggleItem icon="🔊" title="Sound" value={sound} onChange={setSound} />
-                <ToggleItem icon="🎵" title="Music" value={music} onChange={setMusic} />
-                <ToggleItem icon="🎙️" title="Voice Chat" value={voiceChat} onChange={setVoiceChat} />
-                <ToggleItem icon="🔔" title="Notifications" value={notifications} onChange={setNotifications} />
-              </div>
-
-              {/* Selectors */}
-              <div className="space-y-3 mb-6">
-                <div className="bg-purple-900/50 border border-purple-500/20 rounded-2xl p-3.5 flex items-center justify-between shadow-md">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">🌐</span>
-                    <span className="text-xs font-black text-white">Language</span>
-                  </div>
-                  <span className="text-xs font-black text-amber-400">English ❯</span>
-                </div>
-                <div className="bg-purple-900/50 border border-purple-500/20 rounded-2xl p-3.5 flex items-center justify-between shadow-md">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">❓</span>
-                    <span className="text-xs font-black text-white">Help & Support</span>
-                  </div>
-                  <span className="text-xs text-purple-300">❯</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Big Red Logout Button */}
+      {/* ── MODAL 1: EDIT NAME OVERLAY ── */}
+      {showEditName && (
+        <div className="absolute inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-[340px] bg-gradient-to-b from-[#2E0B4E] to-[#12061F] border-2 border-amber-400 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 relative">
             <button
-              onClick={handleLogoutClick}
-              className="w-full py-4 bg-gradient-to-r from-red-600 via-rose-600 to-red-700 rounded-2xl text-white font-black text-sm tracking-widest uppercase shadow-xl hover:scale-[1.01] active:scale-95 transition-all border border-red-400 mt-auto mb-4"
+              onClick={() => setShowEditName(false)}
+              className="absolute top-3 right-4 text-amber-300 text-lg font-black hover:text-white"
             >
-              LOGOUT FROM LUDO
+              ✕
+            </button>
+            <div className="text-center">
+              <span className="text-3xl">✏️</span>
+              <h3 className="text-base font-black text-amber-300 tracking-wider mt-1 uppercase">Edit Profile Name</h3>
+              <p className="text-[10px] text-purple-300/80">Enter your new username in uppercase</p>
+            </div>
+            <input
+              type="text"
+              maxLength={15}
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Username..."
+              className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-black text-sm text-center uppercase focus:outline-none focus:border-amber-400"
+            />
+            <button
+              onClick={handleSaveName}
+              className="w-full py-3 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-500 text-black font-black text-xs tracking-widest uppercase rounded-xl shadow-lg active:scale-95 transition-transform"
+            >
+              Save Username
             </button>
           </div>
+        </div>
+      )}
+
+      {/* ── MODAL 2: CHANGE PASSWORD OVERLAY ── */}
+      {showChangePassword && (
+        <div className="absolute inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-[340px] bg-gradient-to-b from-[#2E0B4E] to-[#12061F] border-2 border-amber-400 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 relative">
+            <button
+              onClick={() => setShowChangePassword(false)}
+              className="absolute top-3 right-4 text-amber-300 text-lg font-black hover:text-white"
+            >
+              ✕
+            </button>
+            <div className="text-center">
+              <span className="text-3xl">🔒</span>
+              <h3 className="text-base font-black text-amber-300 tracking-wider mt-1 uppercase">Change Password</h3>
+              <p className="text-[10px] text-purple-300/80">Update your account security key</p>
+            </div>
+            <div className="space-y-2">
+              <input
+                type="password"
+                value={currPassword}
+                onChange={(e) => setCurrPassword(e.target.value)}
+                placeholder="Current Password..."
+                className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400"
+              />
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="New Password..."
+                className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400"
+              />
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm New Password..."
+                className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400"
+              />
+            </div>
+            <button
+              onClick={handleChangePasswordSubmit}
+              className="w-full py-3 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-500 text-black font-black text-xs tracking-widest uppercase rounded-xl shadow-lg active:scale-95 transition-transform"
+            >
+              Update Security Key
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 3: GUEST UPGRADE OVERLAY ── */}
+      {showUpgradeModal && (
+        <div className="absolute inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-[340px] bg-gradient-to-b from-[#2E0B4E] to-[#12061F] border-2 border-amber-400 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 relative">
+            <button
+              onClick={() => setShowUpgradeModal(false)}
+              className="absolute top-3 right-4 text-amber-300 text-lg font-black hover:text-white"
+            >
+              ✕
+            </button>
+            <div className="text-center">
+              <span className="text-3xl">💎</span>
+              <h3 className="text-base font-black text-amber-300 tracking-wider mt-1 uppercase">Upgrade Guest Account</h3>
+              <p className="text-[10px] text-purple-300/80">Link your email to keep your coins and rank forever</p>
+            </div>
+            <div className="space-y-2">
+              <input
+                type="email"
+                value={upgradeEmail}
+                onChange={(e) => setUpgradeEmail(e.target.value)}
+                placeholder="Enter Email Address..."
+                className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400"
+              />
+              <input
+                type="password"
+                value={upgradePassword}
+                onChange={(e) => setUpgradePassword(e.target.value)}
+                placeholder="Choose Password..."
+                className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400"
+              />
+            </div>
+            <button
+              onClick={handleUpgradeAccount}
+              className="w-full py-3 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-500 text-black font-black text-xs tracking-widest uppercase rounded-xl shadow-lg active:scale-95 transition-transform"
+            >
+              Link & Upgrade
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── CUSTOM FLOATING TOAST BAR ── */}
+      {toastMessage && (
+        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-[100] px-4 py-2.5 bg-gradient-to-r from-purple-800 via-indigo-900 to-purple-800 border-2 border-amber-400/80 rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.8)] flex items-center justify-center animate-bounce">
+          <span className="text-[10px] font-black text-amber-300 tracking-wider uppercase select-none">
+            ✨ {toastMessage}
+          </span>
         </div>
       )}
     </div>
   );
 };
-
-const ToggleItem = ({
-  icon,
-  title,
-  value,
-  onChange,
-}: {
-  icon: string;
-  title: string;
-  value: boolean;
-  onChange: (val: boolean) => void;
-}) => (
-  <div className="bg-purple-900/50 border border-purple-500/20 rounded-2xl p-3 flex items-center justify-between">
-    <div className="flex items-center gap-3">
-      <span className="text-lg">{icon}</span>
-      <span className="text-xs font-bold text-white">{title}</span>
-    </div>
-    <button
-      type="button"
-      onClick={() => onChange(!value)}
-      className={`w-11 h-6 rounded-full p-1 transition-colors relative flex items-center shadow-inner ${
-        value ? "bg-emerald-500" : "bg-gray-700"
-      }`}
-    >
-      <div
-        className={`w-4 h-4 rounded-full bg-white shadow transform transition-transform ${
-          value ? "translate-x-5" : "translate-x-0"
-        }`}
-      ></div>
-    </button>
-  </div>
-);

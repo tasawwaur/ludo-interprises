@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { LudoPageBackground } from "../../../components/effects/LudoPageBackground";
 import { TopHeader } from "../components/TopHeader";
 import { EventCarousel } from "../components/EventCarousel";
@@ -40,6 +40,7 @@ interface HomePageProps {
 
 export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) => {
   const user = useUserStore((s) => s.user);
+  const updateUser = useUserStore((s) => s.updateUser);
   const level = user?.level || 25;
   const [showLuckySpin, setShowLuckySpin] = useState(false);
   const [showXPDetails, setShowXPDetails] = useState(false);
@@ -48,11 +49,37 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [activeNav, setActiveNav] = useState("home");
   const [playerName, setPlayerName] = useState(() => {
+    if (user) {
+      return user.displayName || user.username || localStorage.getItem("ludo_player_name") || "TASAVVUR";
+    }
     return localStorage.getItem("ludo_player_name") || "TASAVVUR";
   });
   const [playerPhoto, setPlayerPhoto] = useState<string | null>(() => {
+    if (user?.avatar) {
+      return user.avatar;
+    }
     return localStorage.getItem("ludo_player_photo");
   });
+
+  // ✅ Sync user store updates with home screen name + avatar (for Guest, Facebook, and Google)
+  useEffect(() => {
+    if (user) {
+      const activeName = user.displayName || user.username;
+      if (activeName && activeName !== playerName) {
+        setPlayerName(activeName);
+        localStorage.setItem("ludo_player_name", activeName);
+      }
+      if (user.avatar && user.avatar !== playerPhoto) {
+        setPlayerPhoto(user.avatar);
+        localStorage.setItem("ludo_player_photo", user.avatar);
+      } else if (!user.avatar && playerPhoto) {
+        const storedPhoto = localStorage.getItem("ludo_player_photo");
+        if (!storedPhoto) {
+          setPlayerPhoto(null);
+        }
+      }
+    }
+  }, [user?.id, user?.displayName, user?.username, user?.avatar]);
   const [showPhotoAdjust, setShowPhotoAdjust] = useState(false);
   const [photoScale, setPhotoScale] = useState(() => {
     const val = localStorage.getItem("ludo_player_photo_scale");
@@ -144,6 +171,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
               const base64Str = event.target?.result as string;
               setPlayerPhoto(base64Str);
               localStorage.setItem("ludo_player_photo", base64Str);
+              updateUser({ avatar: base64Str });
               setPhotoScale(1);
               setPhotoOffsetY(0);
               localStorage.setItem("ludo_player_photo_scale", "1");
@@ -688,6 +716,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
                     const formatted = cleaned.toUpperCase();
                     setPlayerName(formatted);
                     localStorage.setItem("ludo_player_name", formatted);
+                    updateUser({ username: formatted, displayName: formatted });
                     triggerToast(`Name updated to ${formatted}`);
                     setShowNameEdit(false);
                   } else {

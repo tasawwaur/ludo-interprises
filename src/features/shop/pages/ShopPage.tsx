@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useUserStore } from "../../../user/user.store";
 import { LudoPageBackground } from "../../../components/effects/LudoPageBackground";
+import confetti from "canvas-confetti";
 
 interface ShopPageProps {
   onBack?: () => void;
@@ -8,19 +9,80 @@ interface ShopPageProps {
 
 export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
   const user = useUserStore((s) => s.user);
-  const [activeTab, setActiveTab] = useState<"COINS" | "GEMS">("COINS");
+  const updateUser = useUserStore((s) => s.updateUser);
 
+  const [activeTab, setActiveTab] = useState<"COINS" | "DIAMONDS" | "CROWNS">("COINS");
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Loaded quantities
+  const currentCoins = user?.coins ?? 1000;
+  const currentGems = user?.gems ?? 30;
+  const currentCrowns = user?.crowns ?? 2;
+
+  // Coin packages (purchased via real INR money)
   const coinPacks = [
-    { id: 1, amount: "10K", coins: "10,000", price: "₹30.00", icon: "🪙" },
-    { id: 2, amount: "50K", coins: "50,000", price: "₹150.00", icon: "🪙", isPopular: true },
-    { id: 3, amount: "100K", coins: "100,000", price: "₹300.00", icon: "💰" },
+    { id: "c1", label: "Pouch of Coins", amount: 10000, displayAmt: "10K", price: "₹30.00", img: "/assets/images/icons/icon_coin.png", isPopular: false },
+    { id: "c2", label: "Pile of Gold", amount: 50000, displayAmt: "50K", price: "₹150.00", img: "/assets/images/icons/icon_coin.png", isPopular: true },
+    { id: "c3", label: "Treasure Chest", amount: 250000, displayAmt: "250K", price: "₹600.00", img: "/assets/images/icons/luxury_chest.png", isPopular: false },
+    { id: "c4", label: "Pharaoh Vault", amount: 1000000, displayAmt: "1M", price: "₹2000.00", img: "/assets/images/icons/luxury_chest.png", isPopular: false, isBest: true },
   ];
 
-  const gemPacks = [
-    { id: 1, amount: "100", gems: "100", price: "₹30.00", icon: "💎" },
-    { id: 2, amount: "500", gems: "500", price: "₹150.00", icon: "💎", isPopular: true },
-    { id: 3, amount: "1200", gems: "1,200", price: "₹300.00", icon: "💎" },
+  // Diamond packages (purchased via real INR money)
+  const diamondPacks = [
+    { id: "d1", label: "Handful of Gems", amount: 100, displayAmt: "100", price: "₹30.00", img: "/assets/images/icons/icon_diamond.png", isPopular: false },
+    { id: "d2", label: "Diamond Cache", amount: 500, displayAmt: "500", price: "₹150.00", img: "/assets/images/icons/icon_diamond.png", isPopular: true },
+    { id: "d3", label: "Royal Satchel", amount: 2500, displayAmt: "2.5K", price: "₹600.00", img: "/assets/images/icons/icon_diamond.png", isPopular: false },
+    { id: "d4", label: "Emperor Vault", amount: 10000, displayAmt: "10K", price: "₹2000.00", img: "/assets/images/icons/icon_diamond.png", isPopular: false, isBest: true },
   ];
+
+  // Crowns packages (purchased via Coins or Diamonds)
+  const crownPacks = [
+    { id: "cr1", label: "Bronze Crown", costType: "COINS" as const, costAmount: 5000, displayCost: "5,000 Coins", img: "/assets/images/icons/icon_gem.png", filter: "hue-rotate-[15deg] brightness-[0.7] sepia-[0.5]", isPopular: false },
+    { id: "cr2", label: "Silver Crown", costType: "COINS" as const, costAmount: 25000, displayCost: "25,000 Coins", img: "/assets/images/icons/icon_gem.png", filter: "saturate-[0.1] brightness-[1.3]", isPopular: true },
+    { id: "cr3", label: "Gold Crown", costType: "DIAMONDS" as const, costAmount: 500, displayCost: "500 Gems", img: "/assets/images/icons/icon_gem.png", filter: "brightness-[1.1] drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]", isPopular: false },
+    { id: "cr4", label: "Royal Crown", costType: "DIAMONDS" as const, costAmount: 2500, displayCost: "2,500 Gems", img: "/assets/images/icons/icon_gem.png", filter: "hue-rotate-[130deg] brightness-[1.2] drop-shadow-[0_0_10px_rgba(239,68,68,0.7)]", isPopular: false, isBest: true },
+  ];
+
+  const triggerToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 2500);
+  };
+
+  const handleBuyCoins = (amount: number, label: string) => {
+    confetti({ particleCount: 40, spread: 60, colors: ['#FFD700', '#FFA500'] });
+    updateUser({ coins: currentCoins + amount });
+    triggerToast(`✅ ${label} purchased! +${amount.toLocaleString()} Coins`);
+  };
+
+  const handleBuyDiamonds = (amount: number, label: string) => {
+    confetti({ particleCount: 40, spread: 60, colors: ['#818CF8', '#6366F1'] });
+    updateUser({ gems: currentGems + amount });
+    triggerToast(`✅ ${label} purchased! +${amount.toLocaleString()} Gems`);
+  };
+
+  const handleUnlockCrown = (costType: "COINS" | "DIAMONDS", costAmount: number, label: string) => {
+    if (costType === "COINS") {
+      if (currentCoins < costAmount) {
+        triggerToast("❌ Insufficient Coins to purchase this Crown!");
+        return;
+      }
+      updateUser({
+        coins: currentCoins - costAmount,
+        crowns: currentCrowns + 1
+      });
+    } else {
+      if (currentGems < costAmount) {
+        triggerToast("❌ Insufficient Gems to purchase this Crown!");
+        return;
+      }
+      updateUser({
+        gems: currentGems - costAmount,
+        crowns: currentCrowns + 1
+      });
+    }
+    confetti({ particleCount: 50, spread: 70, colors: ['#FFD700', '#FFA500', '#9333EA'] });
+    triggerToast(`✅ ${label} unlocked! 👑`);
+  };
 
   return (
     <div className="min-h-screen w-full bg-[#12061F] text-white flex flex-col items-center relative overflow-hidden select-none font-sans">
@@ -29,94 +91,231 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
 
       <div className="w-full max-w-[430px] h-screen flex flex-col relative z-10 px-3 py-3 overflow-y-auto no-scrollbar">
         {/* Header Bar */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
           <button
             onClick={onBack}
             className="w-9 h-9 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-lg hover:bg-black/60 hover:scale-105 active:scale-95 transition-transform"
           >
             ❮
           </button>
-          <h1 className="text-xl font-black tracking-widest bg-gradient-to-r from-yellow-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent uppercase glow-amber-text">
-            SHOP
+          <h1 className="text-xl font-black tracking-widest bg-gradient-to-r from-yellow-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent uppercase glow-amber-text flex items-center gap-1.5">
+            <span>🛒</span> VIP SHOP
           </h1>
           <div className="w-9 h-9"></div>
         </div>
 
-        {/* User Balance Header Pill */}
-        <div className="flex justify-center gap-4 mb-4">
-          <div className="flex items-center gap-1.5 bg-black/60 border border-amber-400/50 px-4 py-1.5 rounded-full shadow-lg glow-gold-border hover:scale-105 transition-transform">
-            <span className="text-sm">🪙</span>
-            <span className="text-xs font-black text-amber-400">{user?.coins || "259.8K"}</span>
+        {/* ── EXPANDED CURRENCY BAR PILLS (Coins, Gems, and Crowns) ── */}
+        <div className="grid grid-cols-3 gap-2 mb-4 bg-black/30 p-2 rounded-2xl border border-purple-500/10 shadow-inner">
+          {/* Coins balance */}
+          <div className="flex items-center gap-1 bg-black/60 border border-amber-500/40 pl-1.5 pr-2.5 py-1.5 rounded-xl shadow-md flex-1">
+            <img src="/assets/images/icons/icon_coin.png" className="w-[18px] h-[18px] object-contain" alt="Coins" />
+            <span className="text-[9px] font-black text-amber-400 tracking-wider truncate font-mono">
+              {currentCoins.toLocaleString()}
+            </span>
           </div>
-          <div className="flex items-center gap-1.5 bg-black/60 border border-blue-400/50 px-4 py-1.5 rounded-full shadow-lg glow-purple-border hover:scale-105 transition-transform">
-            <span className="text-sm">💎</span>
-            <span className="text-xs font-black text-blue-400">{user?.gems || "1,250"}</span>
+
+          {/* Diamonds balance */}
+          <div className="flex items-center gap-1 bg-black/60 border border-blue-500/40 pl-1.5 pr-2.5 py-1.5 rounded-xl shadow-md flex-1">
+            <img src="/assets/images/icons/icon_diamond.png" className="w-[18px] h-[18px] object-contain" alt="Gems" />
+            <span className="text-[9px] font-black text-blue-400 tracking-wider truncate font-mono">
+              {currentGems.toLocaleString()}
+            </span>
+          </div>
+
+          {/* Crowns balance */}
+          <div className="flex items-center gap-1 bg-black/60 border border-purple-500/40 pl-1.5 pr-2.5 py-1.5 rounded-xl shadow-md flex-1">
+            <img src="/assets/images/icons/icon_gem.png" className="w-[18px] h-[18px] object-contain" alt="Crowns" />
+            <span className="text-[9px] font-black text-purple-300 tracking-wider truncate font-mono">
+              {currentCrowns.toLocaleString()}
+            </span>
           </div>
         </div>
 
-        {/* Tabs: COINS / GEMS */}
-        <div className="flex bg-black/60 p-1.5 rounded-2xl border border-purple-500/30 mb-5 shadow-2xl">
+        {/* Tabs: COINS / GEMS / CROWNS */}
+        <div className="flex bg-black/60 p-1.5 rounded-2xl border border-purple-500/30 mb-5 shadow-2xl flex-shrink-0 text-center font-black">
           <button
             onClick={() => setActiveTab("COINS")}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-black tracking-wider uppercase transition-all ${
+            className={`flex-1 py-2.5 rounded-xl text-[10px] tracking-wider uppercase transition-all ${
               activeTab === "COINS"
-                ? "bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-slate-950 shadow-lg border border-yellow-200 hover:scale-[1.02]"
+                ? "bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-slate-950 shadow-lg border border-yellow-200"
                 : "text-gray-400 hover:text-white"
             }`}
           >
-            COINS
+            <span className="flex items-center justify-center gap-1.5">
+              <img src="/assets/images/icons/icon_coin.png" className="w-[12px] h-[12px] object-contain" alt="Coins" />
+              Coins
+            </span>
           </button>
           <button
-            onClick={() => setActiveTab("GEMS")}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-black tracking-wider uppercase transition-all ${
-              activeTab === "GEMS"
-                ? "bg-gradient-to-r from-blue-500 via-indigo-600 to-blue-700 text-white shadow-lg border border-blue-400 hover:scale-[1.02]"
+            onClick={() => setActiveTab("DIAMONDS")}
+            className={`flex-1 py-2.5 rounded-xl text-[10px] tracking-wider uppercase transition-all ${
+              activeTab === "DIAMONDS"
+                ? "bg-gradient-to-r from-blue-500 via-indigo-600 to-blue-700 text-white shadow-lg border border-blue-400"
                 : "text-gray-400 hover:text-white"
             }`}
           >
-            GEMS
+            <span className="flex items-center justify-center gap-1.5">
+              <img src="/assets/images/icons/icon_diamond.png" className="w-[12px] h-[12px] object-contain" alt="Gems" />
+              Gems
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveTab("CROWNS")}
+            className={`flex-1 py-2.5 rounded-xl text-[10px] tracking-wider uppercase transition-all ${
+              activeTab === "CROWNS"
+                ? "bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-800 text-white shadow-lg border border-purple-400"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <span className="flex items-center justify-center gap-1.5">
+              <img src="/assets/images/icons/icon_gem.png" className="w-[12px] h-[12px] object-contain" alt="Crowns" />
+              Crowns
+            </span>
           </button>
         </div>
 
-        {/* Pack Grid (Matching Image #11) */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          {activeTab === "COINS"
-            ? coinPacks.map((p) => (
-                <div
-                  key={p.id}
-                  className="bg-purple-950/80 border-2 border-amber-400/50 rounded-3xl p-3 flex flex-col items-center justify-between text-center relative shadow-[0_8px_32px_rgba(0,0,0,0.5)] glow-gold-border hover:scale-105 active:scale-95 transition-all cursor-pointer"
-                >
-                  {p.isPopular && (
-                    <span className="absolute -top-2 bg-gradient-to-r from-red-500 to-rose-600 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-full shadow border border-red-300">
-                      POPULAR
-                    </span>
-                  )}
-                  <span className="text-xs font-black text-amber-400 mt-1">{p.amount}</span>
-                  <span className="text-3xl my-3 drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] animate-float-fast">{p.icon}</span>
-                  <button className="w-full py-2 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-slate-950 font-black text-[11px] rounded-xl shadow border border-yellow-200 hover:brightness-110 active:scale-95 transition-all">
+        {/* Packs grid list */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          
+          {/* COINS SECTION */}
+          {activeTab === "COINS" &&
+            coinPacks.map((p) => (
+              <div
+                key={p.id}
+                onClick={() => handleBuyCoins(p.amount, p.label)}
+                className="bg-purple-950/60 border-2 border-amber-500/30 rounded-3xl p-3 flex flex-col items-center justify-between text-center relative shadow-lg hover:border-amber-400 active:scale-95 transition-all cursor-pointer group"
+              >
+                {p.isPopular && (
+                  <span className="absolute -top-2 bg-gradient-to-r from-rose-500 to-red-600 text-white text-[7.5px] font-black uppercase px-2 py-0.5 rounded-full border border-red-300 shadow animate-pulse">
+                    POPULAR
+                  </span>
+                )}
+                {p.isBest && (
+                  <span className="absolute -top-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-[7.5px] font-black uppercase px-2 py-0.5 rounded-full border border-emerald-300 shadow">
+                    BEST VALUE
+                  </span>
+                )}
+                
+                <span className="text-[10px] font-black text-amber-300 uppercase tracking-widest mt-1 block leading-none">
+                  {p.label}
+                </span>
+
+                <div className="w-20 h-20 flex items-center justify-center my-3 relative">
+                  <div className="absolute inset-0 bg-amber-500/5 rounded-full blur-xl group-hover:bg-amber-500/10 transition-colors"></div>
+                  <img
+                    src={p.img}
+                    alt={p.label}
+                    className="w-[64px] h-[64px] object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)] animate-float-mid"
+                  />
+                </div>
+
+                <div className="w-full flex flex-col gap-1">
+                  <span className="text-[11px] font-black text-white font-mono leading-none">
+                    +{p.amount.toLocaleString()} 🪙
+                  </span>
+                  <button className="w-full py-2 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-slate-950 font-black text-[11px] rounded-2xl shadow border border-yellow-200 mt-1 uppercase">
                     {p.price}
                   </button>
                 </div>
-              ))
-            : gemPacks.map((p) => (
-                <div
-                  key={p.id}
-                  className="bg-purple-950/80 border-2 border-blue-400/50 rounded-3xl p-3 flex flex-col items-center justify-between text-center relative shadow-[0_8px_32px_rgba(0,0,0,0.5)] glow-purple-border hover:scale-105 active:scale-95 transition-all cursor-pointer"
-                >
-                  {p.isPopular && (
-                    <span className="absolute -top-2 bg-gradient-to-r from-red-500 to-rose-600 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-full shadow border border-red-300">
-                      POPULAR
-                    </span>
-                  )}
-                  <span className="text-xs font-black text-blue-400 mt-1">{p.amount}</span>
-                  <span className="text-3xl my-3 drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] animate-float-mid">{p.icon}</span>
-                  <button className="w-full py-2 bg-gradient-to-r from-blue-500 via-indigo-600 to-blue-700 text-white font-black text-[11px] rounded-xl shadow border border-blue-300 hover:brightness-110 active:scale-95 transition-all">
+              </div>
+            ))}
+
+          {/* DIAMONDS SECTION */}
+          {activeTab === "DIAMONDS" &&
+            diamondPacks.map((p) => (
+              <div
+                key={p.id}
+                onClick={() => handleBuyDiamonds(p.amount, p.label)}
+                className="bg-purple-950/60 border-2 border-blue-500/30 rounded-3xl p-3 flex flex-col items-center justify-between text-center relative shadow-lg hover:border-blue-400 active:scale-95 transition-all cursor-pointer group"
+              >
+                {p.isPopular && (
+                  <span className="absolute -top-2 bg-gradient-to-r from-rose-500 to-red-600 text-white text-[7.5px] font-black uppercase px-2 py-0.5 rounded-full border border-red-300 shadow animate-pulse">
+                    POPULAR
+                  </span>
+                )}
+                {p.isBest && (
+                  <span className="absolute -top-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-[7.5px] font-black uppercase px-2 py-0.5 rounded-full border border-emerald-300 shadow">
+                    BEST VALUE
+                  </span>
+                )}
+                
+                <span className="text-[10px] font-black text-blue-300 uppercase tracking-widest mt-1 block leading-none">
+                  {p.label}
+                </span>
+
+                <div className="w-20 h-20 flex items-center justify-center my-3 relative">
+                  <div className="absolute inset-0 bg-blue-500/5 rounded-full blur-xl group-hover:bg-blue-500/10 transition-colors"></div>
+                  <img
+                    src={p.img}
+                    alt={p.label}
+                    className="w-[64px] h-[64px] object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)] animate-float-mid"
+                  />
+                </div>
+
+                <div className="w-full flex flex-col gap-1">
+                  <span className="text-[11px] font-black text-white font-mono leading-none">
+                    +{p.amount.toLocaleString()} 💎
+                  </span>
+                  <button className="w-full py-2 bg-gradient-to-r from-blue-400 via-indigo-600 to-blue-500 text-white font-black text-[11px] rounded-2xl shadow border border-blue-300 mt-1 uppercase">
                     {p.price}
                   </button>
                 </div>
-              ))}
+              </div>
+            ))}
+
+          {/* CROWNS SECTION */}
+          {activeTab === "CROWNS" &&
+            crownPacks.map((p) => (
+              <div
+                key={p.id}
+                onClick={() => handleUnlockCrown(p.costType, p.costAmount, p.label)}
+                className="bg-purple-950/60 border-2 border-purple-500/30 rounded-3xl p-3 flex flex-col items-center justify-between text-center relative shadow-lg hover:border-purple-400 active:scale-95 transition-all cursor-pointer group"
+              >
+                {p.isPopular && (
+                  <span className="absolute -top-2 bg-gradient-to-r from-rose-500 to-red-600 text-white text-[7.5px] font-black uppercase px-2 py-0.5 rounded-full border border-red-300 shadow animate-pulse">
+                    POPULAR
+                  </span>
+                )}
+                {p.isBest && (
+                  <span className="absolute -top-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-[7.5px] font-black uppercase px-2 py-0.5 rounded-full border border-emerald-300 shadow">
+                    ELITE VIP
+                  </span>
+                )}
+                
+                <span className="text-[10px] font-black text-purple-300 uppercase tracking-widest mt-1 block leading-none">
+                  {p.label}
+                </span>
+
+                <div className="w-20 h-20 flex items-center justify-center my-3 relative">
+                  <div className="absolute inset-0 bg-purple-500/5 rounded-full blur-xl group-hover:bg-purple-500/10 transition-colors"></div>
+                  <img
+                    src={p.img}
+                    alt={p.label}
+                    className={`w-[60px] h-[60px] object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)] animate-float-mid ${p.filter}`}
+                  />
+                </div>
+
+                <div className="w-full flex flex-col gap-1">
+                  <span className="text-[10px] font-black text-amber-200 uppercase tracking-wide leading-none">
+                    Unlocks 👑
+                  </span>
+                  <button className="w-full py-2 bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white font-black text-[10px] rounded-2xl shadow border border-purple-500 mt-1 uppercase">
+                    {p.displayCost}
+                  </button>
+                </div>
+              </div>
+            ))}
         </div>
       </div>
+
+      {/* ── FLOATING TOAST BAR ── */}
+      {toastMessage && (
+        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-[200] px-4 py-2 bg-gradient-to-r from-purple-800 to-indigo-900 border-2 border-amber-400 rounded-xl shadow-lg animate-bounce">
+          <span className="text-[9px] font-black text-amber-300 tracking-wider uppercase select-none">
+            ✨ {toastMessage}
+          </span>
+        </div>
+      )}
     </div>
   );
 };

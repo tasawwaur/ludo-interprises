@@ -210,10 +210,10 @@
 }
 
 .currency-crowns {
-  color: #FFF8E1;
+  color: #EAD9FF;
   text-shadow: 
-    0 0 8px rgba(255, 193, 7, 0.8),
-    0 0 16px rgba(255, 193, 7, 0.45),
+    0 0 8px rgba(184, 107, 255, 0.8),
+    0 0 16px rgba(184, 107, 255, 0.45),
     0 1px 3px rgba(0, 0, 0, 0.9);
   font-weight: 900;
   font-family: 'Outfit', sans-serif;
@@ -230,10 +230,10 @@
   letter-spacing: 0.05em;
 }
 .currency-gems {
-  color: #EAD9FF;
+  color: #E0F7FA;
   text-shadow: 
-    0 0 8px rgba(184, 107, 255, 0.8),
-    0 0 16px rgba(184, 107, 255, 0.45),
+    0 0 8px rgba(0, 188, 212, 0.8),
+    0 0 16px rgba(0, 188, 212, 0.45),
     0 1px 3px rgba(0, 0, 0, 0.9);
   font-weight: 900;
   font-family: 'Outfit', sans-serif;

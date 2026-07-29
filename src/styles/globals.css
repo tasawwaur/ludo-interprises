@@ -260,15 +260,15 @@
 }
 
 .currency-icon {
-  height: 14px;          /* 10% smaller */
-  width: 14px;
+  height: 12px;          /* Made smaller */
+  width: 12px;
   object-fit: contain;
   flex-shrink: 0;
 }
 
 .currency-value {
-  font-size: 12px;       /* 10% smaller */
-  font-weight: 700;
+  font-size: 10.5px;     /* Made smaller */
+  font-weight: 900;      /* Made bolder */
   line-height: 1;
   font-family: 'Outfit', sans-serif;
 }

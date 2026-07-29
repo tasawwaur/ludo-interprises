@@ -6,6 +6,8 @@ import { HeroCard } from "../components/HeroCard";
 import { GameModeGrid } from "../components/GameModeGrid";
 import { BottomNavigation } from "../components/BottomNavigation";
 import { LuckySpinModal } from "../../events/LuckySpinModal";
+import { XPBar } from "../components/Profile/XPBar";
+import { useUserStore } from "../../../user/user.store";
 
 const formatCurrency = (val: number): string => {
   if (val < 1000) {
@@ -36,6 +38,8 @@ interface HomePageProps {
 }
 
 export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) => {
+  const user = useUserStore((s) => s.user);
+  const level = user?.level || 25;
   const [showLuckySpin, setShowLuckySpin] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [activeNav, setActiveNav] = useState("home");
@@ -108,7 +112,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
       />
 
       {/* ── LUXURY PROFILE — Top Left Corner ── */}
-      <div className="absolute top-[2px] left-[2px] z-40 flex flex-col items-center" style={{ width: '108px' }}>
+      <div className="absolute top-[12px] left-[5%] z-40 flex flex-col items-center" style={{ width: '108px' }}>
         {/* Profile Picture with Luxury Frame - clickable to upload */}
         <button
           onClick={() => fileInputRef.current?.click()}
@@ -155,6 +159,44 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
             {playerName}
           </span>
         </div>
+      </div>
+
+      {/* ── LUXURY XP PROGRESS BAR ── */}
+      <div className="absolute top-[42px] left-[130px] z-40 w-[140px]">
+        <XPBar progressPercent={0.75} level={level} />
+      </div>
+
+      {/* ── LUXURY LEFT SIDE ICON BAR (Video Ads & VIP Club) ── */}
+      <div className="absolute top-[142px] left-[12px] z-40 flex flex-col gap-[10px] items-center">
+        {/* Video Ads Button */}
+        <button
+          onClick={() => triggerToast("Loading Video Ad...")}
+          className="w-[34px] h-[34px] p-0 border-0 outline-none bg-transparent hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+          style={{ WebkitTapHighlightColor: "transparent" }}
+          aria-label="Video Ads"
+        >
+          <img
+            src="/assets/images/icons/icon_video_ads.png"
+            alt="Video Ads"
+            className="w-full h-full object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]"
+            draggable={false}
+          />
+        </button>
+
+        {/* Club Crown/VIP Button */}
+        <button
+          onClick={() => triggerToast("Opening VIP Club...")}
+          className="w-[34px] h-[34px] p-0 border-0 outline-none bg-transparent hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+          style={{ WebkitTapHighlightColor: "transparent" }}
+          aria-label="VIP Club"
+        >
+          <img
+            src="/assets/images/icons/icon_club_crown.png"
+            alt="VIP Club"
+            className="w-full h-full object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]"
+            draggable={false}
+          />
+        </button>
       </div>
 
       {/* Photo Adjustment Modal */}
@@ -217,8 +259,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
             className="w-full h-auto object-contain rotate-180 translate-y-[8px]"
             draggable={false}
           />
-          {/* Currency Values Overlay */}
-          <div className="absolute inset-0 flex items-center justify-center translate-y-0" style={{ padding: '0 12%' }}>
+          {/* Currency Values Overlay — Clickable to open Shop */}
+          <button
+            onClick={() => onOpenView?.("SHOP")}
+            className="absolute inset-0 flex items-center justify-center translate-y-0 border-0 outline-none bg-transparent w-full h-full cursor-pointer hover:scale-[1.02] active:scale-98 transition-all"
+            style={{ padding: '0 12%', WebkitTapHighlightColor: 'transparent' }}
+            aria-label="Open Shop"
+          >
             <div className="currencyBar">
               {/* Crowns (left section) */}
               <div className="currency-item">
@@ -236,7 +283,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
                 <span className="currency-value currency-gems">{formatCurrency(1250)}</span>
               </div>
             </div>
-          </div>
+          </button>
         </div>
       </div>
 

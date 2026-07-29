@@ -2,20 +2,43 @@ import React from 'react';
 
 interface XPBarProps {
   progressPercent?: number;
+  level?: number;
 }
 
-export const XPBar: React.FC<XPBarProps> = ({ progressPercent = 75 }) => {
+export const XPBar: React.FC<XPBarProps> = ({ progressPercent = 75, level = 85 }) => {
   return (
-    <div className="w-full flex items-center gap-2 mt-1">
-      <div className="flex-1 h-2.5 bg-slate-950/80 rounded-full overflow-hidden border border-purple-400/40 shadow-inner relative">
+    <div className="relative w-full aspect-[4.54/1] select-none my-0.5">
+      {/* 1. Progress Bar Fill (behind the frame, showing through the transparent cut-out) */}
+      <div 
+        className="absolute left-[23.2%] right-[18.9%] top-[38%] bottom-[42%] bg-purple-950/80 rounded-full overflow-hidden z-0 flex p-[0.5px]"
+      >
         <div
           style={{ width: `${progressPercent}%` }}
-          className="h-full bg-gradient-to-r from-[#ffc107] to-[#ff9800] rounded-full shadow transition-all duration-500"
-        ></div>
+          className="h-full bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-500 rounded-full shadow-[0_0_4px_rgba(245,158,11,0.8)] transition-all duration-500"
+        />
       </div>
-      <span className="text-[11px] font-black text-amber-300 drop-shadow">
-        {progressPercent}% XP
-      </span>
+
+      {/* 2. Golden Luxury Frame Image (on top, with transparent middle track and shield) */}
+      <img
+        src="/assets/images/icons/luxury_xp_bar.png"
+        alt="XP Bar Frame"
+        className="absolute inset-0 w-full h-full object-contain z-10 pointer-events-none"
+        draggable={false}
+      />
+
+      {/* 3. Level Text (centered in the left circular shield, italic) */}
+      <div className="absolute left-[16.6%] top-[58%] -translate-x-1/2 -translate-y-1/2 z-20 flex items-center justify-center pointer-events-none">
+        <span className="text-[11px] font-black text-amber-200 italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+          {level}
+        </span>
+      </div>
+
+      {/* 4. Progress Text (centered on the progress bar, italic) */}
+      <div className="absolute left-[52.15%] top-[58%] -translate-x-1/2 -translate-y-1/2 z-20 flex items-center justify-center pointer-events-none">
+        <span className="text-[7.5px] font-black text-white italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] tracking-wider">
+          {Math.round(progressPercent * 100)} / 100 XP
+        </span>
+      </div>
     </div>
   );
 };

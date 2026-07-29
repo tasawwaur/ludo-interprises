@@ -38,7 +38,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ onOpenSettings }) => {
       </div>
 
       {/* XP Progress Bar Row */}
-      <XPBar progressPercent={75} />
+      <XPBar progressPercent={75} level={level} />
 
       {/* Bottom Action Row: Edit Profile Button */}
       <div className="flex items-center justify-end border-t border-purple-500/20 pt-2 mt-1">

@@ -1,0 +1,1 @@
+import React from "react"; export const OTPInput: React.FC = () => <div className="flex gap-2">{[1,2,3,4].map(i => <input key={i} className="w-10 h-12 text-center bg-slate-900 border border-slate-700 rounded-xl" maxLength={1} />)}</div>;

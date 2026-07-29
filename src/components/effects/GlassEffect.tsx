@@ -1,0 +1,1 @@
+import React from "react"; export const GlassEffect: React.FC<{ children: React.ReactNode }> = ({ children }) => <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl">{children}</div>;

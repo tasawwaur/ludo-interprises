@@ -1,0 +1,1 @@
+import React from "react"; export const HealthBar: React.FC<{ hp: number }> = ({ hp }) => <div className="w-full h-2 bg-red-950 rounded-full"><div className="h-full bg-red-500 rounded-full" style={{ width: `${hp}%` }}></div></div>;

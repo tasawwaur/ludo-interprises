@@ -1,0 +1,1 @@
+import React from "react"; export const TimerBar: React.FC<{ sec: number }> = ({ sec }) => <div className="w-full h-2 bg-amber-950 rounded-full"><div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${(sec/30)*100}%` }}></div></div>;

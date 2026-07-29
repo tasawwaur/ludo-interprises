@@ -1,0 +1,1 @@
+import React from "react"; import { Button } from "./Button"; export const GlassButton: React.FC<{ children: React.ReactNode }> = ({ children }) => <Button className="backdrop-blur-md bg-white/10 border border-white/20">{children}</Button>;

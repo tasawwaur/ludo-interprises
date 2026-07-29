@@ -1,0 +1,1 @@
+import React from "react"; export const FloatingButton: React.FC<{ children: React.ReactNode }> = ({ children }) => <button className="fixed bottom-6 right-6 p-4 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-2xl">{children}</button>;

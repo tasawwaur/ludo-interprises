@@ -1,0 +1,1 @@
+import React from "react"; export const RewardCard: React.FC<{ reward: string }> = ({ reward }) => <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl"><span>🎁 {reward}</span></div>;

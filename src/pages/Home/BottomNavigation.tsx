@@ -1,0 +1,1 @@
+import React from "react"; export const BottomNavigation = () => <div className="fixed bottom-0 inset-x-0 h-16 bg-slate-900 flex justify-around items-center"><span>Home</span><span>Match</span></div>;

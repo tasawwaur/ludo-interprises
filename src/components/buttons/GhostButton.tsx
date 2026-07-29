@@ -1,0 +1,1 @@
+import React from "react"; import { Button } from "./Button"; export const GhostButton: React.FC<{ children: React.ReactNode }> = ({ children }) => <Button className="bg-transparent hover:bg-white/10">{children}</Button>;

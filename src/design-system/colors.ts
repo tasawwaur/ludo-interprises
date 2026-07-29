@@ -1,0 +1,17 @@
+export const colors = {
+  primary: '#7E3AF2',
+  secondary: '#5B21B6',
+  accent: '#FFD54F',
+  success: '#00D26A',
+  danger: '#FF4D4F',
+  info: '#3B82F6',
+  background: '#12061F',
+  secondaryBg: '#2A0B34',
+  accentPurple: '#5B174D',
+  surface: 'rgba(255, 255, 255, 0.08)',
+  textPrimary: '#FFFFFF',
+  textSecondary: '#E9D5FF',
+  textMuted: '#C4B5FD',
+  borderGlass: 'rgba(255, 255, 255, 0.12)',
+  borderGold: '#FFD54F',
+};

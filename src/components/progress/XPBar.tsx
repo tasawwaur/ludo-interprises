@@ -1,0 +1,1 @@
+import React from "react"; export const XPBar: React.FC<{ xp: number }> = ({ xp }) => <div className="w-full h-3 bg-slate-900 border border-indigo-500/30 rounded-full p-0.5"><div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full" style={{ width: `${xp}%` }}></div></div>;

@@ -1,0 +1,1 @@
+import React from "react"; export const Avatar: React.FC<{ src?: string }> = ({ src }) => <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold border-2 border-amber-400">👤</div>;

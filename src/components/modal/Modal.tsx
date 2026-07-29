@@ -1,0 +1,1 @@
+import React from "react"; export const Modal: React.FC<{ children: React.ReactNode; isOpen: boolean }> = ({ children, isOpen }) => isOpen ? <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50"><div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full">{children}</div></div> : null;

@@ -1,0 +1,1 @@
+import React from "react"; import { ButtonProps } from "./Button.types"; export const AnimatedButton: React.FC<ButtonProps> = ({ children, onClick }) => <button onClick={onClick} className="transition-all hover:scale-105">{children}</button>;

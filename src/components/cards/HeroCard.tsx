@@ -1,0 +1,1 @@
+import React from "react"; export const HeroCard: React.FC<{ title: string; subtitle: string }> = ({ title, subtitle }) => <div className="p-6 bg-gradient-to-r from-indigo-900 to-purple-900 rounded-3xl"><h2>{title}</h2><p>{subtitle}</p></div>;

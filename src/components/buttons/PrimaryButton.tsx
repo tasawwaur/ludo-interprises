@@ -1,0 +1,1 @@
+import React from "react"; import { Button } from "./Button"; export const PrimaryButton: React.FC<{ children: React.ReactNode }> = ({ children }) => <Button className="bg-indigo-600">{children}</Button>;

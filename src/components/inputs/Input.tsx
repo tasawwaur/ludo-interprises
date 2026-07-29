@@ -1,0 +1,1 @@
+import React from "react"; export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => <input className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:border-indigo-500 outline-none" {...props} />;

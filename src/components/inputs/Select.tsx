@@ -1,0 +1,1 @@
+import React from "react"; export const Select: React.FC<{ options: string[] }> = ({ options }) => <select className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white">{options.map(o => <option key={o}>{o}</option>)}</select>;

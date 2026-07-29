@@ -1,0 +1,1 @@
+import React from "react"; export const AnalyticsCard: React.FC<{ metric: string; val: string }> = ({ metric, val }) => <div className="p-4 bg-slate-900 rounded-xl"><div>{metric}</div><div>{val}</div></div>;

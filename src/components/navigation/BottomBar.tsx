@@ -1,0 +1,1 @@
+import React from "react"; export const BottomBar: React.FC = () => <div className="fixed bottom-0 inset-x-0 h-16 bg-slate-900 border-t border-slate-800 flex justify-around items-center"><span>Home</span><span>Match</span></div>;

@@ -1,0 +1,1 @@
+import React from "react"; export const TabBar: React.FC<{ tabs: string[] }> = ({ tabs }) => <div className="flex gap-2">{tabs.map(t => <button key={t} className="px-3 py-1 bg-slate-800 rounded-lg">{t}</button>)}</div>;

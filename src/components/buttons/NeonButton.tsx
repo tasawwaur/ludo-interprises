@@ -1,0 +1,1 @@
+import React from "react"; import { Button } from "./Button"; export const NeonButton: React.FC<{ children: React.ReactNode }> = ({ children }) => <Button className="bg-cyan-500/10 text-cyan-400 border border-cyan-400/50 shadow-[0_0_15px_rgba(56,189,248,0.4)]">{children}</Button>;

@@ -1,0 +1,1 @@
+import React from "react"; export const ProgressBar: React.FC<{ progress: number }> = ({ progress }) => <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-indigo-500 transition-all" style={{ width: `${progress}%` }}></div></div>;

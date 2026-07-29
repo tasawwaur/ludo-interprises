@@ -1,0 +1,1 @@
+import React from "react"; export const GlassCard: React.FC<{ children: React.ReactNode }> = ({ children }) => <div className="p-4 backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl">{children}</div>;

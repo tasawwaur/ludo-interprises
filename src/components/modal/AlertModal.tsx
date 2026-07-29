@@ -1,0 +1,1 @@
+import React from "react"; import { Modal } from "./Modal"; export const AlertModal: React.FC<{ title: string; isOpen: boolean }> = ({ title, isOpen }) => <Modal isOpen={isOpen}><h3>{title}</h3></Modal>;

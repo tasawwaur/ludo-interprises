@@ -1,0 +1,1 @@
+export const useFriends = () => ({ friends: [] });

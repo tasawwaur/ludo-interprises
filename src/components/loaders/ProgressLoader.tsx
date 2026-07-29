@@ -1,0 +1,1 @@
+import React from "react"; export const ProgressLoader: React.FC<{ pct: number }> = ({ pct }) => <div className="w-full bg-slate-800 h-2 rounded-full"><div className="bg-indigo-500 h-full" style={{ width: `${pct}%` }}></div></div>;

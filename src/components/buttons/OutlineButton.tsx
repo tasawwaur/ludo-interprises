@@ -1,0 +1,1 @@
+import React from "react"; import { Button } from "./Button"; export const OutlineButton: React.FC<{ children: React.ReactNode }> = ({ children }) => <Button className="bg-transparent border-2 border-indigo-500 text-indigo-400">{children}</Button>;

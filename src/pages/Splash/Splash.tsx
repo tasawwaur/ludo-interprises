@@ -1,0 +1,1 @@
+import React from "react"; export const Splash: React.FC = () => <div className="min-h-screen bg-slate-950 flex items-center justify-center text-3xl font-black text-indigo-500">LUDO ENTERPRISE AAA</div>;

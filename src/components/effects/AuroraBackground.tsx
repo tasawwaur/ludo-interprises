@@ -1,0 +1,1 @@
+import React from "react"; export const AuroraBackground: React.FC<{ children: React.ReactNode }> = ({ children }) => <div className="bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950 min-h-screen">{children}</div>;

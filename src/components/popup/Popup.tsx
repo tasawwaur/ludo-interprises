@@ -1,0 +1,1 @@
+import React from "react"; export const Popup: React.FC<{ children: React.ReactNode }> = ({ children }) => <div className="p-3 bg-slate-900 border border-slate-700 rounded-xl shadow-xl">{children}</div>;

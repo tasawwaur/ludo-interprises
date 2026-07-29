@@ -1,0 +1,1 @@
+import React from "react"; export const Button: React.FC<{ children?: React.ReactNode; className?: string; onClick?: () => void }> = ({ children, className="", onClick }) => <button className={`px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all ${className}`} onClick={onClick}>{children}</button>;

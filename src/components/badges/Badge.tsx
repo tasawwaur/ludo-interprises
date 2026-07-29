@@ -1,0 +1,1 @@
+import React from "react"; export const Badge: React.FC<{ text: string }> = ({ text }) => <span className="px-2 py-0.5 text-xs font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-lg">{text}</span>;

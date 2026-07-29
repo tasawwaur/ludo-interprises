@@ -1,0 +1,1 @@
+import React from "react"; export const Tooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, children }) => <div className="relative group">{children}<span className="absolute hidden group-hover:block bottom-full mb-1 p-1 bg-black text-xs rounded">{text}</span></div>;

@@ -1,0 +1,1 @@
+import React from "react"; export const StoreCard: React.FC<{ item: string; price: number }> = ({ item, price }) => <div className="p-4 bg-slate-900 rounded-2xl"><h3>{item}</h3><button>💎 {price}</button></div>;

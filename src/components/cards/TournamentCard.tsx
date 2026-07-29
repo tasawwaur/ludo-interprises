@@ -1,0 +1,1 @@
+import React from "react"; export const TournamentCard: React.FC<{ title: string; prize: string }> = ({ title, prize }) => <div className="p-5 bg-gradient-to-r from-amber-500/20 to-indigo-500/20 border border-amber-500/40 rounded-2xl"><h3>{title}</h3><p>Prize: {prize}</p></div>;

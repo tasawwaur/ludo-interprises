@@ -1,0 +1,1 @@
+import React from "react"; import { Button } from "./Button"; export const SecondaryButton: React.FC<{ children: React.ReactNode }> = ({ children }) => <Button className="bg-slate-800 border border-slate-700">{children}</Button>;

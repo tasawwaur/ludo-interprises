@@ -1,0 +1,1 @@
+import React from "react"; export const PlayerCard: React.FC<{ name: string; rank: number }> = ({ name, rank }) => <div className="p-3 bg-slate-800 rounded-xl flex justify-between"><span>{name}</span><span>#{rank}</span></div>;

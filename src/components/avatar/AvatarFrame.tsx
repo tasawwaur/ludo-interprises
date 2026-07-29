@@ -1,0 +1,1 @@
+import React from "react"; export const AvatarFrame: React.FC<{ children: React.ReactNode }> = ({ children }) => <div className="p-1 rounded-full bg-gradient-to-r from-amber-400 to-indigo-500">{children}</div>;

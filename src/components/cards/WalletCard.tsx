@@ -1,0 +1,1 @@
+import React from "react"; export const WalletCard: React.FC<{ coins: number; gems: number }> = ({ coins, gems }) => <div className="p-4 bg-slate-900 rounded-2xl flex justify-between"><span>🪙 {coins}</span><span>💎 {gems}</span></div>;

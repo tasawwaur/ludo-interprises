@@ -1,0 +1,1 @@
+import React from "react"; import { Button } from "./Button"; export const GradientButton: React.FC<{ children: React.ReactNode }> = ({ children }) => <Button className="bg-gradient-to-r from-indigo-500 via-purple-500 to-amber-500">{children}</Button>;

@@ -1,0 +1,1 @@
+import React from "react"; import { Button } from "./Button"; export const WarningButton: React.FC<{ children: React.ReactNode }> = ({ children }) => <Button className="bg-amber-600 hover:bg-amber-500">{children}</Button>;

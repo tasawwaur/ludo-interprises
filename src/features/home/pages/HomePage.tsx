@@ -113,9 +113,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
       spread: 50,
       origin: { x, y },
       colors: ['#FFD700', '#FFA500', '#FFD54F', '#FFF8DC'],
-      scale: 0.85,
+      scalar: 0.85,
       ticks: 60,
-      disableForced3d: true,
     });
 
     triggerToast("Joining 2 Player Mode...");
@@ -245,7 +244,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
             particleCount: 15,
             spread: 30,
             colors: ['#FFD700', '#FFA500'],
-            scale: 0.8,
+            scalar: 0.8,
           });
           setShowXPDetails(true);
         }}
@@ -265,7 +264,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
               particleCount: 15,
               spread: 30,
               colors: ['#FFD700', '#FFA500'],
-              scale: 0.8,
+              scalar: 0.8,
             });
             triggerToast("Loading Video Ad...");
           }}
@@ -288,9 +287,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
               particleCount: 15,
               spread: 30,
               colors: ['#FFD700', '#FFA500'],
-              scale: 0.8,
+              scalar: 0.8,
             });
-            onOpenView?.("SHOP");
+            onOpenView?.("CLUB");
           }}
           className="w-[30px] h-[30px] p-0 border-0 outline-none bg-transparent hover:scale-110 active:scale-[0.96] transition-transform cursor-pointer"
           style={{ WebkitTapHighlightColor: "transparent" }}
@@ -311,7 +310,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
               particleCount: 20,
               spread: 35,
               colors: ['#FFD700', '#FFA500', '#FFD54F', '#FFF8DC'],
-              scale: 0.85,
+              scalar: 0.85,
             });
             triggerToast("Lucky Roll: Spin to win multipliers & tokens!");
           }}

@@ -15,6 +15,7 @@ import { SettingsPage } from "./features/settings/pages/SettingsPage";
 import { FriendsPage } from "./features/friends/pages/FriendsPage";
 import { RewardsPage } from "./features/rewards/pages/RewardsPage";
 import { ShopPage } from "./features/shop/pages/ShopPage";
+import { ClubPage } from "./features/club/pages/ClubPage";
 import { InventoryPage } from "./features/inventory/pages/InventoryPage";
 import { MatchHistoryPage } from "./features/history/pages/MatchHistoryPage";
 import { LuckySpinModal } from "./features/events/LuckySpinModal";
@@ -39,6 +40,7 @@ export type AppView =
   | "FRIENDS"
   | "REWARDS"
   | "SHOP"
+  | "CLUB"
   | "INVENTORY"
   | "MATCH_HISTORY";
 
@@ -72,9 +74,8 @@ const MainApp: React.FC = () => {
         spread: 20,
         origin: { x, y },
         colors: ['#FFD700', '#FFA500', '#FFD54F', '#FFF8DC'], // Luxury Gold palette
-        scale: 0.6,
+        scalar: 0.6,
         ticks: 35,
-        disableForced3d: true,
       });
     };
 
@@ -198,6 +199,9 @@ const MainApp: React.FC = () => {
 
       case "SHOP":
         return <ShopPage onBack={() => setCurrentView("HOME")} />;
+
+      case "CLUB":
+        return <ClubPage onBack={() => setCurrentView("HOME")} />;
 
       case "INVENTORY":
         return <InventoryPage onBack={() => setCurrentView("HOME")} />;

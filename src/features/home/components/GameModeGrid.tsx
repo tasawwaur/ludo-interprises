@@ -55,9 +55,8 @@ export const GameModeGrid: React.FC<GameModeGridProps> = ({ onSelectMode }) => {
       spread: 50,
       origin: { x, y },
       colors: ['#FFD700', '#FFA500', '#FFD54F', '#FFF8DC'], // Luxury golds and yellows
-      scale: 0.85,
+      scalar: 0.85,
       ticks: 60,
-      disableForced3d: true,
     });
 
     onSelectMode(modeKey);

@@ -228,12 +228,20 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
         <XPBar progressPercent={0.75} level={level} />
       </button>
 
-      {/* ── LUXURY LEFT SIDE ICON BAR (Video Ads & VIP Club) ── */}
-      <div className="absolute top-[142px] left-[12px] z-40 flex flex-col gap-[10px] items-center">
+      {/* ── LUXURY LEFT SIDE ICON BAR (Video Ads, VIP Club, & Golden Dice) ── */}
+      <div className="absolute top-[142px] left-[12px] z-40 flex flex-col gap-[8px] items-center">
         {/* Video Ads Button */}
         <button
-          onClick={() => triggerToast("Loading Video Ad...")}
-          className="w-[34px] h-[34px] p-0 border-0 outline-none bg-transparent hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+          onClick={() => {
+            confetti({
+              particleCount: 15,
+              spread: 30,
+              colors: ['#FFD700', '#FFA500'],
+              scale: 0.8,
+            });
+            triggerToast("Loading Video Ad...");
+          }}
+          className="w-[30px] h-[30px] p-0 border-0 outline-none bg-transparent hover:scale-110 active:scale-[0.96] transition-transform cursor-pointer"
           style={{ WebkitTapHighlightColor: "transparent" }}
           aria-label="Video Ads"
         >
@@ -245,10 +253,18 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
           />
         </button>
 
-        {/* Club Crown/VIP Button */}
+        {/* VIP Club Button */}
         <button
-          onClick={() => triggerToast("Opening VIP Club...")}
-          className="w-[34px] h-[34px] p-0 border-0 outline-none bg-transparent hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+          onClick={() => {
+            confetti({
+              particleCount: 15,
+              spread: 30,
+              colors: ['#FFD700', '#FFA500'],
+              scale: 0.8,
+            });
+            onOpenView?.("SHOP");
+          }}
+          className="w-[30px] h-[30px] p-0 border-0 outline-none bg-transparent hover:scale-110 active:scale-[0.96] transition-transform cursor-pointer"
           style={{ WebkitTapHighlightColor: "transparent" }}
           aria-label="VIP Club"
         >
@@ -256,6 +272,30 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
             src="/assets/images/icons/icon_club_crown.png"
             alt="VIP Club"
             className="w-full h-full object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]"
+            draggable={false}
+          />
+        </button>
+
+        {/* Golden Dice Button */}
+        <button
+          onClick={() => {
+            confetti({
+              particleCount: 20,
+              spread: 35,
+              colors: ['#FFD700', '#FFA500', '#FFD54F', '#FFF8DC'],
+              scale: 0.85,
+            });
+            triggerToast("Lucky Roll: Spin to win multipliers & tokens!");
+          }}
+          className="w-[30px] h-[30px] p-0 border-0 outline-none bg-transparent hover:scale-110 active:scale-[0.96] transition-transform cursor-pointer"
+          style={{ WebkitTapHighlightColor: "transparent" }}
+          aria-label="Lucky Roll"
+        >
+          <img
+            src="/assets/images/icons/icon_gold_dice.png"
+            alt="Lucky Roll"
+            className="w-full h-full object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] animate-pulse"
+            style={{ animationDuration: '3s' }}
             draggable={false}
           />
         </button>

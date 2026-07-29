@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ThemeProvider } from "./app/ThemeContext";
 import { SplashScreen } from "./features/splash/SplashScreen";
 import { LoginPage } from "./auth/pages/LoginPage";
@@ -22,6 +22,7 @@ import { LuckySpinModal } from "./features/events/LuckySpinModal";
 import { useUserStore } from "./user/user.store";
 import { useQueueStore } from "./features/matchmaking/queue/QueueStore";
 import { useRoomStore } from "./features/matchmaking/rooms/RoomStore";
+import confetti from "canvas-confetti";
 
 export type AppView =
   | "SPLASH"
@@ -48,6 +49,29 @@ const MainApp: React.FC = () => {
   const user = useUserStore((s) => s.user);
   const { startQueue, cancelQueue } = useQueueStore();
   const { createRoom } = useRoomStore();
+
+  // Global Touch/Click Sparkle Effect
+  useEffect(() => {
+    const handleGlobalTouch = (e: PointerEvent) => {
+      const x = e.clientX / window.innerWidth;
+      const y = e.clientY / window.innerHeight;
+
+      confetti({
+        particleCount: 7,
+        spread: 20,
+        origin: { x, y },
+        colors: ['#FFD700', '#FFA500', '#FFD54F', '#FFF8DC'], // Luxury Gold palette
+        scale: 0.6,
+        ticks: 35,
+        disableForced3d: true,
+      });
+    };
+
+    window.addEventListener('pointerdown', handleGlobalTouch);
+    return () => {
+      window.removeEventListener('pointerdown', handleGlobalTouch);
+    };
+  }, []);
 
   const handleSelectMode = (selectedMode: string) => {
     if (selectedMode === "Tournament") {

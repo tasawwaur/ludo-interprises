@@ -150,11 +150,11 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
           </div>
         </div>
 
-        {/* LUXURY CHAT BUTTON: FIXED DEAD BOTTOM CENTER */}
-        <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 z-30 flex items-center justify-center">
+        {/* LUXURY CHAT BUTTON: FIXED BOTTOM LEFT */}
+        <div className="absolute bottom-8 left-3 z-30 flex items-center justify-center">
           <button
             onClick={() => setShowChatModal(true)}
-            className="w-16 h-16 relative hover:scale-110 active:scale-90 transition-transform cursor-pointer filter drop-shadow-[0_8px_16px_rgba(234,179,8,0.7)]"
+            className="w-14 h-14 relative hover:scale-110 active:scale-90 transition-transform cursor-pointer filter drop-shadow-[0_8px_16px_rgba(234,179,8,0.7)]"
             title="Open Chat"
           >
             <img

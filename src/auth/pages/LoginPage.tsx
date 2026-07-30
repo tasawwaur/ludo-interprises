@@ -3,6 +3,8 @@ import { useUserStore, UserProfile } from "../../user/user.store";
 import { initFacebookSDK, loginWithFacebook, fetchFacebookFriends, FBFriend } from "../utils/fb";
 import { initGoogleSDK, promptGoogleSignIn, renderGoogleSignInButton, triggerGoogleOAuth, GoogleUserProfile } from "../utils/google";
 import { GuestRegistrationModal } from "../components/GuestRegistrationModal";
+import { formatPlayerUID } from "../../utils/uuid";
+import { getDefaultAvatar } from "../../utils/avatar";
 
 interface LoginPageProps {
   onSuccessLogin?: () => void;
@@ -51,6 +53,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
           const parsed = JSON.parse(saved);
           return {
             ...parsed,
+            uid: parsed.uid || formatPlayerUID(parsed),
             coins: (parsed.coins !== undefined && parsed.coins > 0) ? parsed.coins : 20000,
             gems: (parsed.gems !== undefined && parsed.gems > 0) ? parsed.gems : 200,
             crowns: (parsed.crowns !== undefined && parsed.crowns > 0) ? parsed.crowns : 10,
@@ -64,6 +67,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
         const parsed = JSON.parse(defaultSaved);
         return {
           ...parsed,
+          uid: parsed.uid || formatPlayerUID(parsed),
           coins: (parsed.coins !== undefined && parsed.coins > 0) ? parsed.coins : 20000,
           gems: (parsed.gems !== undefined && parsed.gems > 0) ? parsed.gems : 200,
           crowns: (parsed.crowns !== undefined && parsed.crowns > 0) ? parsed.crowns : 10,
@@ -94,6 +98,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       username: finalName,
       displayName: finalName,
       email: `${finalName.toLowerCase().replace(/\s+/g, "")}@ludolegends.com`,
+      avatar: getDefaultAvatar(finalName),
       country: "🇮🇳",
       rank: 1,
       coins: 10000,
@@ -136,6 +141,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     }
     const newUser: UserProfile = {
       id: data.guestId || `GST-${Date.now()}`,
+      uid: formatPlayerUID({ id: data.guestId, username: data.name }),
       username: data.name,
       displayName: data.name,
       email: `${data.name.toLowerCase().replace(/\s+/g, '')}@ludolegends.com`,
@@ -215,10 +221,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
 
     const newGoogleUser: UserProfile = {
       id: `goog_${profile.sub || Date.now()}`,
+      uid: formatPlayerUID({ googleId: profile.sub, username: profile.name }),
       username: profile.name,
       displayName: profile.name,
       email: profile.email,
-      avatar: profile.picture,
+      avatar: profile.picture || getDefaultAvatar(profile.name || profile.sub),
       country: "🇮🇳",
       rank: 1,
       coins: 20000,
@@ -250,10 +257,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       
       const newFBUser: UserProfile = {
         id: `fb_${profile.id}`,
+        uid: formatPlayerUID({ facebookId: profile.id, username: profile.name }),
         username: profile.name,
         displayName: profile.name,
         email: profile.email || `${profile.name.toLowerCase().replace(/\s+/g, "")}@facebook.com`,
-        avatar: profile.avatarUrl || undefined,
+        avatar: profile.avatarUrl || getDefaultAvatar(profile.name || profile.id),
         country: "🇮🇳",
         rank: 1,
         coins: 20000,
@@ -309,7 +317,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       username: finalName,
       displayName: finalName,
       email: `${finalName.toLowerCase().replace(/\s+/g, '')}@facebook.com`,
-      avatar: finalAvatar,
+      avatar: finalAvatar || getDefaultAvatar(finalName),
       country: '🇮🇳',
       rank: 1,
       coins: 20000,

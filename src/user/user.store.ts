@@ -21,6 +21,7 @@ export interface UserProfile {
   gender?: 'male' | 'female' | 'other';
   syncedFBFriends?: Array<{ id: string; name: string; avatarUrl?: string; isOnline: boolean }>;
   crowns?: number;
+  uid?: string;
 }
 
 interface UserState {
@@ -68,6 +69,7 @@ const getInitialProfile = (): UserProfile => {
 
   return {
     id: 'usr_guest4296',
+    uid: 'LUDO-84920153',
     username: 'Guest4296',
     displayName: 'Ludo King',
     email: 'guest@ludostar.com',

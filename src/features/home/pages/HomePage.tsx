@@ -8,6 +8,7 @@ import { BottomNavigation } from "../components/BottomNavigation";
 import { LuckySpinModal } from "../../events/LuckySpinModal";
 import { XPBar } from "../components/Profile/XPBar";
 import { useUserStore } from "../../../user/user.store";
+import { getDefaultAvatar } from "../../../utils/avatar";
 import confetti from 'canvas-confetti';
 
 const formatCurrency = (val: number): string => {
@@ -294,9 +295,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
                 style={{ transform: `scale(${photoScale}) translateY(${photoOffsetY}px)`, transformOrigin: 'center center' }}
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-b from-indigo-400 to-purple-700 flex items-center justify-center text-[28px]">
-                👤
-              </div>
+              <img
+                src={getDefaultAvatar(user?.id || 'default')}
+                alt="Player Default"
+                className="w-full h-full object-cover"
+              />
             )}
           </div>
           {/* Luxury Frame overlay v3 */}

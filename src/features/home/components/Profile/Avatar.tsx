@@ -1,13 +1,19 @@
 import React from 'react';
 import { OnlineDot } from './OnlineDot';
+import { useUserStore } from '../../../../user/user.store';
+import { getDefaultAvatar } from '../../../../utils/avatar';
 
 interface AvatarProps {
   src?: string;
   size?: number;
   onEditClick?: () => void;
+  seed?: string;
 }
 
-export const Avatar: React.FC<AvatarProps> = ({ src, size = 96, onEditClick }) => {
+export const Avatar: React.FC<AvatarProps> = ({ src, size = 96, onEditClick, seed }) => {
+  const user = useUserStore((s) => s.user);
+  const finalSeed = seed || user?.id || user?.username || 'default';
+  
   return (
     <div className="relative group cursor-pointer" onClick={onEditClick}>
       {/* 96x96 Circular Photo with Gold Ring */}
@@ -18,7 +24,7 @@ export const Avatar: React.FC<AvatarProps> = ({ src, size = 96, onEditClick }) =
         {src ? (
           <img src={src} alt="Profile Avatar" className="w-full h-full object-cover" />
         ) : (
-          <span>👤</span>
+          <img src={getDefaultAvatar(finalSeed)} alt="Profile Avatar Fallback" className="w-full h-full object-cover" />
         )}
       </div>
 

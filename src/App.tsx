@@ -26,6 +26,7 @@ import { RewardCenterPage, AdsSettingsPage } from "./features/ads";
 import { useUserStore } from "./user/user.store";
 import { useQueueStore } from "./features/matchmaking/queue/QueueStore";
 import { useRoomStore } from "./features/matchmaking/rooms/RoomStore";
+import { GlobalCurrencyBar } from "./components/ui/GlobalCurrencyBar";
 import confetti from "canvas-confetti";
 
 export type AppView =
@@ -248,6 +249,11 @@ const MainApp: React.FC = () => {
         {/* The inner screen content area (exactly 9:16 aspect ratio on desktop) */}
         <div className="w-full h-full sm:w-[92%] sm:h-[93%] relative overflow-hidden flex flex-col justify-between bg-[#12061F] sm:rounded-[24px]">
           {renderCurrentView()}
+
+          {/* ✅ Global Currency Bar — har page pe same values dikhein */}
+          {currentView !== 'AUTH' && currentView !== 'SPLASH' && currentView !== 'HOME' && (
+            <GlobalCurrencyBar />
+          )}
 
           {/* Modals */}
           <ReadyCheck onMatchAccepted={handleMatchAccepted} />

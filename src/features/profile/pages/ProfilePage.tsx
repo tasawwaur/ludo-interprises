@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useUserStore } from "../../../user/user.store";
 import { LudoPageBackground } from "../../../components/effects/LudoPageBackground";
 import confetti from "canvas-confetti";
+import { formatPlayerUID } from "../../../utils/uuid";
 
 interface ProfilePageProps {
   onBack?: () => void;
@@ -65,7 +66,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
 
   // Load avatar and name fallbacks
   const playerName = user?.displayName || user?.username || "TASAVVUR";
-  const playerUID = user?.id ? `LUDO-${user.id.toUpperCase().replace("USR_", "").replace("FB_SIM_", "").replace("FB_", "").slice(0, 8)}` : "LUDO-4829-1029";
+  const playerUID = formatPlayerUID(user);
 
   // Actions
   const handleCopyUID = () => {
@@ -175,17 +176,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
 
       <div className="w-full max-w-[430px] h-screen flex flex-col relative z-10 px-3 py-3 overflow-y-auto no-scrollbar pb-6">
         {/* Navigation Header */}
-        <div className="flex items-center justify-between w-full mb-5">
+        <div className="flex items-center gap-3 w-full mb-5">
           <button
             onClick={onBack}
-            className="w-9 h-9 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-lg hover:bg-black/60 hover:scale-105 active:scale-95 transition-transform"
+            className="w-9 h-9 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-lg hover:bg-black/60 hover:scale-105 active:scale-95 transition-transform flex-shrink-0"
           >
             ❮
           </button>
-          <h1 className="text-xl font-black tracking-widest bg-gradient-to-r from-yellow-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent uppercase glow-amber-text flex items-center gap-2">
-            <span>👤</span> Account Settings
+          <h1 className="text-sm font-black tracking-widest bg-gradient-to-r from-purple-300 via-amber-400 to-yellow-400 bg-clip-text text-transparent uppercase">
+            Settings
           </h1>
-          <div className="w-9 h-9"></div>
         </div>
 
         {/* ── CARD 1: PROFILE DETAILS ── */}

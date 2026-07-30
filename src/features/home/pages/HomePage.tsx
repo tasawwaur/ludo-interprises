@@ -308,10 +308,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
           />
         </button>
 
-        {/* Name Banner — tight below frame, no gap, clickable to change name (text shifted 4px left) */}
+        {/* Name Banner — Auto-scaled font size with Hindi & English support */}
         <button
           onClick={handleNameClick}
-          className="relative w-[108px] -mt-[10px] cursor-pointer hover:scale-105 active:scale-95 transition-all border-0 outline-none p-0 bg-transparent flex flex-col items-center justify-center"
+          className="relative w-[124px] -mt-[10px] cursor-pointer hover:scale-105 active:scale-95 transition-all border-0 outline-none p-0 bg-transparent flex flex-col items-center justify-center"
           style={{ WebkitTapHighlightColor: "transparent" }}
           aria-label="Change Player Name"
         >
@@ -321,7 +321,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
             className="w-full h-auto object-contain pointer-events-none"
             draggable={false}
           />
-          <span className="absolute inset-0 flex items-center justify-center font-black text-amber-200 uppercase tracking-widest drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)] pointer-events-none translate-x-[-8px]" style={{ fontSize: '8px' }}>
+          <span 
+            className={`absolute inset-0 flex items-center justify-center font-black text-amber-200 tracking-wider drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)] pointer-events-none px-2 text-center overflow-hidden truncate max-w-[90%] ${
+              playerName.length <= 8 ? 'text-[9.5px]' : playerName.length <= 12 ? 'text-[8.5px]' : 'text-[7.5px]'
+            }`}
+          >
             {playerName}
           </span>
         </button>

@@ -87,7 +87,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
               <button
                 key={i}
                 onClick={() => handleSend(emo)}
-                className="text-3xl p-2 rounded-xl bg-black/30 hover:bg-purple-800/40 text-center hover:scale-125 transition-transform"
+                className="text-3xl p-2.5 rounded-2xl bg-transparent border-2 border-amber-400/80 hover:border-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.4)] hover:shadow-[0_0_18px_rgba(251,191,36,0.8)] text-center hover:scale-125 transition-all cursor-pointer flex items-center justify-center"
               >
                 {emo}
               </button>

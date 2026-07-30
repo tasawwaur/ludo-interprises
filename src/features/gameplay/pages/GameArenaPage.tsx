@@ -118,6 +118,19 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
             className="w-full h-auto object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.95)] select-none"
             draggable={false}
           />
+          {/* Transparent Royal Frames positioned vertically */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <img
+              src="/assets/images/icons/green_royal_frame.png"
+              alt="Green Royal Frame"
+              className="w-24 h-28 object-contain filter drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] -translate-y-[160%]"
+            />
+            <img
+              src="/assets/images/icons/cyan_royal_frame.png"
+              alt="Cyan Royal Frame"
+              className="w-24 h-28 object-contain filter drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] translate-y-[150%]"
+            />
+          </div>
         </div>
       </div>
 

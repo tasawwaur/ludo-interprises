@@ -33,6 +33,37 @@ const formatCurrency = (val: number): string => {
   return formatValue(val, 1000000000000, "T");
 };
 
+// Luxury Casino Web Audio Chime Sound Synthesizer
+const playLuxuryRewardSound = () => {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+
+    const frequencies = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, 2093.00, 2637.02, 3135.96];
+    frequencies.forEach((freq, idx) => {
+      setTimeout(() => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+        gain.gain.setValueAtTime(0.18, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 0.4);
+      }, idx * 65);
+    });
+  } catch (e) {
+    console.warn('Audio synthesis error:', e);
+  }
+};
+
 interface HomePageProps {
   onSelectMode?: (mode: string) => void;
   onOpenView?: (view: string) => void;
@@ -41,6 +72,9 @@ interface HomePageProps {
 export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) => {
   const user = useUserStore((s) => s.user);
   const updateUser = useUserStore((s) => s.updateUser);
+  const justClaimedWelcome = useUserStore((s) => s.justClaimedWelcome);
+  const setJustClaimedWelcome = useUserStore((s) => s.setJustClaimedWelcome);
+
   const level = user?.level || 25;
   const [showLuckySpin, setShowLuckySpin] = useState(false);
   const [showXPDetails, setShowXPDetails] = useState(false);
@@ -48,6 +82,62 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
   const [tempName, setTempName] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [activeNav, setActiveNav] = useState("home");
+
+  const [animCrowns, setAnimCrowns] = useState<number | null>(null);
+  const [animCoins, setAnimCoins] = useState<number | null>(null);
+  const [animGems, setAnimGems] = useState<number | null>(null);
+  const [isGlowBox, setIsGlowBox] = useState(false);
+
+  useEffect(() => {
+    if (justClaimedWelcome) {
+      setIsGlowBox(true);
+      playLuxuryRewardSound();
+
+      const targetCrowns = user?.crowns || 5;
+      const targetCoins = user?.coins || 10000;
+      const targetGems = user?.gems || 100;
+
+      // Start ALL THREE counters at 0!
+      setAnimCrowns(0);
+      setAnimCoins(0);
+      setAnimGems(0);
+
+      let currentCr = 0;
+      let currentC = 0;
+      let currentG = 0;
+      const steps = 30;
+      const stepCr = 1;
+      const stepC = Math.ceil(targetCoins / steps);
+      const stepG = Math.ceil(targetGems / steps);
+
+      const interval = setInterval(() => {
+        currentCr = Math.min(targetCrowns, currentCr + stepCr);
+        currentC = Math.min(targetCoins, currentC + stepC);
+        currentG = Math.min(targetGems, currentG + stepG);
+
+        setAnimCrowns(currentCr);
+        setAnimCoins(currentC);
+        setAnimGems(currentG);
+
+        if (currentCr >= targetCrowns && currentC >= targetCoins && currentG >= targetGems) {
+          clearInterval(interval);
+          setTimeout(() => {
+            setAnimCrowns(null);
+            setAnimCoins(null);
+            setAnimGems(null);
+            setIsGlowBox(false);
+            setJustClaimedWelcome(false);
+          }, 1500);
+        }
+      }, 45);
+
+      return () => clearInterval(interval);
+    }
+  }, [justClaimedWelcome, user, setJustClaimedWelcome]);
+
+  const displayCrowns = animCrowns !== null ? animCrowns : (user?.crowns || 0);
+  const displayCoins = animCoins !== null ? animCoins : (user?.coins || 0);
+  const displayGems = animGems !== null ? animGems : (user?.gems || 0);
   const [playerName, setPlayerName] = useState(() => {
     if (user) {
       return user.displayName || user.username || localStorage.getItem("ludo_player_name") || "TASAVVUR";

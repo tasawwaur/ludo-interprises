@@ -91,6 +91,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       rank: 1,
       coins: 10000,
       gems: 100,
+      crowns: 5,
       level: 1,
       xp: 0,
       nextLevelXp: 1000,

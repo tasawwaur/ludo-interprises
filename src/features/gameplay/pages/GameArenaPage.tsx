@@ -160,9 +160,9 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
       </div>
 
       {/* 3. FIXED OVERLAY UI LAYER (Fixed absolute coordinate slots) */}
-      <div className="w-full max-w-[430px] h-screen relative z-20 overflow-hidden">
+      <div className="w-full max-w-[430px] h-screen relative z-20 overflow-hidden pointer-events-none">
         {/* PLAYER 2 PROFILE: FIXED TOP-RIGHT (Opponent: Read-only mic status) */}
-        <div className="absolute top-12 right-3 z-20">
+        <div className="absolute top-12 right-3 z-20 pointer-events-auto">
           <div className="min-w-[98px]">
             {yellowPlayer && (
               <CornerPlayerAvatar
@@ -187,7 +187,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         </div>
 
         {/* PLAYER 1 PROFILE: FIXED BOTTOM-LEFT (Local User: Full mic control) */}
-        <div className="absolute bottom-[76px] left-3 z-20">
+        <div className="absolute bottom-[76px] left-3 z-20 pointer-events-auto">
           <div className="min-w-[98px]">
             {greenPlayer && (
               <CornerPlayerAvatar
@@ -211,7 +211,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         </div>
 
         {/* LUXURY CHAT BUTTON: FIXED BOTTOM RIGHT (50% higher: bottom-24) */}
-        <div className="absolute bottom-24 right-3 z-30 flex items-center justify-center">
+        <div className="absolute bottom-24 right-3 z-30 flex items-center justify-center pointer-events-auto">
           <button
             onClick={() => setShowChatModal(true)}
             className="w-7 h-7 relative hover:scale-110 active:scale-90 transition-transform cursor-pointer filter drop-shadow-[0_4px_10px_rgba(234,179,8,0.7)]"

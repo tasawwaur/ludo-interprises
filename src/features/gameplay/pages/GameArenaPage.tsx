@@ -26,6 +26,15 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
   const user = useUserStore((s) => s.user);
   const maxPlayers = useRoomStore((s) => s.maxPlayers);
 
+  interface ChatMessageItem {
+    id: string;
+    sender: string;
+    text: string;
+    time: string;
+    color?: string;
+  }
+
+  const [chatHistory, setChatHistory] = useState<ChatMessageItem[]>([]);
   const [activeSpeechBubbles, setActiveSpeechBubbles] = useState<Record<string, string | null>>({});
   const [showExitModal, setShowExitModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
@@ -72,15 +81,28 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
   const bluePlayer = gameState.players.find((p) => p.color === 'BLUE');
   const redPlayer = gameState.players.find((p) => p.color === 'RED');
 
+  const activePlayer = gameState.players[gameState.activePlayerIndex];
+
   const handleSendMessage = (msg: string) => {
     const activeCol = activePlayer?.color || 'GREEN';
+    const senderName = activePlayer?.name || user?.username || 'You';
+    
+    // Add to chat history
+    const newMsgItem: ChatMessageItem = {
+      id: Date.now().toString() + Math.random().toString().slice(2, 5),
+      sender: senderName,
+      text: msg,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      color: activeCol,
+    };
+
+    setChatHistory((prev) => [...prev.slice(-15), newMsgItem]);
+
     setActiveSpeechBubbles((prev) => ({ ...prev, [activeCol]: msg }));
     setTimeout(() => {
       setActiveSpeechBubbles((prev) => ({ ...prev, [activeCol]: null }));
     }, 2800);
   };
-
-  const activePlayer = gameState.players[gameState.activePlayerIndex];
 
   return (
     <div className="min-h-screen w-full bg-[#12061F] text-white flex flex-col items-center relative overflow-hidden select-none font-sans">
@@ -183,6 +205,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         isOpen={showChatModal}
         onClose={() => setShowChatModal(false)}
         onSendMessage={handleSendMessage}
+        messages={chatHistory}
       />
     </div>
   );

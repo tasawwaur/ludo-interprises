@@ -111,45 +111,46 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
       <LudoPageBackground variant="gameplay" />
       
       {/* 2. FIXED CENTER: 3D GOLDEN LUDO BOARD & TOP/BOTTOM ROYAL CARD SLOTS */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 -translate-y-4">
-        <div className="w-[360px] max-w-[95vw] relative flex items-center justify-center">
+      <div className="absolute inset-0 flex items-center justify-center z-20 -translate-y-4 pointer-events-none">
+        <div className="w-[360px] max-w-[95vw] relative flex items-center justify-center pointer-events-none">
           <img
             src="/assets/images/backgrounds/luxury_ludo_board.png"
             alt="Golden Luxury Ludo Board"
-            className="w-full h-auto object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.95)] select-none"
+            className="w-full h-auto object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.95)] select-none pointer-events-none"
             draggable={false}
           />
           {/* Top Center Green Royal Frame & Opponent 3D Dice */}
-          <div className="absolute -top-[20px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] pointer-events-none z-20 flex items-center justify-center">
+          <div className="absolute -top-[20px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] z-50 flex items-center justify-center pointer-events-auto">
             <img
               src="/assets/images/icons/green_royal_frame.png"
               alt="Green Royal Frame"
-              className="w-full h-full object-contain filter drop-shadow-[0_6px_14px_rgba(0,0,0,0.95)]"
+              className="w-full h-full object-contain filter drop-shadow-[0_6px_14px_rgba(0,0,0,0.95)] pointer-events-none"
             />
             {/* 3D Dice inside Green Frame */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-auto">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-auto z-50">
               <Royal3DDice
                 value={gameState.currentTurnColor === 'YELLOW' || gameState.currentTurnColor === 'RED' ? gameState.diceValue : null}
                 isActiveTurn={gameState.currentTurnColor === 'YELLOW'}
-                canRoll={false}
+                canRoll={true}
+                onRoll={rollDice}
                 size={54}
               />
             </div>
           </div>
 
           {/* Bottom Center Cyan Royal Frame & Local User 3D Dice */}
-          <div className="absolute -bottom-[20px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] pointer-events-none z-20 flex items-center justify-center">
+          <div className="absolute -bottom-[20px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] z-50 flex items-center justify-center pointer-events-auto">
             <img
               src="/assets/images/icons/cyan_royal_frame.png"
               alt="Cyan Royal Frame"
-              className="w-full h-full object-contain filter drop-shadow-[0_6px_14px_rgba(0,0,0,0.95)]"
+              className="w-full h-full object-contain filter drop-shadow-[0_6px_14px_rgba(0,0,0,0.95)] pointer-events-none"
             />
             {/* 3D Dice inside Cyan Frame */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-auto">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-auto z-50">
               <Royal3DDice
                 value={gameState.currentTurnColor === 'GREEN' ? gameState.diceValue : null}
                 isActiveTurn={gameState.currentTurnColor === 'GREEN'}
-                canRoll={gameState.currentTurnColor === 'GREEN' && !gameState.isDiceRolled && gameState.gameStatus === 'ROLL_WAIT'}
+                canRoll={true}
                 onRoll={rollDice}
                 size={54}
               />

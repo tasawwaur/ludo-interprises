@@ -104,18 +104,18 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
         )}
 
         {/* Text Input Row */}
-        <div className="flex gap-1.5 mt-0.5">
+        <div className="flex gap-1 mt-0.5">
           <input
             type="text"
             placeholder="Type message..."
             value={inputMsg}
             onChange={(e) => setInputMsg(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend(inputMsg)}
-            className="flex-1 bg-black/60 border border-purple-500/40 rounded-lg px-2 py-1 text-[9.5px] font-bold text-white placeholder-gray-500 focus:outline-none focus:border-amber-400"
+            className="flex-1 bg-black/60 border border-purple-500/40 rounded-lg px-2 py-0.5 text-[8.5px] font-bold text-white placeholder-gray-500 focus:outline-none focus:border-amber-400"
           />
           <button
             onClick={() => handleSend(inputMsg)}
-            className="bg-amber-500 text-slate-950 px-2.5 py-1 rounded-lg font-black text-[10px] hover:bg-amber-400 active:scale-95 transition-transform"
+            className="bg-amber-500 text-slate-950 px-2 py-0.5 rounded-lg font-black text-[9px] hover:bg-amber-400 active:scale-95 transition-transform"
           >
             ➔
           </button>

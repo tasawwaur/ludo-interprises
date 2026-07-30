@@ -65,10 +65,12 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
 
   return (
     <div className="relative flex flex-col items-center select-none min-w-[98px]">
-      {/* Speech Emoji / Message Popup (Direct Floating Emoji) */}
+      {/* Speech Emoji / Message Popup (Direct Floating Emoji / Compact Text) */}
       {chatBubbleMessage && (
-        <div className={`absolute ${isBottom ? '-top-12' : '-bottom-12'} z-40 animate-bounce whitespace-nowrap drop-shadow-[0_8px_16px_rgba(0,0,0,0.9)] select-none`}>
-          <span className="text-3xl filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)]">{chatBubbleMessage}</span>
+        <div className={`absolute ${isBottom ? '-top-9' : '-bottom-9'} z-40 animate-bounce whitespace-nowrap drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)] select-none`}>
+          <span className="text-xs font-black bg-slate-950/90 text-amber-200 border border-amber-400/80 px-2 py-0.5 rounded-full filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] max-w-[120px] truncate block">
+            {chatBubbleMessage}
+          </span>
         </div>
       )}
 

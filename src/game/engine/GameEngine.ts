@@ -10,9 +10,10 @@ export class GameEngine {
    */
   static createInitialState(mode: '2P' | '2v2' | '4P', hostName: string, roomMembers?: any[]): GameState {
     // Official Seating & Color Assignment
-    // Duel (1v1): GREEN vs YELLOW (Top-Left vs Top-Right)
-    // 2v2 & 4P: GREEN (TL), YELLOW (TR), BLUE (BR), RED (BL)
-    const colors: PlayerColor[] = mode === '2P' ? ['GREEN', 'YELLOW'] : ['GREEN', 'YELLOW', 'BLUE', 'RED'];
+    // Duel (1v1): Supports RED vs BLUE or GREEN vs YELLOW based on room selection
+    const colors: PlayerColor[] = mode === '2P' 
+      ? (roomMembers?.[0]?.color === 'RED' || roomMembers?.[1]?.color === 'RED' ? ['RED', 'BLUE'] : ['GREEN', 'YELLOW'])
+      : ['GREEN', 'YELLOW', 'BLUE', 'RED'];
 
     const players: Player[] = colors.map((color, index) => {
       const isHost = index === 0;

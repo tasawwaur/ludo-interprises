@@ -56,7 +56,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
             uid: parsed.uid || formatPlayerUID(parsed),
             coins: (parsed.coins !== undefined && parsed.coins > 0) ? parsed.coins : 20000,
             gems: (parsed.gems !== undefined && parsed.gems > 0) ? parsed.gems : 200,
-            crowns: (parsed.crowns !== undefined && parsed.crowns > 0) ? parsed.crowns : 999000,
+            crowns: (parsed.crowns !== undefined && parsed.crowns > 0) ? parsed.crowns : 999000000000000,
           };
         }
         return null; // Return null if specific account name/ID was requested but not found
@@ -70,7 +70,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
           uid: parsed.uid || formatPlayerUID(parsed),
           coins: (parsed.coins !== undefined && parsed.coins > 0) ? parsed.coins : 20000,
           gems: (parsed.gems !== undefined && parsed.gems > 0) ? parsed.gems : 200,
-          crowns: (parsed.crowns !== undefined && parsed.crowns > 0) ? parsed.crowns : 999000,
+          crowns: (parsed.crowns !== undefined && parsed.crowns > 0) ? parsed.crowns : 999000000000000,
         };
       }
     } catch (e) {
@@ -153,7 +153,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       rank: 1,
       coins: 10000,
       gems: 100,
-      crowns: 999000,
+      crowns: 999000000000000,
       level: 1,
       xp: 0,
       nextLevelXp: 1000,
@@ -230,7 +230,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       rank: 1,
       coins: 20000,
       gems: 200,
-      crowns: 999000,
+      crowns: 999000000000000,
       level: 1,
       xp: 0,
       nextLevelXp: 1000,
@@ -266,7 +266,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
         rank: 1,
         coins: 20000,
         gems: 200,
-        crowns: 999000,
+        crowns: 999000000000000,
         level: 1,
         xp: 0,
         nextLevelXp: 1000,

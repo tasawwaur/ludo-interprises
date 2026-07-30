@@ -2,8 +2,10 @@ import React from 'react';
 import { useUserStore } from '../../user/user.store';
 
 const fmt = (val: number): string => {
-  if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
-  if (val >= 1000) return `${(val / 1000).toFixed(1)}K`;
+  if (val >= 1000000000000) return `${Number((val / 1000000000000).toFixed(2))}T`;
+  if (val >= 1000000000) return `${Number((val / 1000000000).toFixed(2))}B`;
+  if (val >= 1000000) return `${Number((val / 1000000).toFixed(2))}M`;
+  if (val >= 1000) return `${Number((val / 1000).toFixed(2))}K`;
   return val.toLocaleString();
 };
 

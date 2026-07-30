@@ -34,7 +34,7 @@ interface UserState {
   logout: () => void;
 }
 
-const STORAGE_KEY = 'ludo_user_profile_v7';
+const STORAGE_KEY = 'ludo_user_profile_v8';
 
 // 🧹 Delete all old cached Google accounts from localStorage
 if (typeof window !== 'undefined') {
@@ -59,7 +59,7 @@ const getInitialProfile = (): UserProfile => {
           ...parsed,
           coins: (parsed.coins !== undefined && parsed.coins > 0) ? parsed.coins : 20000,
           gems: (parsed.gems !== undefined && parsed.gems > 0) ? parsed.gems : 200,
-          crowns: (parsed.crowns !== undefined && parsed.crowns > 0) ? parsed.crowns : 999000,
+          crowns: (parsed.crowns !== undefined && parsed.crowns > 0) ? parsed.crowns : 999000000000000,
         };
       }
     } catch (e) {
@@ -81,7 +81,7 @@ const getInitialProfile = (): UserProfile => {
     level: 1,
     xp: 0,
     nextLevelXp: 1000,
-    crowns: 999000,
+    crowns: 999000000000000,
   };
 };
 

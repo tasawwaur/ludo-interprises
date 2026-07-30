@@ -16,6 +16,9 @@ interface CornerPlayerAvatarProps {
   onDisableAutoMode?: () => void;
   onOpenChat?: () => void;
   position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  isLocalPlayer?: boolean;
+  remoteMicStatus?: boolean;
+  onMicToggle?: (isMicOn: boolean) => void;
 }
 
 export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
@@ -31,21 +34,30 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
   onDisableAutoMode,
   onOpenChat,
   position,
+  isLocalPlayer = true,
+  remoteMicStatus = false,
+  onMicToggle,
 }) => {
   if (!player) return null;
 
-  const [isMicOn, setIsMicOn] = useState(VoiceChatService.isMicrophoneActive());
+  const [localMicOn, setLocalMicOn] = useState(VoiceChatService.isMicrophoneActive());
 
   const handleToggleMic = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isMicOn) {
+    if (!isLocalPlayer) return;
+
+    if (localMicOn) {
       VoiceChatService.stopMicrophone();
-      setIsMicOn(false);
+      setLocalMicOn(false);
+      onMicToggle?.(false);
     } else {
       const success = await VoiceChatService.startMicrophone();
-      setIsMicOn(success);
+      setLocalMicOn(success);
+      onMicToggle?.(success);
     }
   };
+
+  const isMicOn = isLocalPlayer ? localMicOn : remoteMicStatus;
 
   const isBottom = position === 'bottom-left' || position === 'bottom-right';
 
@@ -84,18 +96,31 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
           draggable={false}
         />
 
-        {/* Voice Chat Mic Button (positioned on the left of avatar frame, 5% lower) */}
-        <button
-          onClick={handleToggleMic}
-          className={`absolute top-[6px] -left-2 z-30 w-5 h-5 rounded-full flex items-center justify-center border transition-all shadow-xl cursor-pointer active:scale-90 ${
-            isMicOn
-              ? 'bg-gradient-to-r from-emerald-500 to-green-600 border-amber-300 text-white animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.9)]'
-              : 'bg-gradient-to-r from-red-600 to-rose-700 border-amber-400/80 text-white opacity-95 hover:opacity-100'
-          }`}
-          title={isMicOn ? "Mute Microphone" : "Unmute Microphone"}
-        >
-          <span className="text-[9px] leading-none select-none">{isMicOn ? '🎙️' : '🔇'}</span>
-        </button>
+        {/* Voice Chat Mic Button (Local Player: Clickable Control | Opponent: Read-Only Status Indicator) */}
+        {isLocalPlayer ? (
+          <button
+            onClick={handleToggleMic}
+            className={`absolute top-[6px] -left-2 z-30 w-5 h-5 rounded-full flex items-center justify-center border transition-all shadow-xl cursor-pointer active:scale-90 ${
+              isMicOn
+                ? 'bg-gradient-to-r from-emerald-500 to-green-600 border-amber-300 text-white animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.9)]'
+                : 'bg-gradient-to-r from-red-600 to-rose-700 border-amber-400/80 text-white opacity-95 hover:opacity-100'
+            }`}
+            title={isMicOn ? "Your Mic: ON (Click to Mute)" : "Your Mic: OFF (Click to Unmute)"}
+          >
+            <span className="text-[9px] leading-none select-none">{isMicOn ? '🎙️' : '🔇'}</span>
+          </button>
+        ) : (
+          <div
+            className={`absolute top-[6px] -left-2 z-30 w-5 h-5 rounded-full flex items-center justify-center border transition-all shadow-md pointer-events-none ${
+              isMicOn
+                ? 'bg-gradient-to-r from-emerald-500 to-green-600 border-amber-300 text-white animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]'
+                : 'bg-gradient-to-r from-red-900/90 to-slate-800 border-slate-600 text-gray-400 opacity-80'
+            }`}
+            title={`${player.name}'s Mic: ${isMicOn ? 'ON' : 'OFF'}`}
+          >
+            <span className="text-[9px] leading-none select-none">{isMicOn ? '🎙️' : '🔇'}</span>
+          </div>
+        )}
       </div>
 
       {/* 2. Name Frame */}

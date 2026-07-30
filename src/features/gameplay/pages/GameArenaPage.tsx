@@ -101,7 +101,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
 
       {/* 3. FIXED OVERLAY UI LAYER (Fixed absolute coordinate slots) */}
       <div className="w-full max-w-[430px] h-screen relative z-20 overflow-hidden">
-        {/* PLAYER 2 PROFILE: FIXED TOP-RIGHT */}
+        {/* PLAYER 2 PROFILE: FIXED TOP-RIGHT (Opponent: Read-only mic status) */}
         <div className="absolute top-12 right-3 z-20">
           <div className="min-w-[98px]">
             {yellowPlayer && (
@@ -119,12 +119,14 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                 onDisableAutoMode={disableAutoMode}
                 onOpenChat={() => setShowChatModal(true)}
                 position="top-right"
+                isLocalPlayer={false}
+                remoteMicStatus={false}
               />
             )}
           </div>
         </div>
 
-        {/* PLAYER 1 PROFILE: FIXED BOTTOM-LEFT (Adjusted 1% down) */}
+        {/* PLAYER 1 PROFILE: FIXED BOTTOM-LEFT (Local User: Full mic control) */}
         <div className="absolute bottom-[76px] left-3 z-20">
           <div className="min-w-[98px]">
             {greenPlayer && (
@@ -142,6 +144,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                 onDisableAutoMode={disableAutoMode}
                 onOpenChat={() => setShowChatModal(true)}
                 position="bottom-left"
+                isLocalPlayer={true}
               />
             )}
           </div>

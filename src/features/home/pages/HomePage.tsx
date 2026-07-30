@@ -345,7 +345,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
           });
           onOpenView?.("XP_MAIN");
         }}
-        className="absolute top-[40px] left-[125px] z-40 w-[175px] border-0 outline-none p-0 bg-transparent cursor-pointer hover:scale-105 active:scale-95 transition-all text-left"
+        className="absolute top-[40px] left-[132px] z-40 w-[175px] border-0 outline-none p-0 bg-transparent cursor-pointer hover:scale-105 active:scale-95 transition-all text-left"
         style={{ WebkitTapHighlightColor: "transparent" }}
         aria-label="View XP Details"
       >

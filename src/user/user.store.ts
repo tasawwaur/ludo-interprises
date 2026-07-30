@@ -15,6 +15,10 @@ export interface UserProfile {
   nextLevelXp?: number;
   loginProvider?: 'guest' | 'google' | 'facebook' | 'phone';
   facebookId?: string;
+  googleId?: string;
+  age?: number;
+  is18Plus?: boolean;
+  gender?: 'male' | 'female' | 'other';
   syncedFBFriends?: Array<{ id: string; name: string; avatarUrl?: string; isOnline: boolean }>;
   crowns?: number;
 }
@@ -22,6 +26,8 @@ export interface UserProfile {
 interface UserState {
   user: UserProfile | null;
   isAuthenticated: boolean;
+  justClaimedWelcome: boolean;
+  setJustClaimedWelcome: (claimed: boolean) => void;
   setUser: (user: UserProfile | null) => void;
   updateUser: (updates: Partial<UserProfile>) => void;
   logout: () => void;
@@ -72,6 +78,9 @@ const _initialProfile = getInitialProfile();
 export const useUserStore = create<UserState>((set) => ({
   user: _initialProfile,
   isAuthenticated: isRealLoggedInUser(_initialProfile),
+  justClaimedWelcome: false,
+
+  setJustClaimedWelcome: (claimed) => set({ justClaimedWelcome: claimed }),
 
   setUser: (user) => {
     if (user && typeof window !== 'undefined') {

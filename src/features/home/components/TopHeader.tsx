@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useUserStore } from '../../../user/user.store';
 
 interface TopHeaderProps {
@@ -6,17 +6,186 @@ interface TopHeaderProps {
   onOpenInbox?: () => void;
 }
 
+// Luxury Casino Web Audio Chime Sound Synthesizer
+const playLuxuryRewardSound = () => {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+
+    // Sequence of 9 crisp crystal gold coin & gem chimes
+    const frequencies = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, 2093.00, 2637.02, 3135.96];
+    frequencies.forEach((freq, idx) => {
+      setTimeout(() => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+        gain.gain.setValueAtTime(0.18, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 0.4);
+      }, idx * 65);
+    });
+  } catch (e) {
+    console.warn('Audio synthesis error:', e);
+  }
+};
+
 export const TopHeader: React.FC<TopHeaderProps> = ({
   onOpenProfileSettings,
   onOpenInbox,
 }) => {
   const user = useUserStore((s) => s.user);
+  const justClaimedWelcome = useUserStore((s) => s.justClaimedWelcome);
+  const setJustClaimedWelcome = useUserStore((s) => s.setJustClaimedWelcome);
+
   const displayName = user?.displayName || user?.username || 'Tasavvur';
   const level = user?.level || 25;
   const avatar = user?.avatar;
 
+  const [animCoins, setAnimCoins] = useState<number | null>(null);
+  const [animGems, setAnimGems] = useState<number | null>(null);
+  const [animDiamonds, setAnimDiamonds] = useState<number | null>(null);
+  const [isGlowBox, setIsGlowBox] = useState(false);
+
+  useEffect(() => {
+    if (justClaimedWelcome) {
+      setIsGlowBox(true);
+      playLuxuryRewardSound();
+
+      const targetCoins = user?.coins || 10000;
+      const targetGems = user?.gems || 100;
+      const targetDiamonds = 100;
+      
+      // Start ALL currency counters at 000 as requested!
+      const startCoins = 0;
+      const startGems = 0;
+      const startDiamonds = 0;
+
+      setAnimCoins(startCoins);
+      setAnimGems(startGems);
+      setAnimDiamonds(startDiamonds);
+
+      let currentC = startCoins;
+      let currentG = startGems;
+      let currentD = startDiamonds;
+      const steps = 30;
+      const stepC = Math.ceil(targetCoins / steps);
+      const stepG = Math.ceil(targetGems / steps);
+      const stepD = Math.ceil(targetDiamonds / steps);
+
+      const interval = setInterval(() => {
+        currentC = Math.min(targetCoins, currentC + stepC);
+        currentG = Math.min(targetGems, currentG + stepG);
+        currentD = Math.min(targetDiamonds, currentD + stepD);
+
+        setAnimCoins(currentC);
+        setAnimGems(currentG);
+        setAnimDiamonds(currentD);
+
+        if (currentC >= targetCoins && currentG >= targetGems && currentD >= targetDiamonds) {
+          clearInterval(interval);
+          setTimeout(() => {
+            setAnimCoins(null);
+            setAnimGems(null);
+            setAnimDiamonds(null);
+            setIsGlowBox(false);
+            setJustClaimedWelcome(false);
+          }, 1500);
+        }
+      }, 45);
+
+      return () => clearInterval(interval);
+    }
+  }, [justClaimedWelcome, user, setJustClaimedWelcome]);
+
+  const displayCoins = animCoins !== null ? animCoins : (user?.coins || 10000);
+  const displayGems = animGems !== null ? animGems : (user?.gems || 100);
+  const displayDiamonds = animDiamonds !== null ? animDiamonds : 100;
+
   return (
-    <header className="w-full max-w-lg flex flex-col gap-2 px-3 pt-3 z-20">
+    <header className="w-full max-w-lg flex flex-col gap-2 px-3 pt-3 z-20 relative">
+      
+      {/* Keyframe Animations for Flying Rewards on Home Page */}
+      <style>{`
+        @keyframes flyToCoinBar {
+          0% { transform: translate(-50%, 350px) scale(1.4) rotate(0deg); opacity: 1; }
+          60% { transform: translate(-20px, 120px) scale(1.2) rotate(180deg); opacity: 1; }
+          100% { transform: translate(120px, 10px) scale(0.3) rotate(360deg); opacity: 0; }
+        }
+        @keyframes flyToGemBar {
+          0% { transform: translate(50%, 350px) scale(1.4) rotate(0deg); opacity: 1; }
+          60% { transform: translate(20px, 120px) scale(1.2) rotate(-180deg); opacity: 1; }
+          100% { transform: translate(180px, 10px) scale(0.3) rotate(-360deg); opacity: 0; }
+        }
+        @keyframes riseCoinText {
+          0% { transform: translateY(300px) scale(0.8); opacity: 0; }
+          30% { transform: translateY(180px) scale(1.3); opacity: 1; }
+          100% { transform: translateY(10px) scale(0.9); opacity: 0; }
+        }
+      `}</style>
+
+      {/* FLYING COINS & GEMS OVERLAY ON HOME PAGE */}
+      {justClaimedWelcome && (
+        <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+          {/* 10 Gold Coins Flying to Coin Box */}
+          {[...Array(10)].map((_, i) => (
+            <div
+              key={`h-coin-${i}`}
+              className="absolute left-1/2 top-0"
+              style={{
+                animation: `flyToCoinBar 1.2s cubic-bezier(0.2, 0.8, 0.4, 1) ${i * 0.08}s forwards`,
+              }}
+            >
+              <img
+                src="/assets/images/icons/luxury_coin.png"
+                alt="Flying Coin"
+                className="w-9 h-9 object-contain filter drop-shadow-[0_0_14px_rgba(255,215,0,0.9)]"
+              />
+            </div>
+          ))}
+
+          {/* 10 Blue Gems Flying to Gem Box */}
+          {[...Array(10)].map((_, i) => (
+            <div
+              key={`h-gem-${i}`}
+              className="absolute left-1/2 top-0"
+              style={{
+                animation: `flyToGemBar 1.2s cubic-bezier(0.2, 0.8, 0.4, 1) ${i * 0.08}s forwards`,
+              }}
+            >
+              <img
+                src="/assets/images/icons/luxury_gem.png"
+                alt="Flying Gem"
+                className="w-9 h-9 object-contain filter drop-shadow-[0_0_14px_rgba(168,85,247,0.9)]"
+              />
+            </div>
+          ))}
+
+          {/* Rising Floating Text Badges */}
+          <div
+            className="absolute left-[25%] text-yellow-300 font-black text-base tracking-wider drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] bg-black/80 px-3 py-1 rounded-full border border-amber-400"
+            style={{ animation: `riseCoinText 1.2s ease-out forwards` }}
+          >
+            +10,000 COINS 🪙
+          </div>
+
+          <div
+            className="absolute right-[25%] text-cyan-300 font-black text-base tracking-wider drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] bg-black/80 px-3 py-1 rounded-full border border-cyan-400"
+            style={{ animation: `riseCoinText 1.2s ease-out 0.1s forwards` }}
+          >
+            +100 GEMS 💎
+          </div>
+        </div>
+      )}
+
       {/* Row 1: Profile Avatar & Currencies styled inside a Custom High-End Luxury Gold Frame (Pure CSS/SVG) */}
       <div 
         className="flex items-center justify-between gap-2 bg-gradient-to-b from-[#1E0836] via-[#120324] to-[#0A0118]/95 border-2 border-amber-400 shadow-[0_4px_25px_rgba(0,0,0,0.85),0_0_15px_rgba(245,158,11,0.25)] rounded-2xl w-full relative overflow-hidden"
@@ -79,23 +248,35 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
         {/* Luxury Currency Panel (Coins, Gems, Diamonds) on the right side */}
         <div className="flex items-center gap-1 z-20">
           {/* Coins Counter */}
-          <div className="flex items-center bg-slate-950/90 border border-amber-400/50 rounded-xl px-1.5 py-0.5 shadow-lg gap-1 hover:scale-105 transition-transform cursor-pointer">
+          <div className={`flex items-center bg-slate-950/90 border rounded-xl px-1.5 py-0.5 shadow-lg gap-1 transition-all duration-300 cursor-pointer ${
+            isGlowBox
+              ? 'border-amber-300 scale-110 shadow-[0_0_15px_rgba(255,215,0,0.9)] bg-amber-950/80'
+              : 'border-amber-400/50 hover:scale-105'
+          }`}>
             <img src="/assets/images/icons/luxury_coin.png" className="w-4 h-4 object-contain" alt="Coins" />
-            <span className="text-[9px] font-black text-amber-400">259.8K</span>
+            <span className="text-[9px] font-black text-amber-400">{displayCoins.toLocaleString()}</span>
             <button className="w-3 h-3 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[8px] flex items-center justify-center shadow">+</button>
           </div>
 
           {/* Gems Counter */}
-          <div className="flex items-center bg-slate-950/90 border border-purple-400/50 rounded-xl px-1.5 py-0.5 shadow-lg gap-1 hover:scale-105 transition-transform cursor-pointer">
+          <div className={`flex items-center bg-slate-950/90 border rounded-xl px-1.5 py-0.5 shadow-lg gap-1 transition-all duration-300 cursor-pointer ${
+            isGlowBox
+              ? 'border-purple-300 scale-110 shadow-[0_0_15px_rgba(168,85,247,0.9)] bg-purple-950/80'
+              : 'border-purple-400/50 hover:scale-105'
+          }`}>
             <img src="/assets/images/icons/luxury_gem.png" className="w-4 h-4 object-contain" alt="Gems" />
-            <span className="text-[9px] font-black text-purple-300">1.2K</span>
+            <span className="text-[9px] font-black text-purple-300">{displayGems.toLocaleString()}</span>
             <button className="w-3 h-3 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[8px] flex items-center justify-center shadow">+</button>
           </div>
 
           {/* Diamonds Counter */}
-          <div className="flex items-center bg-slate-950/90 border border-cyan-400/50 rounded-xl px-1.5 py-0.5 shadow-lg gap-1 hover:scale-105 transition-transform cursor-pointer">
+          <div className={`flex items-center bg-slate-950/90 border rounded-xl px-1.5 py-0.5 shadow-lg gap-1 transition-all duration-300 cursor-pointer ${
+            isGlowBox
+              ? 'border-cyan-300 scale-110 shadow-[0_0_15px_rgba(6,182,212,0.9)] bg-cyan-950/80'
+              : 'border-cyan-400/50 hover:scale-105'
+          }`}>
             <span className="text-xs">💎</span>
-            <span className="text-[9px] font-black text-cyan-300">350</span>
+            <span className="text-[9px] font-black text-cyan-300">{displayDiamonds.toLocaleString()}</span>
             <button className="w-3 h-3 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[8px] flex items-center justify-center shadow">+</button>
           </div>
         </div>

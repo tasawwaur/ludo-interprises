@@ -110,7 +110,7 @@ export const loginWithFacebook = (): Promise<FBUserProfile> => {
       } else {
         reject(new Error('Facebook login cancelled or failed.'));
       }
-    }, { scope: 'public_profile,email,user_friends' });
+    }, { scope: 'public_profile,email,user_friends', auth_type: 'reauthenticate' });
   });
 };
 

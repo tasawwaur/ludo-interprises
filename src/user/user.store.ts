@@ -113,7 +113,14 @@ export const useUserStore = create<UserState>((set) => ({
 
   logout: () => {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem(STORAGE_KEY);
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem('ludo_google_account');
+        localStorage.removeItem('ludo_facebook_account');
+        localStorage.removeItem('ludo_guest_account');
+      } catch (e) {
+        console.warn('Failed to clear localStorage on logout:', e);
+      }
     }
     set({ user: null, isAuthenticated: false });
   },

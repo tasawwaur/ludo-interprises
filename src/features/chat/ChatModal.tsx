@@ -43,11 +43,11 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm p-3"
+      className="fixed inset-0 z-50 flex items-end justify-end bg-black/60 backdrop-blur-sm p-3 pr-4 pb-14"
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-[270px] bg-contain bg-center bg-no-repeat rounded-3xl p-4 shadow-[0_12px_40px_rgba(0,0,0,0.9)] flex flex-col gap-2 mb-4 relative overflow-hidden"
+        className="w-[270px] bg-contain bg-center bg-no-repeat rounded-3xl p-4 shadow-[0_12px_40px_rgba(0,0,0,0.9)] flex flex-col gap-2 relative overflow-hidden animate-in fade-in slide-in-from-bottom-3"
         style={{ backgroundImage: `url('/assets/images/icons/green_royal_frame.png')` }}
         onClick={(e) => e.stopPropagation()}
       >

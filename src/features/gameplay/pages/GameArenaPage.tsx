@@ -109,8 +109,8 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
       {/* 1. Ludo Themed Background */}
       <LudoPageBackground variant="gameplay" />
       
-      {/* 2. FIXED CENTER: 3D GOLDEN LUDO BOARD (Fixed 100% in exact dead-center) */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+      {/* 2. FIXED CENTER: 3D GOLDEN LUDO BOARD & TOP/BOTTOM ROYAL CARD SLOTS */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 -translate-y-4">
         <div className="w-[360px] max-w-[95vw] relative flex items-center justify-center">
           <img
             src="/assets/images/backgrounds/luxury_ludo_board.png"
@@ -118,17 +118,20 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
             className="w-full h-auto object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.95)] select-none"
             draggable={false}
           />
-          {/* Transparent Royal Frames positioned vertically */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          {/* Top Center Green Royal Frame (Attached to board edge) */}
+          <div className="absolute -top-[20px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] pointer-events-none z-20">
             <img
               src="/assets/images/icons/green_royal_frame.png"
               alt="Green Royal Frame"
-              className="w-24 h-28 object-contain filter drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] -translate-y-[160%]"
+              className="w-full h-full object-contain filter drop-shadow-[0_6px_14px_rgba(0,0,0,0.95)]"
             />
+          </div>
+          {/* Bottom Center Cyan Royal Frame (Attached to board edge) */}
+          <div className="absolute -bottom-[20px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] pointer-events-none z-20">
             <img
               src="/assets/images/icons/cyan_royal_frame.png"
               alt="Cyan Royal Frame"
-              className="w-24 h-28 object-contain filter drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] translate-y-[150%]"
+              className="w-full h-full object-contain filter drop-shadow-[0_6px_14px_rgba(0,0,0,0.95)]"
             />
           </div>
         </div>

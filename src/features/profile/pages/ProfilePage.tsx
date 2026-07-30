@@ -35,6 +35,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
   const [upgradeEmail, setUpgradeEmail] = useState("");
   const [upgradePassword, setUpgradePassword] = useState("");
 
+  const [showPhoneLinkModal, setShowPhoneLinkModal] = useState(false);
+  const [linkPhoneNumber, setLinkPhoneNumber] = useState("");
+  const [linkPhoneVerification, setLinkPhoneVerification] = useState("");
+
   // Simulated link states stored in localStorage or store
   const [isFBLinked, setIsFBLinked] = useState(() => {
     return user?.loginProvider === 'facebook' || !!user?.facebookId || localStorage.getItem("ludo_fb_linked") === "true";
@@ -225,15 +229,50 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
         triggerToast("Facebook Linked Successfully!");
       }
     } else if (provider === 'phone') {
-      const updated = {
-        ...user,
-        loginProvider: 'phone',
-      } as UserProfile;
-      updateUser({ loginProvider: 'phone' });
-      localStorage.setItem(`ludo_phone_account`, JSON.stringify(updated));
-      setIsPhoneLinked(true);
-      triggerToast("Phone Linked Successfully!");
+      setShowPhoneLinkModal(true);
     }
+  };
+
+  const handleSubmitPhoneLink = () => {
+    const phoneTrimmed = linkPhoneNumber.trim();
+    if (!phoneTrimmed) {
+      triggerToast("Please enter your mobile number!");
+      return;
+    }
+    
+    const cleanUID = playerUID.replace("LUDO-", "").replace("UID-", "").trim();
+    const last6Digits = cleanUID.slice(-6);
+    
+    if (linkPhoneVerification.trim() !== last6Digits) {
+      triggerToast("Invalid Verification Key! Must match the last 6 digits of your UID.");
+      return;
+    }
+    
+    confetti({
+      particleCount: 40,
+      spread: 60,
+      colors: ['#00E676', '#00C853', '#B9F6CA']
+    });
+    
+    const updated = {
+      ...user,
+      id: `phone_${phoneTrimmed}`,
+      email: `${phoneTrimmed}@ludophone.com`,
+      loginProvider: 'phone',
+    } as UserProfile;
+    
+    updateUser({
+      id: `phone_${phoneTrimmed}`,
+      email: `${phoneTrimmed}@ludophone.com`,
+      loginProvider: 'phone',
+    });
+    
+    localStorage.setItem(`ludo_phone_account`, JSON.stringify(updated));
+    localStorage.setItem(`ludo_phone_${phoneTrimmed}`, JSON.stringify(updated));
+    
+    setIsPhoneLinked(true);
+    setShowPhoneLinkModal(false);
+    triggerToast("Mobile Linked Successfully!");
   };
 
   const handleLogoutClick = () => {
@@ -569,6 +608,57 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
               className="w-full py-3 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-500 text-black font-black text-xs tracking-widest uppercase rounded-xl shadow-lg active:scale-95 transition-transform"
             >
               Link & Upgrade
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 4: PHONE LINK OVERLAY ── */}
+      {showPhoneLinkModal && (
+        <div className="absolute inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-[340px] bg-gradient-to-b from-[#2E0B4E] to-[#12061F] border-2 border-amber-400 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 relative">
+            <button
+              onClick={() => setShowPhoneLinkModal(false)}
+              className="absolute top-3 right-4 text-amber-300 text-lg font-black hover:text-white"
+            >
+              ✕
+            </button>
+            <div className="text-center">
+              <span className="text-3xl">📱</span>
+              <h3 className="text-base font-black text-amber-300 tracking-wider mt-1 uppercase">Link Mobile Account</h3>
+              <p className="text-[10px] text-purple-300/80">Enter mobile number and UID verification key</p>
+            </div>
+            <div className="space-y-3">
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] font-black text-purple-300 uppercase tracking-wider">Mobile Number</span>
+                <input
+                  type="tel"
+                  value={linkPhoneNumber}
+                  onChange={(e) => setLinkPhoneNumber(e.target.value.replace(/\D/g, ""))}
+                  placeholder="Enter 10-digit number..."
+                  className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-[9px] font-black text-purple-300 uppercase tracking-wider">Verification Key</span>
+                  <span className="text-[8px] font-black text-amber-400 uppercase">Last 6 digits of UID</span>
+                </div>
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={linkPhoneVerification}
+                  onChange={(e) => setLinkPhoneVerification(e.target.value.trim())}
+                  placeholder="Enter last 6 digits of UID..."
+                  className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400 text-center tracking-widest"
+                />
+              </div>
+            </div>
+            <button
+              onClick={handleSubmitPhoneLink}
+              className="w-full py-3 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-500 text-black font-black text-xs tracking-widest uppercase rounded-xl shadow-lg active:scale-95 transition-transform"
+            >
+              Verify & Link Mobile
             </button>
           </div>
         </div>

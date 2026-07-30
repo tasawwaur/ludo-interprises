@@ -43,7 +43,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
   }, []);
 
   // 💾 Account Persistence Helpers for Returning Users (Restores exact saved coins & profile)
-  const getSavedAccount = (provider: 'guest' | 'google' | 'facebook', nameOrId?: string): UserProfile | null => {
+  const getSavedAccount = (provider: 'guest' | 'google' | 'facebook' | 'phone', nameOrId?: string): UserProfile | null => {
     try {
       if (nameOrId) {
         const sanitized = nameOrId.toLowerCase().trim().replace(/\s+/g, '_');
@@ -79,7 +79,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     return null;
   };
 
-  const saveAccountForProvider = (userProfile: UserProfile, provider: 'guest' | 'google' | 'facebook', nameOrId?: string) => {
+  const saveAccountForProvider = (userProfile: UserProfile, provider: 'guest' | 'google' | 'facebook' | 'phone', nameOrId?: string) => {
     try {
       if (nameOrId) {
         const key = `ludo_${provider}_${nameOrId.toLowerCase().trim().replace(/\s+/g, '_')}`;
@@ -108,6 +108,47 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       nextLevelXp: 1000,
       loginProvider: loginMethod.toLowerCase() as any,
     });
+    onSuccessLogin?.();
+  };
+
+  const handlePhoneLogin = (phoneNum: string) => {
+    const trimmed = phoneNum.trim();
+    if (!trimmed || trimmed.length < 10) {
+      alert("Please enter a valid 10-digit mobile number!");
+      return;
+    }
+    
+    // Attempt to restore account matching this phone number
+    const existing = getSavedAccount('phone', trimmed);
+    if (existing) {
+      setUser(existing);
+      setShowPhoneModal(false);
+      onSuccessLogin?.();
+      return;
+    }
+    
+    // Create new Phone account if it doesn't exist
+    const newPhoneUser: UserProfile = {
+      id: `phone_${trimmed}`,
+      uid: formatPlayerUID({ id: `phone_${trimmed}`, username: `Player_${trimmed.slice(-4)}` }),
+      username: `Player_${trimmed.slice(-4)}`,
+      displayName: `Player_${trimmed.slice(-4)}`,
+      email: `${trimmed}@ludophone.com`,
+      avatar: getDefaultAvatar(`Player_${trimmed.slice(-4)}`),
+      country: "🇮🇳",
+      rank: 1,
+      coins: 20000,
+      gems: 200,
+      crowns: 999000000000000,
+      level: 1,
+      xp: 0,
+      nextLevelXp: 1000,
+      loginProvider: 'phone',
+    };
+    saveAccountForProvider(newPhoneUser, 'phone', trimmed);
+    setJustClaimedWelcome(true);
+    setUser(newPhoneUser);
+    setShowPhoneModal(false);
     onSuccessLogin?.();
   };
 
@@ -372,6 +413,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
         title="Guest Play"
       ></button>
 
+      {/* D. PHONE LOGIN LINK */}
+      <button
+        onClick={() => setShowPhoneModal(true)}
+        className="absolute z-20 px-4 py-1 bg-black/50 border border-amber-400/40 hover:bg-black/75 text-amber-300 font-extrabold text-[9px] tracking-wider uppercase rounded-full shadow active:scale-95 transition-all"
+        style={{ bottom: "4.5%", left: "50%", transform: "translateX(-50%)", WebkitTapHighlightColor: "transparent" }}
+      >
+        📞 Login via Phone / OTP
+      </button>
+
       {/* Phone Login Modal Popup */}
       {showPhoneModal && (
         <div className="absolute inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
@@ -408,12 +458,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
             </div>
 
             <button
-              onClick={() =>
-                handlePerformLogin(
-                  "Phone",
-                  phoneNumber ? `Player_${phoneNumber.slice(-4)}` : "Malik Player"
-                )
-              }
+              onClick={() => handlePhoneLogin(phoneNumber)}
               className="w-full py-3 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-500 text-black font-black text-sm tracking-wider uppercase rounded-xl shadow-lg active:scale-95 transition-transform"
             >
               GET OTP & PLAY 🎮

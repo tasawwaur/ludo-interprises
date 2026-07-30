@@ -34,39 +34,47 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm p-3">
-      <div className="w-full max-w-[240px] bg-gradient-to-b from-[#2A0B34] to-[#12061F] border-2 border-purple-500/50 rounded-2xl p-2.5 shadow-2xl flex flex-col gap-2 mb-6">
-        {/* Header & Tabs */}
-        <div className="flex items-center justify-between">
-          <div className="flex gap-1.5">
+      <div 
+        className="w-full max-w-[240px] bg-cover bg-center border-2 border-amber-400/80 rounded-3xl p-3 shadow-[0_10px_35px_rgba(0,0,0,0.95)] flex flex-col gap-2 mb-6 relative overflow-hidden"
+        style={{ backgroundImage: `url('/assets/images/icons/royal_gold_chat_frame.jpg')` }}
+      >
+        {/* Dark Luxury Overlay */}
+        <div className="absolute inset-0 bg-[#0c0316]/50 backdrop-blur-[1px] pointer-events-none z-0"></div>
+
+        {/* Inner Content Layer */}
+        <div className="relative z-10 flex flex-col gap-2">
+          {/* Header & Tabs */}
+          <div className="flex items-center justify-between">
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => setActiveTab("QUICK_CHAT")}
+                className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase transition-all ${
+                  activeTab === "QUICK_CHAT"
+                    ? "bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md border border-amber-300 font-extrabold"
+                    : "bg-black/60 text-purple-200 border border-purple-500/30"
+                }`}
+              >
+                QUICK CHAT
+              </button>
+              <button
+                onClick={() => setActiveTab("EMOJI")}
+                className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase transition-all ${
+                  activeTab === "EMOJI"
+                    ? "bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md border border-amber-300 font-extrabold"
+                    : "bg-black/60 text-purple-200 border border-purple-500/30"
+                }`}
+              >
+                EMOJI
+              </button>
+            </div>
+
             <button
-              onClick={() => setActiveTab("QUICK_CHAT")}
-              className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase transition-all ${
-                activeTab === "QUICK_CHAT"
-                  ? "bg-purple-600 text-white shadow border border-purple-400"
-                  : "bg-black/40 text-purple-300"
-              }`}
+              onClick={onClose}
+              className="w-5 h-5 rounded-full bg-black/70 border border-amber-400/60 text-amber-300 flex items-center justify-center text-[10px] hover:text-white hover:bg-red-600 transition-colors"
             >
-              QUICK CHAT
-            </button>
-            <button
-              onClick={() => setActiveTab("EMOJI")}
-              className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase transition-all ${
-                activeTab === "EMOJI"
-                  ? "bg-purple-600 text-white shadow border border-purple-400"
-                  : "bg-black/40 text-purple-300"
-              }`}
-            >
-              EMOJI
+              ✕
             </button>
           </div>
-
-          <button
-            onClick={onClose}
-            className="w-5 h-5 rounded-full bg-black/40 border border-white/10 text-gray-300 flex items-center justify-center text-[10px] hover:text-white"
-          >
-            ✕
-          </button>
-        </div>
 
         {/* Tab Content */}
         {activeTab === "QUICK_CHAT" ? (
@@ -114,5 +122,6 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 };

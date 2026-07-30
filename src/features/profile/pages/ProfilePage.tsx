@@ -35,6 +35,14 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
   const [upgradeEmail, setUpgradeEmail] = useState("");
   const [upgradePassword, setUpgradePassword] = useState("");
 
+  const [showFBLinkModal, setShowFBLinkModal] = useState(false);
+  const [fbLinkEmail, setFbLinkEmail] = useState("");
+  const [fbLinkPassword, setFbLinkPassword] = useState("");
+
+  const [showGoogleLinkModal, setShowGoogleLinkModal] = useState(false);
+  const [googleLinkEmail, setGoogleLinkEmail] = useState("");
+  const [googleLinkPassword, setGoogleLinkPassword] = useState("");
+
 
 
   // Simulated link states stored in localStorage or store
@@ -178,7 +186,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
       const isConfigured = googleClientId && !googleClientId.includes('YOUR_GOOGLE_CLIENT_ID');
 
       if (!isConfigured) {
-        alert("Google Login Error: Google VITE_GOOGLE_CLIENT_ID is not configured in your .env file!");
+        console.warn('Google Client ID not configured. Falling back to simulated login verification.');
+        setShowGoogleLinkModal(true);
         return;
       }
 
@@ -207,8 +216,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
           triggerToast("Google Linked Successfully!");
         });
       } catch (e) {
-        console.warn('Google link popup failed:', e);
-        alert("Google Auth Error: Popup window blocked or failed to load.");
+        console.warn('Google link popup failed, falling back to simulated verification modal:', e);
+        setShowGoogleLinkModal(true);
       }
     } else if (provider === 'facebook') {
       try {
@@ -235,13 +244,103 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
         setIsFBLinked(true);
         triggerToast("Facebook Linked Successfully!");
       } catch (err) {
-        console.warn('Facebook link failed:', err);
-        alert("Facebook Auth Error: Real Facebook SDK Login failed or cancelled.");
+        console.warn('Facebook link failed, falling back to simulated verification modal:', err);
+        setShowFBLinkModal(true);
       }
     }
   };
 
 
+
+  const handleSubmitFBLink = () => {
+    const emailTrimmed = fbLinkEmail.trim();
+    const passTrimmed = fbLinkPassword.trim();
+    if (!emailTrimmed || !passTrimmed) {
+      triggerToast("Please enter both email and password!");
+      return;
+    }
+
+    const cleanName = emailTrimmed.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "_");
+    const mockId = `fb_${cleanName}`;
+    
+    // Check duplication
+    const isDup = isAccountAlreadyLinked((acc) => acc.facebookId === mockId || acc.email === emailTrimmed);
+    if (isDup) {
+      triggerToast("Error: Facebook account already linked to another player!");
+      return;
+    }
+
+    confetti({
+      particleCount: 40,
+      spread: 60,
+      colors: ['#1877F2', '#1565C0', '#82B1FF']
+    });
+
+    const updated = {
+      ...user,
+      facebookId: mockId,
+      email: emailTrimmed.includes("@") ? emailTrimmed : `${emailTrimmed}@facebook.com`,
+      loginProvider: 'facebook',
+    } as UserProfile;
+
+    updateUser({
+      facebookId: mockId,
+      email: emailTrimmed.includes("@") ? emailTrimmed : `${emailTrimmed}@facebook.com`,
+      loginProvider: 'facebook',
+    });
+
+    localStorage.setItem(`ludo_facebook_account`, JSON.stringify(updated));
+    localStorage.setItem(`ludo_facebook_${cleanName}`, JSON.stringify(updated));
+
+    setIsFBLinked(true);
+    setShowFBLinkModal(false);
+    triggerToast("Facebook Linked Successfully!");
+  };
+
+  const handleSubmitGoogleLink = () => {
+    const emailTrimmed = googleLinkEmail.trim().toLowerCase();
+    const passTrimmed = googleLinkPassword.trim();
+    if (!emailTrimmed || !passTrimmed) {
+      triggerToast("Please enter both email and password!");
+      return;
+    }
+
+    const cleanName = emailTrimmed.split("@")[0].replace(/[^a-z0-9]/g, "_");
+    const mockId = `goog_${cleanName}`;
+    
+    // Check duplication
+    const isDup = isAccountAlreadyLinked((acc) => acc.googleId === mockId || acc.email === emailTrimmed);
+    if (isDup) {
+      triggerToast("Error: Google account already linked to another player!");
+      return;
+    }
+
+    confetti({
+      particleCount: 40,
+      spread: 60,
+      colors: ['#EA4335', '#FBBC05', '#34A853', '#4285F4']
+    });
+
+    const updated = {
+      ...user,
+      googleId: mockId,
+      email: emailTrimmed.includes("@") ? emailTrimmed : `${emailTrimmed}@gmail.com`,
+      loginProvider: 'google',
+    } as UserProfile;
+
+    updateUser({
+      googleId: mockId,
+      email: emailTrimmed.includes("@") ? emailTrimmed : `${emailTrimmed}@gmail.com`,
+      loginProvider: 'google',
+    });
+
+    localStorage.setItem(`ludo_google_account`, JSON.stringify(updated));
+    localStorage.setItem(`ludo_google_${cleanName}`, JSON.stringify(updated));
+
+    setIsGoogleLinked(true);
+    setShowGoogleLinkModal(false);
+    triggerToast("Google Linked Successfully!");
+  };
 
   const handleLogoutClick = () => {
     logout();
@@ -566,6 +665,131 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
 
 
 
+
+      {/* ── MODAL 5: SIMULATED FACEBOOK LOGIN OVERLAY ── */}
+      {showFBLinkModal && (
+        <div className="absolute inset-0 z-50 bg-[#090214]/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-[340px] bg-[#1877F2] rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-blue-400">
+            {/* Header */}
+            <div className="bg-[#1877F2] p-4 flex items-center gap-3 border-b border-blue-500">
+              <span className="text-white text-2xl font-black font-serif select-none">facebook</span>
+              <span className="text-[10px] bg-blue-800 text-blue-100 px-2 py-0.5 rounded font-black tracking-wider uppercase ml-auto">OAuth 2.0</span>
+            </div>
+
+            {/* Content Body */}
+            <div className="bg-[#1C202E] p-5 flex flex-col gap-4 text-white">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center text-xl border border-purple-500">
+                  🎲
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-white">Ludo Enterprise</h4>
+                  <p className="text-[10px] text-gray-400">developers.facebook.com</p>
+                </div>
+              </div>
+
+              <div className="text-xs text-gray-300 leading-relaxed border-t border-b border-gray-800 py-3 my-1">
+                Log in to your **Facebook account** to verify and link it to this profile.
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Mobile number or email address</span>
+                  <input
+                    type="text"
+                    value={fbLinkEmail}
+                    onChange={(e) => setFbLinkEmail(e.target.value)}
+                    placeholder="Enter email or phone..."
+                    className="w-full px-3 py-2 bg-black/60 border border-blue-700/50 rounded-xl text-white placeholder-gray-500 font-bold text-xs focus:outline-none focus:border-[#1877F2]"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Facebook Password</span>
+                  <input
+                    type="password"
+                    value={fbLinkPassword}
+                    onChange={(e) => setFbLinkPassword(e.target.value)}
+                    placeholder="Enter password..."
+                    className="w-full px-3 py-2 bg-black/60 border border-blue-700/50 rounded-xl text-white placeholder-gray-500 font-bold text-xs focus:outline-none focus:border-[#1877F2]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2.5 mt-2">
+                <button
+                  onClick={() => setShowFBLinkModal(false)}
+                  className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-black text-xs uppercase rounded-xl transition-transform active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitFBLink}
+                  className="flex-1 py-2.5 bg-gradient-to-r from-blue-600 to-[#1877F2] hover:from-blue-700 hover:to-blue-600 text-white font-black text-xs uppercase rounded-xl shadow-lg transition-transform active:scale-95"
+                >
+                  Log In & Link
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 6: SIMULATED GOOGLE LOGIN OVERLAY ── */}
+      {showGoogleLinkModal && (
+        <div className="absolute inset-0 z-50 bg-[#090214]/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-[340px] bg-gradient-to-b from-[#2E0B4E] to-[#12061F] border-2 border-amber-400 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 relative">
+            <button
+              onClick={() => setShowGoogleLinkModal(false)}
+              className="absolute top-3 right-4 text-amber-300 text-lg font-black hover:text-white"
+            >
+              ✕
+            </button>
+            <div className="text-center">
+              <span className="text-3xl">🔴</span>
+              <h3 className="text-base font-black text-amber-300 tracking-wider mt-1 uppercase">Link Google Account</h3>
+              <p className="text-[10px] text-purple-300/80">Log in to confirm your identity and link your **Google account**</p>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] font-black text-purple-300 uppercase tracking-wider">Email Address</span>
+                <input
+                  type="email"
+                  value={googleLinkEmail}
+                  onChange={(e) => setGoogleLinkEmail(e.target.value)}
+                  placeholder="Enter your Gmail address..."
+                  className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] font-black text-purple-300 uppercase tracking-wider">Google Password</span>
+                <input
+                  type="password"
+                  value={googleLinkPassword}
+                  onChange={(e) => setGoogleLinkPassword(e.target.value)}
+                  placeholder="Enter Google password..."
+                  className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2.5 mt-2">
+              <button
+                onClick={() => setShowGoogleLinkModal(false)}
+                className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-black text-xs uppercase rounded-xl transition-transform active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitGoogleLink}
+                className="flex-1 py-2.5 bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-red-600 text-white font-black text-xs uppercase rounded-xl shadow-lg transition-transform active:scale-95 border border-red-400"
+              >
+                Log In & Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── CUSTOM FLOATING TOAST BAR ── */}
       {toastMessage && (

@@ -252,7 +252,7 @@ const MainApp: React.FC = () => {
 
           {/* ✅ Global Currency Bar — har page pe same values dikhein */}
           {currentView !== 'AUTH' && currentView !== 'SPLASH' && currentView !== 'HOME' && (
-            <GlobalCurrencyBar />
+            <GlobalCurrencyBar onOpenShop={() => setCurrentView('SHOP')} />
           )}
 
           {/* Modals */}

@@ -7,7 +7,11 @@ const fmt = (val: number): string => {
   return val.toLocaleString();
 };
 
-export const GlobalCurrencyBar: React.FC = () => {
+interface GlobalCurrencyBarProps {
+  onOpenShop?: () => void;
+}
+
+export const GlobalCurrencyBar: React.FC<GlobalCurrencyBarProps> = ({ onOpenShop }) => {
   const user = useUserStore((s) => s.user);
   if (!user) return null;
 
@@ -16,7 +20,12 @@ export const GlobalCurrencyBar: React.FC = () => {
   const crowns = user.crowns ?? 0;
 
   return (
-    <div className="absolute top-[18px] right-3.5 z-[60] flex items-center gap-3.5 pointer-events-none select-none">
+    <button
+      onClick={() => onOpenShop?.()}
+      className="absolute top-[18px] right-3.5 z-[60] flex items-center gap-3.5 pointer-events-auto cursor-pointer hover:scale-[1.05] active:scale-95 transition-all border-0 outline-none p-0 bg-transparent select-none"
+      style={{ WebkitTapHighlightColor: 'transparent' }}
+      aria-label="Open Shop"
+    >
 
       {/* Crowns */}
       <div className="flex items-center gap-1">
@@ -36,6 +45,6 @@ export const GlobalCurrencyBar: React.FC = () => {
         <span className="text-[10px] font-black text-purple-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">{fmt(gems)}</span>
       </div>
 
-    </div>
+    </button>
   );
 };

@@ -149,14 +149,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     onSuccessLogin?.();
   };
 
-  // Google Login Handler — Auto login returning Google user or open modal
+  // Google Login Handler — Opens Google Connect / Recovery Modal
   const handleGoogleLogin = () => {
-    const existingGoogle = getSavedAccount('google');
-    if (existingGoogle) {
-      setUser(existingGoogle);
-      onSuccessLogin?.();
-      return;
-    }
     setShowGoogleModal(true);
     if (isGoogleSDKReady) {
       promptGoogleSignIn();
@@ -234,15 +228,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
   };
 
   const handleFacebookLogin = async () => {
-    const existingFB = getSavedAccount('facebook');
-    if (existingFB) {
-      setUser(existingFB);
-      onSuccessLogin?.();
-      return;
-    }
     try {
       const profile = await loginWithFacebook();
       const fbFriends = await fetchFacebookFriends();
+      
+      const existing = getSavedAccount('facebook', profile.name);
+      if (existing) {
+        setUser(existing);
+        onSuccessLogin?.();
+        return;
+      }
       
       const newFBUser: UserProfile = {
         id: `fb_${profile.id}`,
@@ -266,7 +261,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
           { id: 'fb_f3', name: 'Govind [FB]', isOnline: false }
         ]
       };
-      saveAccountForProvider(newFBUser, 'facebook');
+      saveAccountForProvider(newFBUser, 'facebook', profile.name);
       setJustClaimedWelcome(true);
       setUser(newFBUser);
       onSuccessLogin?.();

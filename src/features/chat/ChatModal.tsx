@@ -42,29 +42,20 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm p-3">
+    <div 
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm p-3"
+      onClick={onClose}
+    >
       <div 
         className="w-full max-w-[270px] bg-cover bg-center border-2 border-amber-400/80 rounded-3xl p-3 shadow-[0_10px_35px_rgba(0,0,0,0.95)] flex flex-col gap-2 mb-4 relative overflow-hidden"
         style={{ backgroundImage: `url('/assets/images/icons/royal_gold_chat_frame.jpg')` }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Dark Overlay */}
         <div className="absolute inset-0 bg-[#0c0316]/60 backdrop-blur-[1px] pointer-events-none z-0"></div>
 
         {/* Inner Content Layer */}
         <div className="relative z-10 flex flex-col gap-2">
-          {/* Header & Close Button */}
-          <div className="flex items-center justify-between border-b border-amber-400/20 pb-1.5">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs">💬</span>
-              <span className="text-[10px] font-black text-amber-300 tracking-wider uppercase">In-Game Chat</span>
-            </div>
-            <button
-              onClick={onClose}
-              className="w-5 h-5 rounded-full bg-black/70 border border-amber-400/60 text-amber-300 flex items-center justify-center text-[10px] hover:text-white hover:bg-red-600 transition-colors"
-            >
-              ✕
-            </button>
-          </div>
 
           {/* 1. CHAT HISTORY CONTAINER */}
           <div className="w-full bg-slate-950/80 border border-purple-500/30 rounded-xl p-2 h-[100px] overflow-y-auto flex flex-col gap-1.5 no-scrollbar shadow-inner">

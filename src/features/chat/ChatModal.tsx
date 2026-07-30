@@ -34,13 +34,13 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm p-3">
-      <div className="w-full max-w-[410px] bg-gradient-to-b from-[#2A0B34] to-[#12061F] border-2 border-purple-500/50 rounded-3xl p-4 shadow-2xl flex flex-col gap-3">
+      <div className="w-full max-w-[240px] bg-gradient-to-b from-[#2A0B34] to-[#12061F] border-2 border-purple-500/50 rounded-2xl p-2.5 shadow-2xl flex flex-col gap-2 mb-6">
         {/* Header & Tabs */}
         <div className="flex items-center justify-between">
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <button
               onClick={() => setActiveTab("QUICK_CHAT")}
-              className={`px-4 py-1.5 rounded-xl text-xs font-black uppercase transition-all ${
+              className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase transition-all ${
                 activeTab === "QUICK_CHAT"
                   ? "bg-purple-600 text-white shadow border border-purple-400"
                   : "bg-black/40 text-purple-300"
@@ -50,7 +50,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
             </button>
             <button
               onClick={() => setActiveTab("EMOJI")}
-              className={`px-4 py-1.5 rounded-xl text-xs font-black uppercase transition-all ${
+              className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase transition-all ${
                 activeTab === "EMOJI"
                   ? "bg-purple-600 text-white shadow border border-purple-400"
                   : "bg-black/40 text-purple-300"
@@ -62,7 +62,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
 
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-full bg-black/40 border border-white/10 text-gray-300 flex items-center justify-center text-sm hover:text-white"
+            className="w-5 h-5 rounded-full bg-black/40 border border-white/10 text-gray-300 flex items-center justify-center text-[10px] hover:text-white"
           >
             ✕
           </button>
@@ -70,24 +70,24 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
 
         {/* Tab Content */}
         {activeTab === "QUICK_CHAT" ? (
-          <div className="grid grid-cols-2 gap-2 max-h-[220px] overflow-y-auto no-scrollbar py-1">
+          <div className="grid grid-cols-2 gap-1.5 max-h-[140px] overflow-y-auto no-scrollbar py-1">
             {quickMsgs.map((msg, i) => (
               <button
                 key={i}
                 onClick={() => handleSend(msg)}
-                className="p-2.5 bg-black/40 border border-purple-500/30 hover:border-amber-400 rounded-xl text-xs font-bold text-white text-center hover:scale-[1.02] active:scale-95 transition-all shadow"
+                className="p-1.5 bg-black/40 border border-purple-500/30 hover:border-amber-400 rounded-lg text-[9px] font-bold text-white text-center hover:scale-[1.02] active:scale-95 transition-all shadow"
               >
                 {msg}
               </button>
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-4 gap-3 max-h-[220px] overflow-y-auto no-scrollbar p-2">
+          <div className="grid grid-cols-4 gap-1.5 max-h-[130px] overflow-y-auto no-scrollbar p-1">
             {emojis.map((emo, i) => (
               <button
                 key={i}
                 onClick={() => handleSend(emo)}
-                className="text-4xl p-2 bg-transparent border-0 outline-none text-center hover:scale-135 active:scale-95 transition-transform cursor-pointer flex items-center justify-center select-none filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.6)]"
+                className="text-2xl p-1 bg-transparent border-0 outline-none text-center hover:scale-135 active:scale-95 transition-transform cursor-pointer flex items-center justify-center select-none filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]"
               >
                 {emo}
               </button>
@@ -95,19 +95,19 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
           </div>
         )}
 
-        {/* Text Input Row (Matching Image #5) */}
-        <div className="flex gap-2 mt-1">
+        {/* Text Input Row */}
+        <div className="flex gap-1.5 mt-0.5">
           <input
             type="text"
-            placeholder="Type a message..."
+            placeholder="Type message..."
             value={inputMsg}
             onChange={(e) => setInputMsg(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend(inputMsg)}
-            className="flex-1 bg-black/60 border border-purple-500/40 rounded-xl px-3 py-2 text-xs font-bold text-white placeholder-gray-500 focus:outline-none focus:border-amber-400"
+            className="flex-1 bg-black/60 border border-purple-500/40 rounded-lg px-2 py-1 text-[9.5px] font-bold text-white placeholder-gray-500 focus:outline-none focus:border-amber-400"
           />
           <button
             onClick={() => handleSend(inputMsg)}
-            className="bg-amber-500 text-slate-950 px-4 py-2 rounded-xl font-black text-xs hover:bg-amber-400 active:scale-95 transition-transform"
+            className="bg-amber-500 text-slate-950 px-2.5 py-1 rounded-lg font-black text-[10px] hover:bg-amber-400 active:scale-95 transition-transform"
           >
             ➔
           </button>

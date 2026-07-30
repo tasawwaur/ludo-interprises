@@ -53,7 +53,13 @@ const getInitialProfile = (): UserProfile => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        return {
+          ...parsed,
+          coins: (parsed.coins !== undefined && parsed.coins > 0) ? parsed.coins : 20000,
+          gems: (parsed.gems !== undefined && parsed.gems > 0) ? parsed.gems : 200,
+          crowns: (parsed.crowns !== undefined && parsed.crowns > 0) ? parsed.crowns : 10,
+        };
       }
     } catch (e) {
       console.warn('Failed to load profile from localStorage:', e);
@@ -68,12 +74,12 @@ const getInitialProfile = (): UserProfile => {
     avatar: undefined,
     country: '🇮🇳',
     rank: 1,
-    coins: 0,
-    gems: 0,
+    coins: 20000,
+    gems: 200,
     level: 1,
     xp: 0,
     nextLevelXp: 1000,
-    crowns: 0,
+    crowns: 10,
   };
 };
 

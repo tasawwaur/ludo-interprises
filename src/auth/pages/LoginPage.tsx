@@ -46,10 +46,26 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       if (nameOrId) {
         const key = `ludo_${provider}_${nameOrId.toLowerCase().trim().replace(/\s+/g, '_')}`;
         const saved = localStorage.getItem(key);
-        if (saved) return JSON.parse(saved);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return {
+            ...parsed,
+            coins: (parsed.coins !== undefined && parsed.coins > 0) ? parsed.coins : 20000,
+            gems: (parsed.gems !== undefined && parsed.gems > 0) ? parsed.gems : 200,
+            crowns: (parsed.crowns !== undefined && parsed.crowns > 0) ? parsed.crowns : 10,
+          };
+        }
       }
       const defaultSaved = localStorage.getItem(`ludo_${provider}_account`);
-      if (defaultSaved) return JSON.parse(defaultSaved);
+      if (defaultSaved) {
+        const parsed = JSON.parse(defaultSaved);
+        return {
+          ...parsed,
+          coins: (parsed.coins !== undefined && parsed.coins > 0) ? parsed.coins : 20000,
+          gems: (parsed.gems !== undefined && parsed.gems > 0) ? parsed.gems : 200,
+          crowns: (parsed.crowns !== undefined && parsed.crowns > 0) ? parsed.crowns : 10,
+        };
+      }
     } catch (e) {
       console.warn(`Failed to read saved ${provider} account:`, e);
     }
@@ -141,15 +157,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     onSuccessLogin?.();
   };
 
-  // Google Login Handler — Executes REAL Google Authentication Popup
+  // Google Login Handler — Always executes login authentication window
   const handleGoogleLogin = () => {
-    const savedGoogle = getSavedAccount('google');
-    if (savedGoogle) {
-      setUser(savedGoogle);
-      onSuccessLogin?.();
-      return;
-    }
-    
     const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
     const isConfigured = googleClientId && !googleClientId.includes('YOUR_GOOGLE_CLIENT_ID');
 
@@ -168,7 +177,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
         });
       }
     } else {
-      // Connect real profile when Client ID is unconfigured locally
       handleCompleteGoogleAuth({
         sub: `goog_trlife_${Date.now()}`,
         name: "Trlife",

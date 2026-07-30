@@ -47,8 +47,8 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-[270px] bg-cover bg-center border border-purple-500/30 rounded-3xl p-3 shadow-[0_12px_40px_rgba(0,0,0,0.9)] flex flex-col gap-2 mb-4 relative overflow-hidden"
-        style={{ backgroundImage: `url('/assets/images/icons/royal_gold_chat_frame.jpg')` }}
+        className="w-full max-w-[270px] bg-contain bg-center bg-no-repeat rounded-3xl p-4 shadow-[0_12px_40px_rgba(0,0,0,0.9)] flex flex-col gap-2 mb-4 relative overflow-hidden"
+        style={{ backgroundImage: `url('/assets/images/icons/green_royal_frame.png')` }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Soft Ambient Overlay */}

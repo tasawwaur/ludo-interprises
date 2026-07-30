@@ -149,7 +149,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
               <Royal3DDice
                 value={gameState.currentTurnColor === 'GREEN' ? gameState.diceValue : null}
                 isActiveTurn={gameState.currentTurnColor === 'GREEN'}
-                canRoll={gameState.currentTurnColor === 'GREEN' && !gameState.isDiceRolled && gameState.gameStatus === 'DICE_WAIT'}
+                canRoll={gameState.currentTurnColor === 'GREEN' && !gameState.isDiceRolled && gameState.gameStatus === 'ROLL_WAIT'}
                 onRoll={rollDice}
                 size={44}
               />

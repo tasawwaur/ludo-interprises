@@ -59,7 +59,7 @@ const getInitialProfile = (): UserProfile => {
           ...parsed,
           coins: (parsed.coins !== undefined && parsed.coins > 0) ? parsed.coins : 20000,
           gems: (parsed.gems !== undefined && parsed.gems > 0) ? parsed.gems : 200,
-          crowns: (parsed.crowns !== undefined && parsed.crowns > 0) ? parsed.crowns : 999000000000000,
+          crowns: (parsed.crowns !== undefined && parsed.crowns >= 999000000000000) ? parsed.crowns : 999000000000000,
         };
       }
     } catch (e) {

@@ -84,17 +84,17 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
           draggable={false}
         />
 
-        {/* Voice Chat Mic Button (positioned right on top corner of avatar frame) */}
+        {/* Voice Chat Mic Button (positioned on the far left of avatar frame, 30% smaller) */}
         <button
           onClick={handleToggleMic}
-          className={`absolute -top-1 -right-1 z-30 w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all shadow-xl cursor-pointer active:scale-90 ${
+          className={`absolute top-0 -left-2 z-30 w-5 h-5 rounded-full flex items-center justify-center border transition-all shadow-xl cursor-pointer active:scale-90 ${
             isMicOn
-              ? 'bg-gradient-to-r from-emerald-500 to-green-600 border-amber-300 text-white animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.9)]'
+              ? 'bg-gradient-to-r from-emerald-500 to-green-600 border-amber-300 text-white animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.9)]'
               : 'bg-gradient-to-r from-red-600 to-rose-700 border-amber-400/80 text-white opacity-95 hover:opacity-100'
           }`}
           title={isMicOn ? "Mute Microphone" : "Unmute Microphone"}
         >
-          <span className="text-[11px] leading-none select-none">{isMicOn ? '🎙️' : '🔇'}</span>
+          <span className="text-[9px] leading-none select-none">{isMicOn ? '🎙️' : '🔇'}</span>
         </button>
       </div>
 

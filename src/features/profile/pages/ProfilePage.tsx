@@ -145,6 +145,29 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
     triggerToast("Account Upgraded Successfully!");
   };
 
+  const isAccountAlreadyLinked = (checkFn: (parsed: any) => boolean): boolean => {
+    if (typeof window === 'undefined') return false;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('ludo_') || key.startsWith('ludo_user_profile_'))) {
+          const val = localStorage.getItem(key);
+          if (val) {
+            try {
+              const parsed = JSON.parse(val);
+              if (parsed && parsed.id && parsed.id !== user?.id && checkFn(parsed)) {
+                return true;
+              }
+            } catch (jsonErr) {}
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Error scanning accounts for duplicates:", e);
+    }
+    return false;
+  };
+
   const handleLinkAccount = async (provider: 'facebook' | 'google' | 'phone') => {
     confetti({
       particleCount: 20,
@@ -159,6 +182,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
       if (isConfigured) {
         try {
           triggerGoogleOAuth(googleClientId, (googleProfile) => {
+            // Check if already linked to another profile
+            const isDup = isAccountAlreadyLinked((acc) => acc.googleId === googleProfile.sub || acc.email === googleProfile.email);
+            if (isDup) {
+              triggerToast("Error: Google account already linked to another player!");
+              return;
+            }
+
             const updated = {
               ...user,
               googleId: googleProfile.sub,
@@ -202,6 +232,14 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
     } else if (provider === 'facebook') {
       try {
         const profile = await loginWithFacebook();
+        
+        // Check if already linked to another profile
+        const isDup = isAccountAlreadyLinked((acc) => acc.facebookId === profile.id);
+        if (isDup) {
+          triggerToast("Error: Facebook account already linked to another player!");
+          return;
+        }
+
         const updated = {
           ...user,
           facebookId: profile.id,
@@ -240,6 +278,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
       return;
     }
     
+    // Check if already linked to another profile
+    const isDup = isAccountAlreadyLinked((acc) => acc.id === `phone_${phoneTrimmed}` || acc.email === `${phoneTrimmed}@ludophone.com`);
+    if (isDup) {
+      triggerToast("Error: Mobile number already linked to another player!");
+      return;
+    }
+
     const cleanUID = playerUID.replace("LUDO-", "").replace("UID-", "").trim();
     const last6Digits = cleanUID.slice(-6);
     

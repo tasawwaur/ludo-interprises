@@ -563,24 +563,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
               )}
             </div>
 
-            {/* Phone Link Row */}
-            <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
-              <div className="flex items-center gap-2.5">
-                <span className="text-lg">📱</span>
-                <span className="text-xs font-black text-white">Phone</span>
-              </div>
-              {isPhoneLinked ? (
-                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">Linked ✓</span>
-              ) : (
-                <button
-                  onClick={() => handleLinkAccount('phone')}
-                  className="px-3.5 py-1.5 bg-emerald-600 text-white font-black text-[10px] rounded-xl hover:bg-emerald-700 active:scale-95 transition-transform uppercase"
-                >
-                  Link
-                </button>
-              )}
-            </div>
-
             {/* Guest Upgrade Option */}
             {user?.loginProvider === 'guest' && (
               <button

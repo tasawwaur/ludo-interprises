@@ -117,6 +117,18 @@ export class BoardCanvasRenderer {
     ctx.restore();
   }
 
+  private static pawnImageCache: Record<string, HTMLImageElement> = {};
+
+  private getPawnImage(color: PlayerColor): HTMLImageElement {
+    const key = color.toLowerCase();
+    if (!BoardCanvasRenderer.pawnImageCache[key]) {
+      const img = new Image();
+      img.src = `/assets/images/pawns/pawn_${key}.png`;
+      BoardCanvasRenderer.pawnImageCache[key] = img;
+    }
+    return BoardCanvasRenderer.pawnImageCache[key];
+  }
+
   private drawReferenceYard(
     col: number,
     row: number,
@@ -397,52 +409,60 @@ export class BoardCanvasRenderer {
         const displayStep = isAnimating ? state.animatingToken!.currentStep : token.stepCount;
 
         const coords = getPixelCoordinates(token.color, displayStep, token.index, cellSize);
-        const radius = cellSize * 0.38;
+        const radius = cellSize * 0.42;
 
         const isMoveable = moveableSet.has(token.id);
         const isHovered = activeHoverTokenId === token.id;
         const isSelected = selectedTokenId === token.id;
 
-        const scale = isMoveable ? 1.0 + Math.sin(this.animPulseAngle * 2) * 0.08 : 1.0;
+        const scale = isMoveable ? 1.0 + Math.sin(this.animPulseAngle * 2) * 0.1 : 1.0;
 
         ctx.save();
         ctx.translate(coords.x, coords.y);
         ctx.scale(scale, scale);
 
-        // Drop Shadow
+        // Ground Drop Shadow
         ctx.beginPath();
-        ctx.arc(2, 3, radius, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.ellipse(0, cellSize * 0.22, radius * 0.85, radius * 0.35, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
         ctx.fill();
 
-        // Token Body (Glossy Token with Gold Crown)
-        ctx.beginPath();
-        ctx.arc(0, 0, radius, 0, Math.PI * 2);
-        ctx.fillStyle = colorMap[token.color];
-        ctx.fill();
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = '#ffffff';
-        ctx.stroke();
+        // 3D Pawn Asset Image
+        const pawnImg = this.getPawnImage(token.color);
+        if (pawnImg && pawnImg.complete && pawnImg.naturalWidth > 0) {
+          const pawnW = cellSize * 0.88;
+          const pawnH = pawnW * (pawnImg.naturalHeight / pawnImg.naturalWidth);
+          
+          if (isMoveable || isSelected) {
+            ctx.shadowColor = isSelected ? '#38bdf8' : isHovered ? '#fbbf24' : '#60a5fa';
+            ctx.shadowBlur = 12 + Math.sin(this.animPulseAngle * 3) * 6;
+          }
 
-        // Inner Gold Crown Circle
-        ctx.beginPath();
-        ctx.arc(0, 0, radius * 0.45, 0, Math.PI * 2);
-        ctx.fillStyle = '#fef08a'; // Light gold
-        ctx.fill();
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = '#ca8a04';
-        ctx.stroke();
-
-        // Crown Icon Symbol inside Token
-        ctx.beginPath();
-        ctx.arc(0, 0, radius * 0.2, 0, Math.PI * 2);
-        ctx.fillStyle = '#854d0e';
-        ctx.fill();
-
-        // Pulsing Highlight
-        if (isMoveable || isSelected) {
+          ctx.drawImage(pawnImg, -pawnW / 2, -pawnH * 0.75, pawnW, pawnH);
+        } else {
+          // Fallback Glossy 2D Token Body with Gold Crown
           ctx.beginPath();
-          ctx.arc(0, 0, radius + (isSelected || isHovered ? 6 : 4), 0, Math.PI * 2);
+          ctx.arc(0, 0, radius, 0, Math.PI * 2);
+          ctx.fillStyle = colorMap[token.color];
+          ctx.fill();
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = '#ffffff';
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(0, 0, radius * 0.45, 0, Math.PI * 2);
+          ctx.fillStyle = '#fef08a';
+          ctx.fill();
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = '#ca8a04';
+          ctx.stroke();
+        }
+
+        // Selection / Movable Glow Ring around base
+        if (isMoveable || isSelected) {
+          ctx.shadowBlur = 0;
+          ctx.beginPath();
+          ctx.ellipse(0, cellSize * 0.2, radius * 0.95, radius * 0.4, 0, 0, Math.PI * 2);
           ctx.lineWidth = 3;
           ctx.strokeStyle = isSelected ? '#38bdf8' : isHovered ? '#fbbf24' : '#60a5fa';
           ctx.stroke();

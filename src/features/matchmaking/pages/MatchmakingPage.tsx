@@ -56,7 +56,14 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
             <div className="absolute bottom-2 left-2 text-3xl animate-bounce" style={{ animationDelay: "0.4s" }}>🟢</div>
             <div className="absolute bottom-2 right-2 text-3xl animate-bounce" style={{ animationDelay: "0.6s" }}>🔵</div>
 
-            <span className="text-5xl drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] animate-pulse">🎲</span>
+            <div className="absolute w-[80px] h-[80px] z-20 flex items-center justify-center select-none">
+              <img
+                src="/assets/images/icons/vs_gold_emblem.png"
+                alt="VS"
+                className="w-full h-full object-contain animate-pulse drop-shadow-[0_4px_10px_rgba(251,191,36,0.5)]"
+                draggable={false}
+              />
+            </div>
           </div>
 
           <span className="text-xs font-black text-gray-300">

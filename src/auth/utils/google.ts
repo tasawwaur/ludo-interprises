@@ -74,9 +74,9 @@ export const initGoogleSDK = async (
   try {
     await loadGoogleSDK();
     const google = (window as any).google;
-    if (google?.accounts?.id && clientId && clientId !== 'YOUR_GOOGLE_CLIENT_ID') {
+    if (google?.accounts?.id) {
       google.accounts.id.initialize({
-        client_id: clientId,
+        client_id: clientId || '1088492040921-sample.apps.googleusercontent.com',
         callback: (response: any) => {
           if (response.credential) {
             const profile = decodeGoogleJwt(response.credential);
@@ -96,7 +96,87 @@ export const initGoogleSDK = async (
   }
 };
 
-// Prompt Google Sign-In
+// Render Official Google Sign-In Button into HTML Element
+export const renderGoogleSignInButton = (
+  container: HTMLElement,
+  clientId: string,
+  onSuccess: (profile: GoogleUserProfile) => void
+): void => {
+  try {
+    const google = (window as any).google;
+    if (google?.accounts?.id) {
+      google.accounts.id.initialize({
+        client_id: clientId || '1088492040921-sample.apps.googleusercontent.com',
+        callback: (response: any) => {
+          if (response.credential) {
+            const profile = decodeGoogleJwt(response.credential);
+            if (profile) {
+              onSuccess(profile);
+            }
+          }
+        },
+      });
+
+      google.accounts.id.renderButton(container, {
+        type: 'standard',
+        theme: 'outline',
+        size: 'large',
+        text: 'signin_with',
+        shape: 'pill',
+        logo_alignment: 'left',
+        width: 280,
+      });
+    }
+  } catch (e) {
+    console.warn('Error rendering Google button:', e);
+  }
+};
+
+// Trigger Real Google OAuth 2.0 Popup Window Client
+export const triggerGoogleOAuth = (
+  clientId: string,
+  onSuccess: (profile: GoogleUserProfile) => void
+): void => {
+  try {
+    const google = (window as any).google;
+    if (google?.accounts?.oauth2) {
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: clientId || '1088492040921-sample.apps.googleusercontent.com',
+        scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+        callback: async (tokenResponse: any) => {
+          if (tokenResponse?.access_token) {
+            try {
+              const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+              });
+              const data = await res.json();
+              if (data && data.name) {
+                onSuccess({
+                  sub: data.sub || `goog_${Date.now()}`,
+                  name: data.name,
+                  email: data.email || `${data.name.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
+                  picture: data.picture,
+                  givenName: data.given_name,
+                  familyName: data.family_name,
+                });
+              }
+            } catch (err) {
+              console.warn('Error fetching Google userinfo:', err);
+            }
+          }
+        },
+      });
+      client.requestAccessToken();
+    } else {
+      promptGoogleSignIn();
+    }
+  } catch (err) {
+    console.warn('Error triggering Google OAuth popup:', err);
+    promptGoogleSignIn();
+  }
+};
+
+// Prompt Google Sign-In One-Tap
 export const promptGoogleSignIn = (): void => {
   const google = (window as any).google;
   if (google?.accounts?.id) {

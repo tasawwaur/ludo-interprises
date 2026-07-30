@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useUserStore, UserProfile } from "../../user/user.store";
 import { initFacebookSDK, loginWithFacebook, fetchFacebookFriends, FBFriend } from "../utils/fb";
-import { initGoogleSDK, promptGoogleSignIn, GoogleUserProfile } from "../utils/google";
+import { initGoogleSDK, promptGoogleSignIn, renderGoogleSignInButton, triggerGoogleOAuth, GoogleUserProfile } from "../utils/google";
 import { GuestRegistrationModal } from "../components/GuestRegistrationModal";
 
 interface LoginPageProps {
@@ -36,16 +36,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     const fbAppId = import.meta.env.VITE_FB_APP_ID || '1234567890';
     initFacebookSDK(fbAppId);
 
-    // Initialize Google SDK on mount — uses real Client ID from .env
+    // Initialize Google SDK on mount
     const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
-    const isValidRealClientId = googleClientId && !googleClientId.includes('YOUR_GOOGLE_CLIENT_ID');
-    if (isValidRealClientId) {
-      initGoogleSDK(googleClientId, (googleProfile) => {
-        handleCompleteGoogleAuth(googleProfile);
-      }).then((ready) => {
-        setIsGoogleSDKReady(ready);
-      });
-    }
+    initGoogleSDK(googleClientId, (googleProfile) => {
+      handleCompleteGoogleAuth(googleProfile);
+    }).then((ready) => {
+      setIsGoogleSDKReady(ready);
+    });
   }, []);
 
   // 💾 Account Persistence Helpers for Returning Users (Restores exact saved coins & profile)
@@ -149,7 +146,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     onSuccessLogin?.();
   };
 
-  // Google Login Handler — Opens Google Connect / Recovery Modal with pre-filled saved account
+  // Google Login Handler — Opens Google Connect / Recovery Modal and triggers Google OAuth
   const handleGoogleLogin = () => {
     const savedGoogle = getSavedAccount('google');
     if (savedGoogle) {
@@ -164,9 +161,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       }
     }
     setShowGoogleModal(true);
-    if (isGoogleSDKReady) {
-      promptGoogleSignIn();
-    }
+    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+    triggerGoogleOAuth(googleClientId, (googleProfile) => {
+      handleCompleteGoogleAuth(googleProfile);
+    });
   };
 
   const handleCompleteGoogleAuth = (profile: GoogleUserProfile) => {

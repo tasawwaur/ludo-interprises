@@ -35,10 +35,10 @@ export class GameEngine {
       const profileFrame = member?.profileFrame;
       const nameBanner = member?.nameBanner;
 
-      // Team Assignment: Team A = Green & Blue, Team B = Red & Yellow
+      // Team Assignment: Red vs Yellow & Blue vs Green
       let team: TeamName | undefined = undefined;
       if (mode === '2v2') {
-        team = color === 'GREEN' || color === 'BLUE' ? 'TEAM_A' : 'TEAM_B';
+        team = color === 'RED' || color === 'YELLOW' ? 'TEAM_A' : 'TEAM_B';
       }
 
       const tokens: Token[] = [0, 1, 2, 3].map((tokenIdx) => ({

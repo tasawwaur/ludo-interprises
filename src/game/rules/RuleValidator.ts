@@ -64,9 +64,19 @@ export class RuleValidator {
       const isSafe = SAFE_TRACK_INDICES.has(targetTrackIndex);
 
       if (!isSafe) {
-        // Search all opponent tokens on outer track
+        // Search all opponent tokens on outer track (excluding team partner)
+        // Team Partners: Red & Yellow vs Blue & Green
         for (const player of state.players) {
           if (player.color === color) continue;
+
+          // Check if player is team partner
+          const isPartner =
+            (color === 'RED' && player.color === 'YELLOW') ||
+            (color === 'YELLOW' && player.color === 'RED') ||
+            (color === 'BLUE' && player.color === 'GREEN') ||
+            (color === 'GREEN' && player.color === 'BLUE');
+
+          if (isPartner && state.mode === '2v2') continue; // Partners do not capture each other in team match
 
           for (const oppToken of player.tokens) {
             if (oppToken.stepCount >= 1 && oppToken.stepCount <= 51) {

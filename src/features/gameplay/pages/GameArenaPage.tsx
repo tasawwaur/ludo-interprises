@@ -8,6 +8,7 @@ import { DiceFace } from '../components/DiceFace';
 import { ExitConfirmModal } from '../components/ExitConfirmModal';
 import { LudoPageBackground } from '../../../components/effects/LudoPageBackground';
 import { useRoomStore } from '../../../features/matchmaking/rooms/RoomStore';
+import { Royal3DDice } from '../components/Royal3DDice';
 
 interface GameArenaPageProps {
   onLeaveGame: () => void;
@@ -118,21 +119,41 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
             className="w-full h-auto object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.95)] select-none"
             draggable={false}
           />
-          {/* Top Center Green Royal Frame (Attached to board edge) */}
-          <div className="absolute -top-[20px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] pointer-events-none z-20">
+          {/* Top Center Green Royal Frame & Opponent 3D Dice */}
+          <div className="absolute -top-[20px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] pointer-events-none z-20 flex items-center justify-center">
             <img
               src="/assets/images/icons/green_royal_frame.png"
               alt="Green Royal Frame"
               className="w-full h-full object-contain filter drop-shadow-[0_6px_14px_rgba(0,0,0,0.95)]"
             />
+            {/* 3D Dice inside Green Frame */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-auto">
+              <Royal3DDice
+                value={gameState.currentTurnColor === 'YELLOW' || gameState.currentTurnColor === 'RED' ? gameState.diceValue : null}
+                isActiveTurn={gameState.currentTurnColor === 'YELLOW'}
+                canRoll={false}
+                size={44}
+              />
+            </div>
           </div>
-          {/* Bottom Center Cyan Royal Frame (Attached to board edge) */}
-          <div className="absolute -bottom-[20px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] pointer-events-none z-20">
+
+          {/* Bottom Center Cyan Royal Frame & Local User 3D Dice */}
+          <div className="absolute -bottom-[20px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] pointer-events-none z-20 flex items-center justify-center">
             <img
               src="/assets/images/icons/cyan_royal_frame.png"
               alt="Cyan Royal Frame"
               className="w-full h-full object-contain filter drop-shadow-[0_6px_14px_rgba(0,0,0,0.95)]"
             />
+            {/* 3D Dice inside Cyan Frame */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-auto">
+              <Royal3DDice
+                value={gameState.currentTurnColor === 'GREEN' ? gameState.diceValue : null}
+                isActiveTurn={gameState.currentTurnColor === 'GREEN'}
+                canRoll={gameState.currentTurnColor === 'GREEN' && !gameState.isDiceRolled && gameState.gameStatus === 'DICE_WAIT'}
+                onRoll={rollDice}
+                size={44}
+              />
+            </div>
           </div>
         </div>
       </div>

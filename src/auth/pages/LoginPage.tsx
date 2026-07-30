@@ -285,6 +285,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
   };
 
   const handleFacebookLogin = async () => {
+    const FB = (window as any).FB;
+    if (!FB) {
+      console.warn('Facebook SDK not loaded. Falling back to simulated login modal.');
+      setShowFBModal(true);
+      return;
+    }
+
     try {
       const profile = await loginWithFacebook();
       const fbFriends = await fetchFacebookFriends();
@@ -324,9 +331,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       setUser(newFBUser);
       onSuccessLogin?.();
     } catch (err) {
-      console.warn('Real Facebook SDK login failed or App ID dummy, launching simulated modal:', err);
-      // Fallback to simulated popup modal
-      setShowFBModal(true);
+      console.warn('Real Facebook SDK login failed or cancelled:', err);
     }
   };
 

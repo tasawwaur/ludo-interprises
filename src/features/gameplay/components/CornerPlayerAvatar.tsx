@@ -65,9 +65,9 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
 
   return (
     <div className="relative flex flex-col items-center select-none min-w-[98px]">
-      {/* Speech Emoji / Message Popup (Floating EXACTLY to the Right side of Profile Avatar) */}
+      {/* Speech Emoji / Message Popup (Centered over Profile Avatar) */}
       {chatBubbleMessage && (
-        <div className={`absolute top-0 ${isRightSide ? '-left-[152px]' : 'left-[96px]'} z-40 animate-bounce drop-shadow-[0_6px_16px_rgba(0,0,0,0.95)] select-none pointer-events-none`}>
+        <div className={`absolute ${isBottom ? '-top-14' : '-bottom-14'} left-1/2 -translate-x-1/2 z-40 animate-bounce drop-shadow-[0_6px_16px_rgba(0,0,0,0.95)] select-none pointer-events-none`}>
           <div 
             className="w-[146px] h-[106px] bg-contain bg-center bg-no-repeat p-3 flex items-center justify-center text-center filter drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]"
             style={{

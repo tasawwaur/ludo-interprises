@@ -16,7 +16,7 @@ export const GlobalCurrencyBar: React.FC = () => {
   const crowns = user.crowns ?? 0;
 
   return (
-    <div className="absolute top-2 right-2 z-[60] flex items-center gap-3.5 pointer-events-none select-none">
+    <div className="absolute top-[18px] right-3.5 z-[60] flex items-center gap-3.5 pointer-events-none select-none">
 
       {/* Crowns */}
       <div className="flex items-center gap-1">

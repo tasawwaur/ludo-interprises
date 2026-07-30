@@ -172,8 +172,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
   const handleCompleteGoogleAuth = (profile: GoogleUserProfile) => {
     const existing = getSavedAccount('google', profile.name) || getSavedAccount('google', profile.email) || getSavedAccount('google');
     if (existing) {
-      saveAccountForProvider(existing, 'google', profile.name);
-      setUser(existing);
+      const restoredUser: UserProfile = {
+        ...existing,
+        displayName: profile.name,
+        username: profile.name,
+        email: profile.email,
+        avatar: profile.picture || existing.avatar,
+      };
+      saveAccountForProvider(restoredUser, 'google', profile.name);
+      setUser(restoredUser);
       setShowGoogleModal(false);
       onSuccessLogin?.();
       return;
@@ -209,8 +216,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
 
     const existing = getSavedAccount('google', finalName) || getSavedAccount('google', finalEmail) || getSavedAccount('google');
     if (existing) {
-      saveAccountForProvider(existing, 'google', finalName);
-      setUser(existing);
+      const restoredUser: UserProfile = {
+        ...existing,
+        displayName: finalName,
+        username: finalName,
+        email: finalEmail,
+        avatar: finalAvatar || existing.avatar,
+      };
+      saveAccountForProvider(restoredUser, 'google', finalName);
+      setUser(restoredUser);
       setShowGoogleModal(false);
       onSuccessLogin?.();
       return;

@@ -86,6 +86,14 @@ export const useUserStore = create<UserState>((set) => ({
     if (user && typeof window !== 'undefined') {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+        if (user.loginProvider) {
+          localStorage.setItem(`ludo_${user.loginProvider}_account`, JSON.stringify(user));
+          const activeName = user.displayName || user.username;
+          if (activeName) {
+            const key = `ludo_${user.loginProvider}_${activeName.toLowerCase().trim().replace(/\s+/g, '_')}`;
+            localStorage.setItem(key, JSON.stringify(user));
+          }
+        }
       } catch (e) {
         console.warn('Failed to save user to localStorage:', e);
       }
@@ -102,6 +110,11 @@ export const useUserStore = create<UserState>((set) => ({
           localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
           if (updated.loginProvider) {
             localStorage.setItem(`ludo_${updated.loginProvider}_account`, JSON.stringify(updated));
+            const activeName = updated.displayName || updated.username;
+            if (activeName) {
+              const key = `ludo_${updated.loginProvider}_${activeName.toLowerCase().trim().replace(/\s+/g, '_')}`;
+              localStorage.setItem(key, JSON.stringify(updated));
+            }
           }
         } catch (e) {
           console.warn('Failed to persist user updates:', e);

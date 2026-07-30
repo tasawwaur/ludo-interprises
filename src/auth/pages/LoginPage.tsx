@@ -110,6 +110,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
   };
 
   const handleCompleteGoogleAuth = (profile: GoogleUserProfile) => {
+    setJustClaimedWelcome(true);
     setUser({
       id: `goog_${profile.sub || Date.now()}`,
       username: profile.name,
@@ -118,10 +119,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       avatar: profile.picture || googleAvatarUrl,
       country: "🇮🇳",
       rank: 1,
-      coins: 12000,
-      gems: 120,
-      level: 5,
-      xp: 900,
+      coins: 20000,
+      gems: 200,
+      crowns: 10,
+      level: 1,
+      xp: 0,
       nextLevelXp: 1000,
       loginProvider: 'google',
       googleId: profile.sub,
@@ -135,6 +137,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     const finalEmail = googleEmail.trim() || `${finalName.toLowerCase().replace(/\s+/g, '')}@gmail.com`;
     const finalAvatar = googleAvatarUrl.trim() || undefined;
 
+    setJustClaimedWelcome(true);
     setUser({
       id: `goog_${Date.now()}`,
       username: finalName,
@@ -143,10 +146,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       avatar: finalAvatar,
       country: "🇮🇳",
       rank: 1,
-      coins: 12000,
-      gems: 120,
-      level: 5,
-      xp: 900,
+      coins: 20000,
+      gems: 200,
+      crowns: 10,
+      level: 1,
+      xp: 0,
       nextLevelXp: 1000,
       loginProvider: 'google',
       googleId: `goog_acc_${Date.now()}`,
@@ -161,6 +165,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       const profile = await loginWithFacebook();
       const fbFriends = await fetchFacebookFriends();
       
+      setJustClaimedWelcome(true);
       setUser({
         id: `fb_${profile.id}`,
         username: profile.name,
@@ -169,10 +174,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
         avatar: profile.avatarUrl || undefined,
         country: "🇮🇳",
         rank: 1,
-        coins: 10000,
-        gems: 100,
-        level: 5,
-        xp: 850,
+        coins: 20000,
+        gems: 200,
+        crowns: 10,
+        level: 1,
+        xp: 0,
         nextLevelXp: 1000,
         loginProvider: 'facebook',
         facebookId: profile.id,
@@ -205,6 +211,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     const finalName = fbUserName.trim() || 'TASAVVUR';
     const finalAvatar = fbAvatarUrl.trim() || undefined;
 
+    setJustClaimedWelcome(true);
     setUser({
       id: `fb_sim_${Date.now()}`,
       username: finalName,
@@ -212,11 +219,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       email: `${finalName.toLowerCase().replace(/\s+/g, '')}@facebook.com`,
       avatar: finalAvatar,
       country: '🇮🇳',
-      rank: 2,
-      coins: 15000,
-      gems: 150,
-      level: 5,
-      xp: 750,
+      rank: 1,
+      coins: 20000,
+      gems: 200,
+      crowns: 10,
+      level: 1,
+      xp: 0,
       nextLevelXp: 1000,
       loginProvider: 'facebook',
       facebookId: '1020304050',

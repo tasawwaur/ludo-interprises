@@ -132,7 +132,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                 value={gameState.currentTurnColor === 'YELLOW' || gameState.currentTurnColor === 'RED' ? gameState.diceValue : null}
                 isActiveTurn={gameState.currentTurnColor === 'YELLOW'}
                 canRoll={false}
-                size={44}
+                size={54}
               />
             </div>
           </div>
@@ -151,7 +151,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                 isActiveTurn={gameState.currentTurnColor === 'GREEN'}
                 canRoll={gameState.currentTurnColor === 'GREEN' && !gameState.isDiceRolled && gameState.gameStatus === 'ROLL_WAIT'}
                 onRoll={rollDice}
-                size={44}
+                size={54}
               />
             </div>
           </div>

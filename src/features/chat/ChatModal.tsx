@@ -42,22 +42,32 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-end justify-end bg-black/60 backdrop-blur-sm p-3 pr-4 pb-14"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm p-3">
       <div 
-        className="w-[270px] bg-contain bg-center bg-no-repeat rounded-3xl p-4 shadow-[0_12px_40px_rgba(0,0,0,0.9)] flex flex-col gap-2 relative overflow-hidden animate-in fade-in slide-in-from-bottom-3"
-        style={{ backgroundImage: `url('/assets/images/icons/green_royal_frame.png')` }}
-        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-[270px] bg-cover bg-center border-2 border-amber-400/80 rounded-3xl p-3 shadow-[0_10px_35px_rgba(0,0,0,0.95)] flex flex-col gap-2 mb-4 relative overflow-hidden"
+        style={{ backgroundImage: `url('/assets/images/icons/royal_gold_chat_frame.jpg')` }}
       >
-        {/* Soft Ambient Overlay */}
-        <div className="absolute inset-0 bg-[#0c0316]/30 backdrop-blur-[2px] pointer-events-none z-0"></div>
+        {/* Dark Overlay */}
+        <div className="absolute inset-0 bg-[#0c0316]/60 backdrop-blur-[1px] pointer-events-none z-0"></div>
 
         {/* Inner Content Layer */}
         <div className="relative z-10 flex flex-col gap-2">
-          {/* 1. CHAT HISTORY CONTAINER (Starts directly from the top) */}
-          <div className="w-full bg-slate-950/80 border border-purple-500/30 rounded-xl p-2 h-[120px] overflow-y-auto flex flex-col gap-1.5 no-scrollbar shadow-inner">
+          {/* Header & Close Button */}
+          <div className="flex items-center justify-between border-b border-amber-400/20 pb-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs">💬</span>
+              <span className="text-[10px] font-black text-amber-300 tracking-wider uppercase">In-Game Chat</span>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-5 h-5 rounded-full bg-black/70 border border-amber-400/60 text-amber-300 flex items-center justify-center text-[10px] hover:text-white hover:bg-red-600 transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* 1. CHAT HISTORY CONTAINER */}
+          <div className="w-full bg-slate-950/80 border border-purple-500/30 rounded-xl p-2 h-[100px] overflow-y-auto flex flex-col gap-1.5 no-scrollbar shadow-inner">
             {messages.length === 0 ? (
               <div className="h-full flex items-center justify-center text-[9px] text-purple-300/60 font-semibold italic">
                 No messages yet. Say hi! 👋

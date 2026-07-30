@@ -33,7 +33,7 @@ interface UserState {
   logout: () => void;
 }
 
-const STORAGE_KEY = 'ludo_user_profile_v1';
+const STORAGE_KEY = 'ludo_user_profile_v2';
 
 const getInitialProfile = (): UserProfile => {
   if (typeof window !== 'undefined') {
@@ -55,12 +55,12 @@ const getInitialProfile = (): UserProfile => {
     avatar: undefined,
     country: '🇮🇳',
     rank: 1,
-    coins: 1000,
-    gems: 30,
-    level: 2,
-    xp: 450,
+    coins: 0,
+    gems: 0,
+    level: 1,
+    xp: 0,
     nextLevelXp: 1000,
-    crowns: 2,
+    crowns: 0,
   };
 };
 

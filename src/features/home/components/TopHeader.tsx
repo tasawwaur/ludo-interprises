@@ -106,9 +106,9 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
     }
   }, [justClaimedWelcome, user, setJustClaimedWelcome]);
 
-  const displayCoins = animCoins !== null ? animCoins : (user?.coins || 10000);
-  const displayGems = animGems !== null ? animGems : (user?.gems || 100);
-  const displayDiamonds = animDiamonds !== null ? animDiamonds : 100;
+  const displayCoins = animCoins !== null ? animCoins : (user?.coins !== undefined ? user.coins : 0);
+  const displayGems = animGems !== null ? animGems : (user?.gems !== undefined ? user.gems : 0);
+  const displayDiamonds = animDiamonds !== null ? animDiamonds : (user?.gems !== undefined ? user.gems : 0);
 
   return (
     <header className="w-full max-w-lg flex flex-col gap-2 px-3 pt-3 z-20 relative">

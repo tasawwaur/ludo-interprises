@@ -22,7 +22,7 @@ export const GlobalCurrencyBar: React.FC<GlobalCurrencyBarProps> = ({ onOpenShop
   return (
     <button
       onClick={() => onOpenShop?.()}
-      className="absolute top-[18px] right-3.5 z-[60] flex items-center gap-3.5 pointer-events-auto cursor-pointer hover:scale-[1.05] active:scale-95 transition-all border-0 outline-none p-0 bg-transparent select-none"
+      className="absolute top-[18px] right-[26px] z-[60] flex items-center gap-3.5 pointer-events-auto cursor-pointer hover:scale-[1.05] active:scale-95 transition-all border-0 outline-none p-0 bg-transparent select-none"
       style={{ WebkitTapHighlightColor: 'transparent' }}
       aria-label="Open Shop"
     >

@@ -39,7 +39,7 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
 
   const handleDiceClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!onRoll || isAnimating) return;
+    if (isAnimating) return;
 
     setIsAnimating(true);
     let count = 0;
@@ -49,7 +49,11 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
       if (count >= 10) {
         clearInterval(interval);
         setIsAnimating(false);
-        onRoll();
+        if (onRoll) {
+          onRoll();
+        } else {
+          setTempValue(Math.floor(Math.random() * 6) + 1);
+        }
       }
     }, 50);
   };
@@ -122,9 +126,7 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
     <div
       onClick={handleDiceClick}
       style={{ width: `${size}px`, height: `${size}px` }}
-      className={`relative select-none transition-all duration-300 ${
-        canRoll || isActiveTurn ? 'cursor-pointer hover:scale-110 active:scale-95' : 'pointer-events-none'
-      }`}
+      className="relative select-none transition-all duration-300 cursor-pointer hover:scale-110 active:scale-95 pointer-events-auto"
     >
       {/* 3D Glowing Active Aura when turn is active */}
       {isActiveTurn && (

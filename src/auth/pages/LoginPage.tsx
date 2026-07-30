@@ -44,7 +44,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
   const getSavedAccount = (provider: 'guest' | 'google' | 'facebook', nameOrId?: string): UserProfile | null => {
     try {
       if (nameOrId) {
-        const key = `ludo_${provider}_${nameOrId.toLowerCase().trim().replace(/\s+/g, '_')}`;
+        const sanitized = nameOrId.toLowerCase().trim().replace(/\s+/g, '_');
+        const key = `ludo_${provider}_${sanitized}`;
         const saved = localStorage.getItem(key);
         if (saved) {
           const parsed = JSON.parse(saved);
@@ -55,7 +56,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
             crowns: (parsed.crowns !== undefined && parsed.crowns > 0) ? parsed.crowns : 10,
           };
         }
+        return null; // Return null if specific account name/ID was requested but not found
       }
+
       const defaultSaved = localStorage.getItem(`ludo_${provider}_account`);
       if (defaultSaved) {
         const parsed = JSON.parse(defaultSaved);
@@ -192,7 +195,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       return;
     }
 
-    const existing = getSavedAccount('google', profile.name) || getSavedAccount('google', profile.email) || getSavedAccount('google');
+    const existing = (profile.name && getSavedAccount('google', profile.name)) || 
+                     (profile.email && getSavedAccount('google', profile.email)) || 
+                     (profile.sub && getSavedAccount('google', profile.sub));
+
     if (existing) {
       const restoredUser: UserProfile = {
         ...existing,

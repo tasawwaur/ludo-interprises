@@ -149,6 +149,22 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
             )}
           </div>
         </div>
+
+        {/* LUXURY CHAT BUTTON: FIXED DEAD BOTTOM CENTER */}
+        <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 z-30 flex items-center justify-center">
+          <button
+            onClick={() => setShowChatModal(true)}
+            className="w-16 h-16 relative hover:scale-110 active:scale-90 transition-transform cursor-pointer filter drop-shadow-[0_8px_16px_rgba(234,179,8,0.7)]"
+            title="Open Chat"
+          >
+            <img
+              src="/assets/images/icons/luxury_chat_button.png"
+              alt="Chat"
+              className="w-full h-full object-contain pointer-events-none"
+              draggable={false}
+            />
+          </button>
+        </div>
       </div>
 
       {/* Exit Confirmation Modal */}

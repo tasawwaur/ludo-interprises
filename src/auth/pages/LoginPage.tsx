@@ -149,8 +149,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     onSuccessLogin?.();
   };
 
-  // Google Login Handler — Opens Google Connect / Recovery Modal
+  // Google Login Handler — Opens Google Connect / Recovery Modal with pre-filled saved account
   const handleGoogleLogin = () => {
+    const savedGoogle = getSavedAccount('google');
+    if (savedGoogle) {
+      if (savedGoogle.displayName || savedGoogle.username) {
+        setGoogleName(savedGoogle.displayName || savedGoogle.username);
+      }
+      if (savedGoogle.email) {
+        setGoogleEmail(savedGoogle.email);
+      }
+      if (savedGoogle.avatar) {
+        setGoogleAvatarUrl(savedGoogle.avatar);
+      }
+    }
     setShowGoogleModal(true);
     if (isGoogleSDKReady) {
       promptGoogleSignIn();
@@ -158,8 +170,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
   };
 
   const handleCompleteGoogleAuth = (profile: GoogleUserProfile) => {
-    const existing = getSavedAccount('google', profile.name) || getSavedAccount('google', profile.email);
+    const existing = getSavedAccount('google', profile.name) || getSavedAccount('google', profile.email) || getSavedAccount('google');
     if (existing) {
+      saveAccountForProvider(existing, 'google', profile.name);
       setUser(existing);
       setShowGoogleModal(false);
       onSuccessLogin?.();
@@ -194,8 +207,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     const finalEmail = googleEmail.trim() || `${finalName.toLowerCase().replace(/\s+/g, '')}@gmail.com`;
     const finalAvatar = googleAvatarUrl.trim() || undefined;
 
-    const existing = getSavedAccount('google', finalName) || getSavedAccount('google', finalEmail);
+    const existing = getSavedAccount('google', finalName) || getSavedAccount('google', finalEmail) || getSavedAccount('google');
     if (existing) {
+      saveAccountForProvider(existing, 'google', finalName);
       setUser(existing);
       setShowGoogleModal(false);
       onSuccessLogin?.();

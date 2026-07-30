@@ -137,26 +137,42 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
             />
           </div>
 
-          {/* 8 SAFE STOPS 3D LUXURY STAR ICONS OVER 3D BOARD */}
-          {/* Green Start (Top-Left Track Entry) */}
-          <img src="/assets/images/icons/luxury_star_icon.png" alt="Star 1" className="absolute top-[40.5%] left-[8%] w-5 h-5 object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)] z-25 pointer-events-none" />
-          {/* Green Star (Top-Left Track Star) */}
-          <img src="/assets/images/icons/luxury_star_icon.png" alt="Star 2" className="absolute top-[52%] left-[20%] w-5 h-5 object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)] z-25 pointer-events-none" />
+          {/* 8 SAFE STOPS 3D LUXURY STAR ICONS (15x15 Grid Pixel Perfect Alignment) */}
+          {/* Green Start: Col 1, Row 6 -> (1.5/15, 6.5/15) */}
+          <div className="absolute top-[43.33%] left-[10%] -translate-x-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center z-25 pointer-events-none">
+            <img src="/assets/images/icons/luxury_star_icon.png" alt="Green Start Star" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
+          </div>
+          {/* Green Track Safe: Col 2, Row 8 -> (2.5/15, 8.5/15) */}
+          <div className="absolute top-[56.66%] left-[16.66%] -translate-x-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center z-25 pointer-events-none">
+            <img src="/assets/images/icons/luxury_star_icon.png" alt="Green Track Star" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
+          </div>
 
-          {/* Yellow Start (Top-Right Track Entry) */}
-          <img src="/assets/images/icons/luxury_star_icon.png" alt="Star 3" className="absolute top-[8%] left-[58.5%] w-5 h-5 object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)] z-25 pointer-events-none" />
-          {/* Yellow Star (Top-Right Track Star) */}
-          <img src="/assets/images/icons/luxury_star_icon.png" alt="Star 4" className="absolute top-[20.5%] left-[48%] w-5 h-5 object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)] z-25 pointer-events-none" />
+          {/* Yellow Start: Col 8, Row 1 -> (8.5/15, 1.5/15) */}
+          <div className="absolute top-[10%] left-[56.66%] -translate-x-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center z-25 pointer-events-none">
+            <img src="/assets/images/icons/luxury_star_icon.png" alt="Yellow Start Star" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
+          </div>
+          {/* Yellow Track Safe: Col 6, Row 2 -> (6.5/15, 2.5/15) */}
+          <div className="absolute top-[16.66%] left-[43.33%] -translate-x-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center z-25 pointer-events-none">
+            <img src="/assets/images/icons/luxury_star_icon.png" alt="Yellow Track Star" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
+          </div>
 
-          {/* Blue Start (Bottom-Right Track Entry) */}
-          <img src="/assets/images/icons/luxury_star_icon.png" alt="Star 5" className="absolute top-[58.5%] right-[8%] w-5 h-5 object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)] z-25 pointer-events-none" />
-          {/* Blue Star (Bottom-Right Track Star) */}
-          <img src="/assets/images/icons/luxury_star_icon.png" alt="Star 6" className="absolute top-[47%] right-[20%] w-5 h-5 object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)] z-25 pointer-events-none" />
+          {/* Blue Start: Col 13, Row 8 -> (13.5/15, 8.5/15) */}
+          <div className="absolute top-[56.66%] left-[90%] -translate-x-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center z-25 pointer-events-none">
+            <img src="/assets/images/icons/luxury_star_icon.png" alt="Blue Start Star" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
+          </div>
+          {/* Blue Track Safe: Col 12, Row 6 -> (12.5/15, 6.5/15) */}
+          <div className="absolute top-[43.33%] left-[83.33%] -translate-x-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center z-25 pointer-events-none">
+            <img src="/assets/images/icons/luxury_star_icon.png" alt="Blue Track Star" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
+          </div>
 
-          {/* Red Start (Bottom-Left Track Entry) */}
-          <img src="/assets/images/icons/luxury_star_icon.png" alt="Star 7" className="absolute bottom-[8%] left-[40.5%] w-5 h-5 object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)] z-25 pointer-events-none" />
-          {/* Red Star (Bottom-Left Track Star) */}
-          <img src="/assets/images/icons/luxury_star_icon.png" alt="Star 8" className="absolute bottom-[20.5%] left-[48%] w-5 h-5 object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)] z-25 pointer-events-none" />
+          {/* Red Start: Col 6, Row 13 -> (6.5/15, 13.5/15) */}
+          <div className="absolute top-[90%] left-[43.33%] -translate-x-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center z-25 pointer-events-none">
+            <img src="/assets/images/icons/luxury_star_icon.png" alt="Red Start Star" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
+          </div>
+          {/* Red Track Safe: Col 8, Row 12 -> (8.5/15, 12.5/15) */}
+          <div className="absolute top-[83.33%] left-[56.66%] -translate-x-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center z-25 pointer-events-none">
+            <img src="/assets/images/icons/luxury_star_icon.png" alt="Red Track Star" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
+          </div>
 
           {/* Top Center Green Royal Frame & Opponent 3D Dice */}
           <div className="absolute -top-[20px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] z-50 flex items-center justify-center pointer-events-auto">

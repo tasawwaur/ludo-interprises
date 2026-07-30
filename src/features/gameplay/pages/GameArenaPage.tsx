@@ -119,6 +119,24 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
             className="w-full h-auto object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.95)] select-none pointer-events-none"
             draggable={false}
           />
+          {/* Red Royal Frame: Red House (PERFECT POSITION) */}
+          <div className="absolute top-[90px] left-[25px] w-[121px] h-[134px] pointer-events-none z-15">
+            <img
+              src="/assets/images/icons/red_royal_frame.png"
+              alt="Red Royal Frame on Red House"
+              className="w-full h-full object-contain filter drop-shadow-[0_6px_14px_rgba(0,0,0,0.9)]"
+            />
+          </div>
+
+          {/* Gold Royal Frame: Yellow House (Shifted 40% Up) */}
+          <div className="absolute bottom-[105px] right-[20px] w-[121px] h-[134px] pointer-events-none z-15">
+            <img
+              src="/assets/images/icons/gold_royal_frame.png"
+              alt="Gold Royal Frame on Yellow House"
+              className="w-full h-full object-contain filter drop-shadow-[0_6px_14px_rgba(0,0,0,0.9)]"
+            />
+          </div>
+
           {/* Top Center Green Royal Frame & Opponent 3D Dice */}
           <div className="absolute -top-[20px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] z-50 flex items-center justify-center pointer-events-auto">
             <img

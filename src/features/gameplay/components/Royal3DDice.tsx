@@ -20,9 +20,26 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
 
   const displayVal = isAnimating ? tempValue : value || 1;
 
+  // Trigger rolling animation when value changes or when rolling is triggered
+  useEffect(() => {
+    if (value && value > 0) {
+      setIsAnimating(true);
+      let count = 0;
+      const interval = setInterval(() => {
+        setTempValue(Math.floor(Math.random() * 6) + 1);
+        count++;
+        if (count >= 8) {
+          clearInterval(interval);
+          setIsAnimating(false);
+        }
+      }, 50);
+      return () => clearInterval(interval);
+    }
+  }, [value]);
+
   const handleDiceClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!canRoll || !onRoll || isAnimating) return;
+    if (!onRoll || isAnimating) return;
 
     setIsAnimating(true);
     let count = 0;
@@ -34,7 +51,7 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
         setIsAnimating(false);
         onRoll();
       }
-    }, 60);
+    }, 50);
   };
 
   // Render 3D Ivory White Royal Cube with Pips
@@ -106,18 +123,18 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
       onClick={handleDiceClick}
       style={{ width: `${size}px`, height: `${size}px` }}
       className={`relative select-none transition-all duration-300 ${
-        canRoll ? 'cursor-pointer hover:scale-110 active:scale-95' : 'pointer-events-none'
+        canRoll || isActiveTurn ? 'cursor-pointer hover:scale-110 active:scale-95' : 'pointer-events-none'
       }`}
     >
       {/* 3D Glowing Active Aura when turn is active */}
       {isActiveTurn && (
-        <div className="absolute -inset-2 rounded-2xl bg-amber-400/40 blur-md animate-pulse pointer-events-none"></div>
+        <div className="absolute -inset-2 rounded-2xl bg-amber-400/50 blur-md animate-pulse pointer-events-none"></div>
       )}
 
       {/* 3D Ivory Royal Dice Box */}
       <div
-        className={`w-full h-full rounded-2xl bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 border-2 border-amber-300/90 shadow-[0_8px_20px_rgba(0,0,0,0.9),inset_0_2px_4px_rgba(255,255,255,0.9),inset_0_-2px_4px_rgba(0,0,0,0.2)] flex items-center justify-center relative overflow-hidden transition-transform ${
-          isAnimating ? 'animate-spin scale-105' : ''
+        className={`w-full h-full rounded-2xl bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 border-2 border-amber-300/90 shadow-[0_8px_20px_rgba(0,0,0,0.9),inset_0_2px_4px_rgba(255,255,255,0.9),inset_0_-2px_4px_rgba(0,0,0,0.2)] flex items-center justify-center relative overflow-hidden transition-all ${
+          isAnimating ? 'animate-bounce rotate-[720deg] scale-110 duration-500' : ''
         }`}
       >
         {/* Shiny Gloss Highlight */}

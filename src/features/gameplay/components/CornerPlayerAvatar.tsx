@@ -65,12 +65,19 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
 
   return (
     <div className="relative flex flex-col items-center select-none min-w-[98px]">
-      {/* Speech Emoji / Message Popup (Direct Floating Emoji / Dynamic Responsive Bubble) */}
+      {/* Speech Emoji / Message Popup (Floating to the Right side of Profile Avatar) */}
       {chatBubbleMessage && (
-        <div className={`absolute ${isBottom ? '-top-11' : '-bottom-11'} ${isRightSide ? 'right-0' : 'left-0'} z-40 animate-bounce drop-shadow-[0_6px_14px_rgba(0,0,0,0.9)] select-none`}>
-          <span className="text-xs font-extrabold bg-slate-900/95 text-amber-200 border border-amber-400/90 px-3 py-1 rounded-xl shadow-2xl inline-block max-w-[260px] break-words text-center leading-snug">
-            {chatBubbleMessage}
-          </span>
+        <div className={`absolute top-2 ${isRightSide ? '-left-36' : 'left-[92px]'} z-40 animate-bounce drop-shadow-[0_6px_14px_rgba(0,0,0,0.9)] select-none pointer-events-none`}>
+          <div 
+            className="w-36 h-28 bg-contain bg-center bg-no-repeat p-3 flex items-center justify-center text-center filter drop-shadow-[0_4px_12px_rgba(0,0,0,0.85)]"
+            style={{
+              backgroundImage: `url(${position === 'bottom-left' || position === 'top-left' ? '/assets/images/icons/green_royal_frame.png' : '/assets/images/icons/cyan_royal_frame.png'})`
+            }}
+          >
+            <span className="text-[11px] font-extrabold text-amber-200 break-words line-clamp-3 leading-snug px-1">
+              {chatBubbleMessage}
+            </span>
+          </div>
         </div>
       )}
 

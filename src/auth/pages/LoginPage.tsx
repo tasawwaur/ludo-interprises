@@ -428,9 +428,94 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
           </div>
         </div>
       )}
+      {/* Preserved Google OAuth 2.0 Authenticator Modal (Hidden Option) */}
+      {showGoogleModal && (
+        <div className="absolute inset-0 z-50 bg-[#000000]/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-[350px] bg-white text-gray-900 rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-gray-200 font-sans animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-100 flex flex-col items-center gap-2">
+              <svg className="w-9 h-9" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                />
+              </svg>
+              <h3 className="text-lg font-bold text-gray-900 tracking-tight">Sign in with Google</h3>
+              <p className="text-xs text-gray-500 font-normal text-center">to continue to <strong className="text-gray-800">Ludo Enterprise</strong></p>
+            </div>
 
+            {/* Account Details / Form */}
+            <div className="p-6 flex flex-col gap-4 bg-gray-50/50">
+              <div className="bg-white border border-gray-200 rounded-2xl p-3 flex items-center gap-3 shadow-sm hover:border-blue-400 transition-colors">
+                <div className="w-10 h-10 rounded-full bg-blue-100 border border-blue-200 text-blue-600 font-extrabold flex items-center justify-center overflow-hidden flex-shrink-0 text-sm">
+                  {googleAvatarUrl ? (
+                    <img src={googleAvatarUrl} alt="Google Avatar" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  ) : (
+                    googleName.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-gray-900 truncate">{googleName}</p>
+                  <p className="text-[11px] text-gray-500 truncate">{googleEmail}</p>
+                </div>
+                <span className="text-xs text-blue-600 font-semibold">Active</span>
+              </div>
 
+              <div className="flex flex-col gap-2.5 pt-1">
+                <label className="text-[11px] font-semibold text-gray-600 tracking-wider uppercase">Google Account Name</label>
+                <input
+                  type="text"
+                  value={googleName}
+                  onChange={(e) => setGoogleName(e.target.value)}
+                  placeholder="Enter your name..."
+                  className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                />
 
+                <label className="text-[11px] font-semibold text-gray-600 tracking-wider uppercase mt-1">Google Email Address</label>
+                <input
+                  type="email"
+                  value={googleEmail}
+                  onChange={(e) => setGoogleEmail(e.target.value)}
+                  placeholder="name@gmail.com"
+                  className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2 mt-2">
+                <button
+                  onClick={handleCompleteCustomGoogleLogin}
+                  className="w-full py-3 bg-[#1a73e8] hover:bg-blue-700 text-white font-bold text-xs tracking-wider uppercase rounded-xl shadow-md active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+                >
+                  <span>Sign In as {googleName.split(' ')[0]}</span>
+                  <span>→</span>
+                </button>
+                <button
+                  onClick={() => setShowGoogleModal(false)}
+                  className="w-full py-2 bg-transparent text-gray-500 hover:text-gray-700 font-semibold text-xs transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+
+            <div className="p-3 bg-gray-100 text-[10px] text-gray-500 text-center border-t border-gray-200">
+              Secured by Google Identity Services OAuth 2.0
+            </div>
+          </div>
+        </div>
+      )}
       {/* Facebook Simulated OAuth Modal */}
       {showFBModal && (
         <div className="absolute inset-0 z-50 bg-[#090214]/90 backdrop-blur-md flex items-center justify-center p-4">

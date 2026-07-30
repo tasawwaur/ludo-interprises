@@ -36,12 +36,23 @@ interface UserState {
 
 const STORAGE_KEY = 'ludo_user_profile_v8';
 
-// 🧹 Delete all old cached Google accounts from localStorage and clear Facebook/Phone links for current user
+// 🧹 Reset crowns to 10, coins to 20k, gems to 200 for all local accounts to purge the 999T values
 if (typeof window !== 'undefined') {
   try {
     Object.keys(localStorage).forEach((key) => {
-      if (key.toLowerCase().includes('google')) {
-        localStorage.removeItem(key);
+      if (key.startsWith('ludo_')) {
+        const item = localStorage.getItem(key);
+        if (item) {
+          try {
+            const parsed = JSON.parse(item);
+            if (parsed && typeof parsed === 'object') {
+              parsed.crowns = 10;
+              parsed.coins = 20000;
+              parsed.gems = 200;
+              localStorage.setItem(key, JSON.stringify(parsed));
+            }
+          } catch (jsonErr) {}
+        }
       }
     });
     // Unlink active session from FB and Phone
@@ -51,6 +62,9 @@ if (typeof window !== 'undefined') {
       parsed.facebookId = undefined;
       parsed.loginProvider = 'google';
       parsed.email = 'trlife0786@gmail.com';
+      parsed.crowns = 10;
+      parsed.coins = 20000;
+      parsed.gems = 200;
       localStorage.setItem('ludo_user_profile_v8', JSON.stringify(parsed));
     }
     localStorage.removeItem("ludo_fb_linked");
@@ -58,7 +72,7 @@ if (typeof window !== 'undefined') {
     localStorage.removeItem("ludo_facebook_account");
     localStorage.removeItem("ludo_phone_account");
   } catch (e) {
-    console.warn('Failed to clear old Google keys or unlink:', e);
+    console.warn('Failed to reset crowns or clear old keys:', e);
   }
 }
 
@@ -72,7 +86,7 @@ const getInitialProfile = (): UserProfile => {
           ...parsed,
           coins: (parsed.coins !== undefined && parsed.coins > 0) ? parsed.coins : 20000,
           gems: (parsed.gems !== undefined && parsed.gems > 0) ? parsed.gems : 200,
-          crowns: (parsed.crowns !== undefined && parsed.crowns >= 999000000000000) ? parsed.crowns : 999000000000000,
+          crowns: parsed.crowns !== undefined ? parsed.crowns : 10,
         };
       }
     } catch (e) {
@@ -94,7 +108,7 @@ const getInitialProfile = (): UserProfile => {
     level: 1,
     xp: 0,
     nextLevelXp: 1000,
-    crowns: 999000000000000,
+    crowns: 10,
   };
 };
 

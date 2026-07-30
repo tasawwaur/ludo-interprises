@@ -36,7 +36,7 @@ interface UserState {
 
 const STORAGE_KEY = 'ludo_user_profile_v8';
 
-// 🧹 Delete all old cached Google accounts from localStorage
+// 🧹 Delete all old cached Google accounts from localStorage and clear Facebook/Phone links for current user
 if (typeof window !== 'undefined') {
   try {
     Object.keys(localStorage).forEach((key) => {
@@ -44,8 +44,21 @@ if (typeof window !== 'undefined') {
         localStorage.removeItem(key);
       }
     });
+    // Unlink active session from FB and Phone
+    const active = localStorage.getItem('ludo_user_profile_v8');
+    if (active) {
+      const parsed = JSON.parse(active);
+      parsed.facebookId = undefined;
+      parsed.loginProvider = 'google';
+      parsed.email = 'trlife0786@gmail.com';
+      localStorage.setItem('ludo_user_profile_v8', JSON.stringify(parsed));
+    }
+    localStorage.removeItem("ludo_fb_linked");
+    localStorage.removeItem("ludo_phone_linked");
+    localStorage.removeItem("ludo_facebook_account");
+    localStorage.removeItem("ludo_phone_account");
   } catch (e) {
-    console.warn('Failed to clear old Google keys:', e);
+    console.warn('Failed to clear old Google keys or unlink:', e);
   }
 }
 

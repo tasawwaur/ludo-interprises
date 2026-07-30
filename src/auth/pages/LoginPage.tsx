@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useUserStore } from "../../user/user.store";
+import { useUserStore, UserProfile } from "../../user/user.store";
 import { initFacebookSDK, loginWithFacebook, fetchFacebookFriends, FBFriend } from "../utils/fb";
 import { initGoogleSDK, promptGoogleSignIn, GoogleUserProfile } from "../utils/google";
 import { GuestRegistrationModal } from "../components/GuestRegistrationModal";
@@ -48,6 +48,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     }
   }, []);
 
+  // 💾 Account Persistence Helpers for Returning Users
+  const getSavedAccount = (provider: 'guest' | 'google' | 'facebook'): UserProfile | null => {
+    try {
+      const savedStr = localStorage.getItem(`ludo_${provider}_account`);
+      if (savedStr) {
+        return JSON.parse(savedStr);
+      }
+    } catch (e) {
+      console.warn(`Failed to read saved ${provider} account:`, e);
+    }
+    return null;
+  };
+
+  const saveAccountForProvider = (userProfile: UserProfile, provider: 'guest' | 'google' | 'facebook') => {
+    try {
+      localStorage.setItem(`ludo_${provider}_account`, JSON.stringify(userProfile));
+    } catch (e) {
+      console.warn(`Failed to save ${provider} account:`, e);
+    }
+  };
+
   const handlePerformLogin = (loginMethod: string, name?: string) => {
     const finalName = name || `${loginMethod} Player`;
     setUser({
@@ -69,6 +90,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
 
   const setJustClaimedWelcome = useUserStore((s) => s.setJustClaimedWelcome);
 
+  // Guest Click — Auto login returning guest if account exists, otherwise open registration
+  const handleGuestClick = () => {
+    const existingGuest = getSavedAccount('guest');
+    if (existingGuest) {
+      setUser(existingGuest);
+      onSuccessLogin?.();
+      return;
+    }
+    setShowGuestRegModal(true);
+  };
+
   const handleGuestRegistrationComplete = (data: {
     name: string;
     age: number;
@@ -77,8 +109,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     avatar: string;
     guestId: string;
   }) => {
-    setJustClaimedWelcome(true);
-    setUser({
+    const newUser: UserProfile = {
       id: data.guestId || `GST-${Date.now()}`,
       username: data.name,
       displayName: data.name,
@@ -96,13 +127,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       xp: 0,
       nextLevelXp: 1000,
       loginProvider: 'guest',
-    });
+    };
+    saveAccountForProvider(newUser, 'guest');
+    setJustClaimedWelcome(true);
+    setUser(newUser);
     setShowGuestRegModal(false);
     onSuccessLogin?.();
   };
 
-  // Google Login Handler — Always opens Google Login Modal immediately
+  // Google Login Handler — Auto login returning Google user or open modal
   const handleGoogleLogin = () => {
+    const existingGoogle = getSavedAccount('google');
+    if (existingGoogle) {
+      setUser(existingGoogle);
+      onSuccessLogin?.();
+      return;
+    }
     setShowGoogleModal(true);
     if (isGoogleSDKReady) {
       promptGoogleSignIn();
@@ -110,8 +150,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
   };
 
   const handleCompleteGoogleAuth = (profile: GoogleUserProfile) => {
-    setJustClaimedWelcome(true);
-    setUser({
+    const newGoogleUser: UserProfile = {
       id: `goog_${profile.sub || Date.now()}`,
       username: profile.name,
       displayName: profile.name,
@@ -127,7 +166,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       nextLevelXp: 1000,
       loginProvider: 'google',
       googleId: profile.sub,
-    });
+    };
+    saveAccountForProvider(newGoogleUser, 'google');
+    setJustClaimedWelcome(true);
+    setUser(newGoogleUser);
     setShowGoogleModal(false);
     onSuccessLogin?.();
   };
@@ -137,8 +179,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     const finalEmail = googleEmail.trim() || `${finalName.toLowerCase().replace(/\s+/g, '')}@gmail.com`;
     const finalAvatar = googleAvatarUrl.trim() || undefined;
 
-    setJustClaimedWelcome(true);
-    setUser({
+    const newGoogleUser: UserProfile = {
       id: `goog_${Date.now()}`,
       username: finalName,
       displayName: finalName,
@@ -154,19 +195,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       nextLevelXp: 1000,
       loginProvider: 'google',
       googleId: `goog_acc_${Date.now()}`,
-    });
+    };
+    saveAccountForProvider(newGoogleUser, 'google');
+    setJustClaimedWelcome(true);
+    setUser(newGoogleUser);
 
     setShowGoogleModal(false);
     onSuccessLogin?.();
   };
 
   const handleFacebookLogin = async () => {
+    const existingFB = getSavedAccount('facebook');
+    if (existingFB) {
+      setUser(existingFB);
+      onSuccessLogin?.();
+      return;
+    }
     try {
       const profile = await loginWithFacebook();
       const fbFriends = await fetchFacebookFriends();
       
-      setJustClaimedWelcome(true);
-      setUser({
+      const newFBUser: UserProfile = {
         id: `fb_${profile.id}`,
         username: profile.name,
         displayName: profile.name,
@@ -187,7 +236,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
           { id: 'fb_f2', name: 'Aman [FB]', isOnline: true },
           { id: 'fb_f3', name: 'Govind [FB]', isOnline: false }
         ]
-      });
+      };
+      saveAccountForProvider(newFBUser, 'facebook');
+      setJustClaimedWelcome(true);
+      setUser(newFBUser);
       onSuccessLogin?.();
     } catch (err) {
       console.warn('Real Facebook SDK login failed or App ID dummy, launching simulated modal:', err);
@@ -211,8 +263,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     const finalName = fbUserName.trim() || 'TASAVVUR';
     const finalAvatar = fbAvatarUrl.trim() || undefined;
 
-    setJustClaimedWelcome(true);
-    setUser({
+    const newFBUser: UserProfile = {
       id: `fb_sim_${Date.now()}`,
       username: finalName,
       displayName: finalName,
@@ -229,7 +280,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       loginProvider: 'facebook',
       facebookId: '1020304050',
       syncedFBFriends: selectedFriends
-    });
+    };
+    saveAccountForProvider(newFBUser, 'facebook');
+    setJustClaimedWelcome(true);
+    setUser(newFBUser);
 
     setShowFBModal(false);
     onSuccessLogin?.();
@@ -263,7 +317,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
 
       {/* C. PLAY AS GUEST BUTTON (Bottom Button on Image) */}
       <button
-        onClick={() => setShowGuestRegModal(true)}
+        onClick={handleGuestClick}
         className="absolute z-20 w-[80%] max-w-[340px] h-[52px] rounded-full pointer-events-auto cursor-pointer border-0 outline-none ring-0 bg-transparent active:scale-[0.96] transition-transform duration-75"
         style={{ bottom: "11.6%", left: "50%", transform: "translateX(-50%)", WebkitTapHighlightColor: "transparent" }}
         title="Guest Play"

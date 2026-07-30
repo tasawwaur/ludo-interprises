@@ -100,6 +100,9 @@ export const useUserStore = create<UserState>((set) => ({
       if (typeof window !== 'undefined') {
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+          if (updated.loginProvider) {
+            localStorage.setItem(`ludo_${updated.loginProvider}_account`, JSON.stringify(updated));
+          }
         } catch (e) {
           console.warn('Failed to persist user updates:', e);
         }

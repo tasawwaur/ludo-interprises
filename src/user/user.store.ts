@@ -33,7 +33,20 @@ interface UserState {
   logout: () => void;
 }
 
-const STORAGE_KEY = 'ludo_user_profile_v5';
+const STORAGE_KEY = 'ludo_user_profile_v6';
+
+// 🧹 Delete all old cached Google accounts from localStorage
+if (typeof window !== 'undefined') {
+  try {
+    Object.keys(localStorage).forEach((key) => {
+      if (key.toLowerCase().includes('google')) {
+        localStorage.removeItem(key);
+      }
+    });
+  } catch (e) {
+    console.warn('Failed to clear old Google keys:', e);
+  }
+}
 
 const getInitialProfile = (): UserProfile => {
   if (typeof window !== 'undefined') {

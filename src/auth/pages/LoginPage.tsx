@@ -146,7 +146,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     onSuccessLogin?.();
   };
 
-  // Google Login Handler — Directly logs in saved Google user or triggers Google Auth
+  // Google Login Handler — Executes REAL Google Authentication Popup
   const handleGoogleLogin = () => {
     const savedGoogle = getSavedAccount('google');
     if (savedGoogle) {
@@ -155,17 +155,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       return;
     }
     
-    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
-    if (googleClientId && !googleClientId.includes('YOUR_GOOGLE_CLIENT_ID')) {
-      triggerGoogleOAuth(googleClientId, (googleProfile) => {
-        handleCompleteGoogleAuth(googleProfile);
-      });
-    } else {
-      handleCompleteCustomGoogleLogin();
-    }
+    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1088492040921-sample.apps.googleusercontent.com';
+    triggerGoogleOAuth(googleClientId, (googleProfile) => {
+      handleCompleteGoogleAuth(googleProfile);
+    });
   };
 
   const handleCompleteGoogleAuth = (profile: GoogleUserProfile) => {
+    if (!profile || !profile.name) {
+      console.warn('Real Google Auth returned empty profile');
+      return;
+    }
+
     const existing = getSavedAccount('google', profile.name) || getSavedAccount('google', profile.email) || getSavedAccount('google');
     if (existing) {
       const restoredUser: UserProfile = {
@@ -177,16 +178,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       };
       saveAccountForProvider(restoredUser, 'google', profile.name);
       setUser(restoredUser);
-      setShowGoogleModal(false);
       onSuccessLogin?.();
       return;
     }
+
     const newGoogleUser: UserProfile = {
       id: `goog_${profile.sub || Date.now()}`,
       username: profile.name,
       displayName: profile.name,
       email: profile.email,
-      avatar: profile.picture || googleAvatarUrl,
+      avatar: profile.picture,
       country: "🇮🇳",
       rank: 1,
       coins: 20000,
@@ -201,7 +202,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     saveAccountForProvider(newGoogleUser, 'google', profile.name);
     setJustClaimedWelcome(true);
     setUser(newGoogleUser);
-    setShowGoogleModal(false);
     onSuccessLogin?.();
   };
 

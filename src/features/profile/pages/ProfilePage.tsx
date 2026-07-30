@@ -35,16 +35,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
   const [upgradeEmail, setUpgradeEmail] = useState("");
   const [upgradePassword, setUpgradePassword] = useState("");
 
-  const [showPhoneLinkModal, setShowPhoneLinkModal] = useState(false);
-  const [linkPhoneNumber, setLinkPhoneNumber] = useState("");
-  const [linkPhoneVerification, setLinkPhoneVerification] = useState("");
 
-  const [showFBLinkModal, setShowFBLinkModal] = useState(false);
-  const [fbLinkName, setFbLinkName] = useState("");
-
-  const [showGoogleLinkModal, setShowGoogleLinkModal] = useState(false);
-  const [googleLinkEmail, setGoogleLinkEmail] = useState("");
-  const [googleLinkName, setGoogleLinkName] = useState("");
 
   // Simulated link states stored in localStorage or store
   const [isFBLinked, setIsFBLinked] = useState(() => {
@@ -186,37 +177,38 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
       const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
       const isConfigured = googleClientId && !googleClientId.includes('YOUR_GOOGLE_CLIENT_ID');
 
-      if (isConfigured) {
-        try {
-          triggerGoogleOAuth(googleClientId, (googleProfile) => {
-            // Check if already linked to another profile
-            const isDup = isAccountAlreadyLinked((acc) => acc.googleId === googleProfile.sub || acc.email === googleProfile.email);
-            if (isDup) {
-              triggerToast("Error: Google account already linked to another player!");
-              return;
-            }
+      if (!isConfigured) {
+        alert("Google Login Error: Google VITE_GOOGLE_CLIENT_ID is not configured in your .env file!");
+        return;
+      }
 
-            const updated = {
-              ...user,
-              googleId: googleProfile.sub,
-              email: googleProfile.email,
-              loginProvider: 'google',
-            } as UserProfile;
-            updateUser({ googleId: googleProfile.sub, email: googleProfile.email, loginProvider: 'google' });
-            
-            // Persist as a Google account so user can login with Google later to recover!
-            localStorage.setItem(`ludo_google_account`, JSON.stringify(updated));
-            localStorage.setItem(`ludo_google_${googleProfile.name.toLowerCase().trim().replace(/\s+/g, '_')}`, JSON.stringify(updated));
-            
-            setIsGoogleLinked(true);
-            triggerToast("Google Linked Successfully!");
-          });
-        } catch (e) {
-          console.warn('Google link popup failed, opening simulated Google link dialog:', e);
-          setShowGoogleLinkModal(true);
-        }
-      } else {
-        setShowGoogleLinkModal(true);
+      try {
+        triggerGoogleOAuth(googleClientId, (googleProfile) => {
+          // Check if already linked to another profile
+          const isDup = isAccountAlreadyLinked((acc) => acc.googleId === googleProfile.sub || acc.email === googleProfile.email);
+          if (isDup) {
+            triggerToast("Error: Google account already linked to another player!");
+            return;
+          }
+
+          const updated = {
+            ...user,
+            googleId: googleProfile.sub,
+            email: googleProfile.email,
+            loginProvider: 'google',
+          } as UserProfile;
+          updateUser({ googleId: googleProfile.sub, email: googleProfile.email, loginProvider: 'google' });
+          
+          // Persist as a Google account so user can login with Google later to recover!
+          localStorage.setItem(`ludo_google_account`, JSON.stringify(updated));
+          localStorage.setItem(`ludo_google_${googleProfile.name.toLowerCase().trim().replace(/\s+/g, '_')}`, JSON.stringify(updated));
+          
+          setIsGoogleLinked(true);
+          triggerToast("Google Linked Successfully!");
+        });
+      } catch (e) {
+        console.warn('Google link popup failed:', e);
+        alert("Google Auth Error: Popup window blocked or failed to load.");
       }
     } else if (provider === 'facebook') {
       try {
@@ -243,148 +235,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
         setIsFBLinked(true);
         triggerToast("Facebook Linked Successfully!");
       } catch (err) {
-        console.warn('Facebook link SDK failed, opening simulated FB link dialog:', err);
-        setShowFBLinkModal(true);
+        console.warn('Facebook link failed:', err);
+        alert("Facebook Auth Error: Real Facebook SDK Login failed or cancelled.");
       }
-    } else if (provider === 'phone') {
-      setShowPhoneLinkModal(true);
     }
   };
 
-  const handleSubmitPhoneLink = () => {
-    const phoneTrimmed = linkPhoneNumber.trim();
-    if (!phoneTrimmed) {
-      triggerToast("Please enter your mobile number!");
-      return;
-    }
-    
-    // Check if already linked to another profile
-    const isDup = isAccountAlreadyLinked((acc) => acc.id === `phone_${phoneTrimmed}` || acc.email === `${phoneTrimmed}@ludophone.com`);
-    if (isDup) {
-      triggerToast("Error: Mobile number already linked to another player!");
-      return;
-    }
 
-    const cleanUID = playerUID.replace("LUDO-", "").replace("UID-", "").trim();
-    const last6Digits = cleanUID.slice(-6);
-    
-    if (linkPhoneVerification.trim() !== last6Digits) {
-      triggerToast("Invalid Verification Key! Must match the last 6 digits of your UID.");
-      return;
-    }
-    
-    confetti({
-      particleCount: 40,
-      spread: 60,
-      colors: ['#00E676', '#00C853', '#B9F6CA']
-    });
-    
-    const updated = {
-      ...user,
-      id: `phone_${phoneTrimmed}`,
-      email: `${phoneTrimmed}@ludophone.com`,
-      loginProvider: 'phone',
-    } as UserProfile;
-    
-    updateUser({
-      id: `phone_${phoneTrimmed}`,
-      email: `${phoneTrimmed}@ludophone.com`,
-      loginProvider: 'phone',
-    });
-    
-    localStorage.setItem(`ludo_phone_account`, JSON.stringify(updated));
-    localStorage.setItem(`ludo_phone_${phoneTrimmed}`, JSON.stringify(updated));
-    
-    setIsPhoneLinked(true);
-    setShowPhoneLinkModal(false);
-    triggerToast("Mobile Linked Successfully!");
-  };
-
-  const handleSubmitFBLink = () => {
-    const finalName = fbLinkName.trim();
-    if (!finalName) {
-      triggerToast("Please enter your Facebook profile name!");
-      return;
-    }
-    
-    // Check if already linked to another profile
-    const mockId = `fb_${finalName.toLowerCase().replace(/\s+/g, '_')}`;
-    const isDup = isAccountAlreadyLinked((acc) => acc.facebookId === mockId);
-    if (isDup) {
-      triggerToast("Error: Facebook account already linked to another player!");
-      return;
-    }
-
-    confetti({
-      particleCount: 40,
-      spread: 60,
-      colors: ['#1877F2', '#1565C0', '#82B1FF']
-    });
-
-    const updated = {
-      ...user,
-      facebookId: mockId,
-      email: `${finalName.toLowerCase().replace(/\s+/g, '')}@facebook.com`,
-      loginProvider: 'facebook',
-    } as UserProfile;
-
-    updateUser({
-      facebookId: mockId,
-      email: `${finalName.toLowerCase().replace(/\s+/g, '')}@facebook.com`,
-      loginProvider: 'facebook',
-    });
-
-    localStorage.setItem(`ludo_facebook_account`, JSON.stringify(updated));
-    localStorage.setItem(`ludo_facebook_${finalName.toLowerCase().trim().replace(/\s+/g, '_')}`, JSON.stringify(updated));
-
-    setIsFBLinked(true);
-    setShowFBLinkModal(false);
-    triggerToast("Facebook Linked Successfully!");
-  };
-
-  const handleSubmitGoogleLink = () => {
-    const finalEmail = googleLinkEmail.trim().toLowerCase();
-    const finalName = googleLinkName.trim();
-    
-    if (!finalEmail || !finalName) {
-      triggerToast("Please enter both email and name!");
-      return;
-    }
-    
-    // Check if already linked to another profile
-    const mockId = `goog_${finalEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    const isDup = isAccountAlreadyLinked((acc) => acc.googleId === mockId || acc.email === finalEmail);
-    if (isDup) {
-      triggerToast("Error: Google account already linked to another player!");
-      return;
-    }
-
-    confetti({
-      particleCount: 40,
-      spread: 60,
-      colors: ['#EA4335', '#FBBC05', '#34A853', '#4285F4']
-    });
-
-    const updated = {
-      ...user,
-      googleId: mockId,
-      email: finalEmail,
-      loginProvider: 'google',
-    } as UserProfile;
-
-    updateUser({
-      googleId: mockId,
-      email: finalEmail,
-      loginProvider: 'google',
-    });
-
-    localStorage.setItem(`ludo_google_account`, JSON.stringify(updated));
-    localStorage.setItem(`ludo_google_${finalName.toLowerCase().trim().replace(/\s+/g, '_')}`, JSON.stringify(updated));
-
-    setIsGoogleLinked(true);
-    setShowGoogleLinkModal(false);
-    triggerToast("Google Linked Successfully!");
-  };
 
   const handleLogoutClick = () => {
     logout();
@@ -706,169 +563,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
         </div>
       )}
 
-      {/* ── MODAL 4: PHONE LINK OVERLAY ── */}
-      {showPhoneLinkModal && (
-        <div className="absolute inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-[340px] bg-gradient-to-b from-[#2E0B4E] to-[#12061F] border-2 border-amber-400 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 relative">
-            <button
-              onClick={() => setShowPhoneLinkModal(false)}
-              className="absolute top-3 right-4 text-amber-300 text-lg font-black hover:text-white"
-            >
-              ✕
-            </button>
-            <div className="text-center">
-              <span className="text-3xl">📱</span>
-              <h3 className="text-base font-black text-amber-300 tracking-wider mt-1 uppercase">Link Mobile Account</h3>
-              <p className="text-[10px] text-purple-300/80">Enter mobile number and UID verification key</p>
-            </div>
-            <div className="space-y-3">
-              <div className="flex flex-col gap-1">
-                <span className="text-[9px] font-black text-purple-300 uppercase tracking-wider">Mobile Number</span>
-                <input
-                  type="tel"
-                  value={linkPhoneNumber}
-                  onChange={(e) => setLinkPhoneNumber(e.target.value.replace(/\D/g, ""))}
-                  placeholder="Enter 10-digit number..."
-                  className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-[9px] font-black text-purple-300 uppercase tracking-wider">Verification Key</span>
-                  <span className="text-[8px] font-black text-amber-400 uppercase">Last 6 digits of UID</span>
-                </div>
-                <input
-                  type="text"
-                  maxLength={6}
-                  value={linkPhoneVerification}
-                  onChange={(e) => setLinkPhoneVerification(e.target.value.trim())}
-                  placeholder="Enter last 6 digits of UID..."
-                  className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400 text-center tracking-widest"
-                />
-              </div>
-            </div>
-            <button
-              onClick={handleSubmitPhoneLink}
-              className="w-full py-3 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-500 text-black font-black text-xs tracking-widest uppercase rounded-xl shadow-lg active:scale-95 transition-transform"
-            >
-              Verify & Link Mobile
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* ── MODAL 5: SIMULATED FACEBOOK LINK OVERLAY ── */}
-      {showFBLinkModal && (
-        <div className="absolute inset-0 z-50 bg-[#090214]/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-[340px] bg-[#1877F2] rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-blue-400">
-            {/* Header */}
-            <div className="bg-[#1877F2] p-4 flex items-center gap-3 border-b border-blue-500">
-              <span className="text-white text-2xl font-black font-serif select-none">facebook</span>
-              <span className="text-[10px] bg-blue-800 text-blue-100 px-2 py-0.5 rounded font-black tracking-wider uppercase ml-auto">OAuth 2.0</span>
-            </div>
 
-            {/* Content Body */}
-            <div className="bg-[#1C202E] p-5 flex flex-col gap-4 text-white">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center text-xl border border-purple-500">
-                  🎲
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-white">Ludo Enterprise</h4>
-                  <p className="text-[10px] text-gray-400">developers.facebook.com</p>
-                </div>
-              </div>
 
-              <div className="text-xs text-gray-300 leading-relaxed border-t border-b border-gray-800 py-3 my-1">
-                Confirm your identity to link your **Facebook account** to this profile.
-              </div>
-
-              <div className="flex flex-col gap-2 bg-[#141724] p-3 rounded-2xl border border-blue-800">
-                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Facebook Verification</span>
-                <input
-                  type="text"
-                  value={fbLinkName}
-                  onChange={(e) => setFbLinkName(e.target.value)}
-                  placeholder="Enter your Facebook profile name..."
-                  className="w-full px-3 py-2 bg-black/60 border border-blue-700/50 rounded-xl text-white placeholder-gray-500 font-bold text-xs focus:outline-none focus:border-[#1877F2]"
-                />
-              </div>
-
-              <div className="flex gap-2.5 mt-2">
-                <button
-                  onClick={() => setShowFBLinkModal(false)}
-                  className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-black text-xs uppercase rounded-xl transition-transform active:scale-95"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmitFBLink}
-                  className="flex-1 py-2.5 bg-gradient-to-r from-blue-600 to-[#1877F2] hover:from-blue-700 hover:to-blue-600 text-white font-black text-xs uppercase rounded-xl shadow-lg transition-transform active:scale-95"
-                >
-                  Verify & Link
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL 6: SIMULATED GOOGLE LINK OVERLAY ── */}
-      {showGoogleLinkModal && (
-        <div className="absolute inset-0 z-50 bg-[#090214]/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-[340px] bg-gradient-to-b from-[#2E0B4E] to-[#12061F] border-2 border-amber-400 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 relative">
-            <button
-              onClick={() => setShowGoogleLinkModal(false)}
-              className="absolute top-3 right-4 text-amber-300 text-lg font-black hover:text-white"
-            >
-              ✕
-            </button>
-            <div className="text-center">
-              <span className="text-3xl">🔴</span>
-              <h3 className="text-base font-black text-amber-300 tracking-wider mt-1 uppercase">Link Google Account</h3>
-              <p className="text-[10px] text-purple-300/80">Confirm your identity to link your **Google account**</p>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex flex-col gap-1">
-                <span className="text-[9px] font-black text-purple-300 uppercase tracking-wider">Email Address</span>
-                <input
-                  type="email"
-                  value={googleLinkEmail}
-                  onChange={(e) => setGoogleLinkEmail(e.target.value)}
-                  placeholder="Enter your Gmail address..."
-                  className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-[9px] font-black text-purple-300 uppercase tracking-wider">Display Name</span>
-                <input
-                  type="text"
-                  value={googleLinkName}
-                  onChange={(e) => setGoogleLinkName(e.target.value)}
-                  placeholder="Enter your Google profile name..."
-                  className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2.5 mt-2">
-              <button
-                onClick={() => setShowGoogleLinkModal(false)}
-                className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-black text-xs uppercase rounded-xl transition-transform active:scale-95"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmitGoogleLink}
-                className="flex-1 py-2.5 bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-red-600 text-white font-black text-xs uppercase rounded-xl shadow-lg transition-transform active:scale-95 border border-red-400"
-              >
-                Verify & Link
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── CUSTOM FLOATING TOAST BAR ── */}
       {toastMessage && (

@@ -87,7 +87,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
       {/* 1. Ludo Themed Background */}
       <LudoPageBackground variant="gameplay" />
       
-      {/* 2. FIXED CENTER: 3D GOLDEN LUDO BOARD (Stays 100% Fixed in Middle) */}
+      {/* 2. FIXED CENTER: 3D GOLDEN LUDO BOARD (Fixed 100% in exact dead-center) */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
         <div className="w-[360px] max-w-[95vw] relative flex items-center justify-center">
           <img
@@ -99,11 +99,11 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         </div>
       </div>
 
-      {/* 3. OVERLAY UI LAYER (Profiles, Controls) */}
-      <div className="w-full max-w-[430px] h-screen flex flex-col justify-between relative z-20 px-3 py-6">
-        {/* TOP ROW: PLAYER 2 PROFILE (TOP-RIGHT - Shifted 5% down) */}
-        <div className="w-full flex justify-end items-center px-1 pt-6 translate-y-3">
-          <div className="min-w-[100px]">
+      {/* 3. FIXED OVERLAY UI LAYER (Fixed absolute coordinate slots) */}
+      <div className="w-full max-w-[430px] h-screen relative z-20 overflow-hidden">
+        {/* PLAYER 2 PROFILE: FIXED TOP-RIGHT */}
+        <div className="absolute top-12 right-3 z-20">
+          <div className="min-w-[98px]">
             {yellowPlayer && (
               <CornerPlayerAvatar
                 player={yellowPlayer}
@@ -117,15 +117,16 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                 onRollDice={rollDice}
                 onSendGift={() => handleSendMessage('🎁 Gift Sent!')}
                 onDisableAutoMode={disableAutoMode}
+                onOpenChat={() => setShowChatModal(true)}
                 position="top-right"
               />
             )}
           </div>
         </div>
 
-        {/* BOTTOM ROW: PLAYER 1 PROFILE (BOTTOM-LEFT - Adjusted 2% down) */}
-        <div className="w-full flex justify-start items-center px-1 pb-10 -translate-y-2">
-          <div className="min-w-[100px]">
+        {/* PLAYER 1 PROFILE: FIXED BOTTOM-LEFT (Adjusted 1% down) */}
+        <div className="absolute bottom-[76px] left-3 z-20">
+          <div className="min-w-[98px]">
             {greenPlayer && (
               <CornerPlayerAvatar
                 player={greenPlayer}
@@ -139,6 +140,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                 onRollDice={rollDice}
                 onSendGift={() => handleSendMessage('🎁 Gift Sent!')}
                 onDisableAutoMode={disableAutoMode}
+                onOpenChat={() => setShowChatModal(true)}
                 position="bottom-left"
               />
             )}

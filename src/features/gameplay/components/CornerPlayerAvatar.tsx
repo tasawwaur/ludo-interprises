@@ -15,6 +15,7 @@ interface CornerPlayerAvatarProps {
   onRollDice?: () => void;
   onSendGift?: () => void;
   onDisableAutoMode?: () => void;
+  onOpenChat?: () => void;
   position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 }
 
@@ -29,16 +30,22 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
   onRollDice,
   onSendGift,
   onDisableAutoMode,
+  onOpenChat,
   position,
 }) => {
   if (!player) return null;
 
   const isBottom = position === 'bottom-left' || position === 'bottom-right';
-  const maxTimer = isAutoMode ? 5 : 15;
-  const progressPercent = Math.max(0, Math.min(100, (turnTimerSeconds / maxTimer) * 100));
 
   return (
     <div className="relative flex flex-col items-center select-none min-w-[98px]">
+      {/* Speech Bubble Popup */}
+      {chatBubbleMessage && (
+        <div className={`absolute ${isBottom ? '-top-10' : '-bottom-10'} z-40 bg-white text-slate-900 px-3 py-1.5 rounded-2xl text-xs font-black shadow-2xl border-2 border-amber-400 animate-bounce whitespace-nowrap drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]`}>
+          {chatBubbleMessage}
+        </div>
+      )}
+
       {/* 1. Profile Photo Frame */}
       <div className="relative w-[84px] h-[84px] flex items-center justify-center p-1">
         {/* Avatar Image cutout */}

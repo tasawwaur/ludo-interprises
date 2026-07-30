@@ -81,9 +81,9 @@ export class BoardCanvasRenderer {
       ctx.lineWidth = 1.5;
       ctx.strokeRect(x, y, innerCellSize, innerCellSize);
 
-      // Star Safe Tile (Grey Star as in Reference Image 2)
+      // Star Safe Tile (Luxury 3D Golden Royal Star Badge on all 8 safe stops)
       if (SAFE_TRACK_INDICES.has(idx)) {
-        this.drawStar(x + innerCellSize / 2, y + innerCellSize / 2, innerCellSize * 0.35, '#94a3b8');
+        this.drawLuxuryStar(x + innerCellSize / 2, y + innerCellSize / 2, innerCellSize * 0.85);
       }
     });
 
@@ -296,6 +296,23 @@ export class BoardCanvasRenderer {
     ctx.beginPath();
     ctx.arc(1.5 * cellSize, 8.5 * cellSize, cellSize * 0.8, Math.PI / 2, Math.PI * 1.3);
     ctx.stroke();
+  }
+
+  private static luxuryStarImg: HTMLImageElement | null = null;
+
+  private drawLuxuryStar(cx: number, cy: number, size: number) {
+    const { ctx } = this;
+    if (!BoardCanvasRenderer.luxuryStarImg) {
+      BoardCanvasRenderer.luxuryStarImg = new Image();
+      BoardCanvasRenderer.luxuryStarImg.src = '/assets/images/icons/luxury_star_icon.png';
+    }
+
+    const img = BoardCanvasRenderer.luxuryStarImg;
+    if (img.complete && img.naturalWidth > 0) {
+      ctx.drawImage(img, cx - size / 2, cy - size / 2, size, size);
+    } else {
+      this.drawStar(cx, cy, size * 0.4, '#eab308');
+    }
   }
 
   private drawStar(cx: number, cy: number, radius: number, colorHex: string) {

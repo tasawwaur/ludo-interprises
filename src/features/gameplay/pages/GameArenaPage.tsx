@@ -137,41 +137,45 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
             />
           </div>
 
-          {/* 8 SAFE STOPS 3D LUXURY STAR ICONS (Live Screenshot Exact Alignment) */}
-          {/* Green Start: Col 1, Row 6 (Top-Left Arm Start) */}
+          {/* 8 SAFE STOPS 3D LUXURY STAR ICONS (Perfectly Aligned) */}
+          {/* Star 1: Green Start */}
           <div className="absolute top-[43%] left-[10.5%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[22px] flex items-center justify-center z-25 pointer-events-none">
-            <img src="/assets/images/icons/luxury_star_icon.png" alt="Green Start Star" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
+            <img src="/assets/images/icons/luxury_star_icon.png" alt="Star 1" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
           </div>
-          {/* Green Track Safe: Col 2, Row 8 (Bottom-Left Arm Safe) */}
+
+          {/* Star 2: Green Track Safe */}
           <div className="absolute top-[57%] left-[17%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[22px] flex items-center justify-center z-25 pointer-events-none">
-            <img src="/assets/images/icons/luxury_star_icon.png" alt="Green Track Star" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
+            <img src="/assets/images/icons/luxury_star_icon.png" alt="Star 2" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
           </div>
 
-          {/* Yellow Start: Col 8, Row 1 (Top-Right Arm Start) */}
+          {/* Star 3: Yellow Start */}
           <div className="absolute top-[10.5%] left-[57%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[22px] flex items-center justify-center z-25 pointer-events-none">
-            <img src="/assets/images/icons/luxury_star_icon.png" alt="Yellow Start Star" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
+            <img src="/assets/images/icons/luxury_star_icon.png" alt="Star 3" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
           </div>
-          {/* Yellow Track Safe: Col 6, Row 2 (Top-Left Arm Safe) */}
+
+          {/* Star 4: Yellow Track Safe */}
           <div className="absolute top-[17%] left-[43%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[22px] flex items-center justify-center z-25 pointer-events-none">
-            <img src="/assets/images/icons/luxury_star_icon.png" alt="Yellow Track Star" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
+            <img src="/assets/images/icons/luxury_star_icon.png" alt="Star 4" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
           </div>
 
-          {/* Blue Start: Col 13, Row 8 (Bottom-Right Arm Start) */}
+          {/* Star 5: Blue Start */}
           <div className="absolute top-[57%] left-[89.5%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[22px] flex items-center justify-center z-25 pointer-events-none">
-            <img src="/assets/images/icons/luxury_star_icon.png" alt="Blue Start Star" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
-          </div>
-          {/* Blue Track Safe: Col 12, Row 6 (Top-Right Arm Safe) */}
-          <div className="absolute top-[43%] left-[83%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[22px] flex items-center justify-center z-25 pointer-events-none">
-            <img src="/assets/images/icons/luxury_star_icon.png" alt="Blue Track Star" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
+            <img src="/assets/images/icons/luxury_star_icon.png" alt="Star 5" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
           </div>
 
-          {/* Red Start: Col 6, Row 13 (Bottom-Left Arm Start) */}
-          <div className="absolute top-[89.5%] left-[43%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[22px] flex items-center justify-center z-25 pointer-events-none">
-            <img src="/assets/images/icons/luxury_star_icon.png" alt="Red Start Star" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
+          {/* Star 6: Blue Track Safe (PERFECTLY ALIGNED) */}
+          <div className="absolute top-[45.2%] left-[76.6%] -translate-x-1/2 -translate-y-1/2 w-[20px] h-[20px] flex items-center justify-center z-25 pointer-events-none">
+            <img src="/assets/images/icons/luxury_star_icon.png" alt="Star 6" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
           </div>
-          {/* Red Track Safe: Col 8, Row 12 (Bottom-Right Arm Safe) */}
+
+          {/* Star 7: Red Start */}
+          <div className="absolute top-[89.5%] left-[43%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[22px] flex items-center justify-center z-25 pointer-events-none">
+            <img src="/assets/images/icons/luxury_star_icon.png" alt="Star 7" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
+          </div>
+
+          {/* Star 8: Red Track Safe */}
           <div className="absolute top-[83%] left-[57%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[22px] flex items-center justify-center z-25 pointer-events-none">
-            <img src="/assets/images/icons/luxury_star_icon.png" alt="Red Track Star" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
+            <img src="/assets/images/icons/luxury_star_icon.png" alt="Star 8" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
           </div>
 
           {/* Top Center Green Royal Frame & Opponent 3D Dice */}

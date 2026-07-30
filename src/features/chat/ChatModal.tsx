@@ -38,6 +38,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
     if (!text.trim()) return;
     onSendMessage?.(text);
     setInputMsg("");
+    onClose();
   };
 
   return (

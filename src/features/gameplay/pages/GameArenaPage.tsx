@@ -178,22 +178,22 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
             <img src="/assets/images/icons/luxury_star_icon.png" alt="Star 8" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
           </div>
 
-          {/* 1v1 MATCH TOKENS: 4 RED TOKENS & 4 BLUE TOKENS */}
-          {/* Red House 4 Tokens */}
+          {/* 1v1 MATCH TOKENS: 4 GREEN TOKENS (Top-Left Green House) & 4 BLUE TOKENS (Bottom-Right Blue House) */}
+          {/* Green House 4 Tokens (Top-Left) */}
           <div className="absolute top-[20.5%] left-[20.5%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[28px] z-30 pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
-            <img src="/assets/images/icons/token_red_3d.png" alt="Red Token 1" className="w-full h-full object-contain" />
+            <img src="/assets/images/icons/token_green_3d.png" alt="Green Token 1" className="w-full h-full object-contain" />
           </div>
           <div className="absolute top-[20.5%] left-[32.5%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[28px] z-30 pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
-            <img src="/assets/images/icons/token_red_3d.png" alt="Red Token 2" className="w-full h-full object-contain" />
+            <img src="/assets/images/icons/token_green_3d.png" alt="Green Token 2" className="w-full h-full object-contain" />
           </div>
           <div className="absolute top-[32.5%] left-[20.5%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[28px] z-30 pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
-            <img src="/assets/images/icons/token_red_3d.png" alt="Red Token 3" className="w-full h-full object-contain" />
+            <img src="/assets/images/icons/token_green_3d.png" alt="Green Token 3" className="w-full h-full object-contain" />
           </div>
           <div className="absolute top-[32.5%] left-[32.5%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[28px] z-30 pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
-            <img src="/assets/images/icons/token_red_3d.png" alt="Red Token 4" className="w-full h-full object-contain" />
+            <img src="/assets/images/icons/token_green_3d.png" alt="Green Token 4" className="w-full h-full object-contain" />
           </div>
 
-          {/* Blue House 4 Tokens */}
+          {/* Blue House 4 Tokens (Bottom-Right) */}
           <div className="absolute top-[67.5%] left-[67.5%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[28px] z-30 pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
             <img src="/assets/images/icons/token_blue_3d.png" alt="Blue Token 1" className="w-full h-full object-contain" />
           </div>

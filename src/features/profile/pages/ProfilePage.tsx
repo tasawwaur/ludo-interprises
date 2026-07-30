@@ -39,6 +39,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
   const [linkPhoneNumber, setLinkPhoneNumber] = useState("");
   const [linkPhoneVerification, setLinkPhoneVerification] = useState("");
 
+  const [showFBLinkModal, setShowFBLinkModal] = useState(false);
+  const [fbLinkName, setFbLinkName] = useState("");
+
   // Simulated link states stored in localStorage or store
   const [isFBLinked, setIsFBLinked] = useState(() => {
     return user?.loginProvider === 'facebook' || !!user?.facebookId || localStorage.getItem("ludo_fb_linked") === "true";
@@ -254,17 +257,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
         setIsFBLinked(true);
         triggerToast("Facebook Linked Successfully!");
       } catch (err) {
-        console.warn('Facebook link failed, using mock binding:', err);
-        const mockId = `fb_link_${Date.now()}`;
-        const updated = {
-          ...user,
-          facebookId: mockId,
-          loginProvider: 'facebook',
-        } as UserProfile;
-        updateUser({ facebookId: mockId, loginProvider: 'facebook' });
-        localStorage.setItem(`ludo_facebook_account`, JSON.stringify(updated));
-        setIsFBLinked(true);
-        triggerToast("Facebook Linked Successfully!");
+        console.warn('Facebook link SDK failed, opening simulated FB link dialog:', err);
+        setShowFBLinkModal(true);
       }
     } else if (provider === 'phone') {
       setShowPhoneLinkModal(true);
@@ -318,6 +312,48 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
     setIsPhoneLinked(true);
     setShowPhoneLinkModal(false);
     triggerToast("Mobile Linked Successfully!");
+  };
+
+  const handleSubmitFBLink = () => {
+    const finalName = fbLinkName.trim();
+    if (!finalName) {
+      triggerToast("Please enter your Facebook profile name!");
+      return;
+    }
+    
+    // Check if already linked to another profile
+    const mockId = `fb_${finalName.toLowerCase().replace(/\s+/g, '_')}`;
+    const isDup = isAccountAlreadyLinked((acc) => acc.facebookId === mockId);
+    if (isDup) {
+      triggerToast("Error: Facebook account already linked to another player!");
+      return;
+    }
+
+    confetti({
+      particleCount: 40,
+      spread: 60,
+      colors: ['#1877F2', '#1565C0', '#82B1FF']
+    });
+
+    const updated = {
+      ...user,
+      facebookId: mockId,
+      email: `${finalName.toLowerCase().replace(/\s+/g, '')}@facebook.com`,
+      loginProvider: 'facebook',
+    } as UserProfile;
+
+    updateUser({
+      facebookId: mockId,
+      email: `${finalName.toLowerCase().replace(/\s+/g, '')}@facebook.com`,
+      loginProvider: 'facebook',
+    });
+
+    localStorage.setItem(`ludo_facebook_account`, JSON.stringify(updated));
+    localStorage.setItem(`ludo_facebook_${finalName.toLowerCase().trim().replace(/\s+/g, '_')}`, JSON.stringify(updated));
+
+    setIsFBLinked(true);
+    setShowFBLinkModal(false);
+    triggerToast("Facebook Linked Successfully!");
   };
 
   const handleLogoutClick = () => {
@@ -705,6 +741,62 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
             >
               Verify & Link Mobile
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 5: SIMULATED FACEBOOK LINK OVERLAY ── */}
+      {showFBLinkModal && (
+        <div className="absolute inset-0 z-50 bg-[#090214]/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-[340px] bg-[#1877F2] rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-blue-400">
+            {/* Header */}
+            <div className="bg-[#1877F2] p-4 flex items-center gap-3 border-b border-blue-500">
+              <span className="text-white text-2xl font-black font-serif select-none">facebook</span>
+              <span className="text-[10px] bg-blue-800 text-blue-100 px-2 py-0.5 rounded font-black tracking-wider uppercase ml-auto">OAuth 2.0</span>
+            </div>
+
+            {/* Content Body */}
+            <div className="bg-[#1C202E] p-5 flex flex-col gap-4 text-white">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center text-xl border border-purple-500">
+                  🎲
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-white">Ludo Enterprise</h4>
+                  <p className="text-[10px] text-gray-400">developers.facebook.com</p>
+                </div>
+              </div>
+
+              <div className="text-xs text-gray-300 leading-relaxed border-t border-b border-gray-800 py-3 my-1">
+                Confirm your identity to link your **Facebook account** to this profile.
+              </div>
+
+              <div className="flex flex-col gap-2 bg-[#141724] p-3 rounded-2xl border border-blue-800">
+                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Facebook Verification</span>
+                <input
+                  type="text"
+                  value={fbLinkName}
+                  onChange={(e) => setFbLinkName(e.target.value)}
+                  placeholder="Enter your Facebook profile name..."
+                  className="w-full px-3 py-2 bg-black/60 border border-blue-700/50 rounded-xl text-white placeholder-gray-500 font-bold text-xs focus:outline-none focus:border-[#1877F2]"
+                />
+              </div>
+
+              <div className="flex gap-2.5 mt-2">
+                <button
+                  onClick={() => setShowFBLinkModal(false)}
+                  className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-black text-xs uppercase rounded-xl transition-transform active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitFBLink}
+                  className="flex-1 py-2.5 bg-gradient-to-r from-blue-600 to-[#1877F2] hover:from-blue-700 hover:to-blue-600 text-white font-black text-xs uppercase rounded-xl shadow-lg transition-transform active:scale-95"
+                >
+                  Verify & Link
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

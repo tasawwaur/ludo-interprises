@@ -28,14 +28,14 @@ export const XPBar: React.FC<XPBarProps> = ({ progressPercent = 75, level = 85 }
 
       {/* 3. Level Text (centered in the left circular shield, italic) */}
       <div className="absolute left-[16.6%] top-[58%] -translate-x-1/2 -translate-y-1/2 z-20 flex items-center justify-center pointer-events-none">
-        <span className="text-[11px] font-black text-amber-200 italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+        <span className="text-[13px] font-black text-amber-200 italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
           {level}
         </span>
       </div>
 
       {/* 4. Progress Text (centered on the progress bar, italic) */}
       <div className="absolute left-[52.15%] top-[58%] -translate-x-1/2 -translate-y-1/2 z-20 flex items-center justify-center pointer-events-none">
-        <span className="text-[7.5px] font-black text-white italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] tracking-wider">
+        <span className="text-[9.5px] font-black text-white italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] tracking-wider">
           {Math.round(progressPercent * 100)} / 100 XP
         </span>
       </div>

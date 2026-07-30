@@ -192,18 +192,44 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
         <div className="bg-gradient-to-b from-[#2E0B4E]/90 to-[#1F0736]/90 border-2 border-purple-500/40 rounded-3xl p-5 shadow-2xl mb-4 relative flex flex-col items-center gap-4 glow-purple-border">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500"></div>
 
-          {/* Avatar Ring */}
-          <div className="relative cursor-pointer" onClick={handleAvatarClick}>
-            <div className="w-24 h-24 rounded-full border-[3px] border-double border-amber-400 p-0.5 shadow-[0_0_20px_rgba(255,193,7,0.7)] bg-slate-900 flex items-center justify-center overflow-hidden">
+          {/* Avatar Frame — matching Home Screen */}
+          <div className="relative w-[108px] h-[108px] cursor-pointer" onClick={handleAvatarClick}>
+            <div
+              className="absolute rounded-full overflow-hidden z-10 bg-slate-950 flex items-center justify-center"
+              style={{ top: '16%', left: '20%', right: '20%', bottom: '28%' }}
+            >
               {user?.avatar ? (
-                <img src={user.avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-5xl">👤</span>
+                <span className="text-3xl select-none">👤</span>
               )}
             </div>
-            <div className="absolute bottom-1 right-1 bg-amber-500 text-slate-950 rounded-full w-7 h-7 flex items-center justify-center shadow-lg border border-amber-200 hover:scale-110 active:scale-95 transition-all">
+            <img
+              src="/assets/images/icons/profile_frame_v3.png"
+              alt="Profile Frame"
+              className="absolute inset-0 w-full h-full object-contain z-20 pointer-events-none"
+              draggable={false}
+            />
+            <div className="absolute bottom-[28px] right-[18px] z-30 bg-amber-500 text-slate-950 rounded-full w-[22px] h-[22px] flex items-center justify-center shadow-lg border border-amber-200 hover:scale-110 active:scale-95 transition-all text-[10px]">
               📷
             </div>
+          </div>
+
+          {/* Name Banner — matching Home Screen */}
+          <div className="relative w-[124px] -mt-[14px] flex flex-col items-center justify-center mb-1">
+            <img
+              src="/assets/images/icons/name_banner_v2.png"
+              alt="Name Banner"
+              className="w-full h-auto object-contain pointer-events-none"
+              draggable={false}
+            />
+            <span 
+              className={`absolute inset-0 flex items-center justify-center font-black text-amber-200 tracking-wider drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)] pointer-events-none px-2 text-center overflow-hidden truncate max-w-[90%] ${
+                playerName.length <= 8 ? 'text-[9.5px]' : playerName.length <= 12 ? 'text-[8.5px]' : 'text-[7.5px]'
+              }`}
+            >
+              {playerName}
+            </span>
           </div>
 
           <div className="w-full flex flex-col gap-3">

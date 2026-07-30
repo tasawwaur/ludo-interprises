@@ -48,21 +48,28 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     }
   }, []);
 
-  // 💾 Account Persistence Helpers for Returning Users
-  const getSavedAccount = (provider: 'guest' | 'google' | 'facebook'): UserProfile | null => {
+  // 💾 Account Persistence Helpers for Returning Users (Restores exact saved coins & profile)
+  const getSavedAccount = (provider: 'guest' | 'google' | 'facebook', nameOrId?: string): UserProfile | null => {
     try {
-      const savedStr = localStorage.getItem(`ludo_${provider}_account`);
-      if (savedStr) {
-        return JSON.parse(savedStr);
+      if (nameOrId) {
+        const key = `ludo_${provider}_${nameOrId.toLowerCase().trim().replace(/\s+/g, '_')}`;
+        const saved = localStorage.getItem(key);
+        if (saved) return JSON.parse(saved);
       }
+      const defaultSaved = localStorage.getItem(`ludo_${provider}_account`);
+      if (defaultSaved) return JSON.parse(defaultSaved);
     } catch (e) {
       console.warn(`Failed to read saved ${provider} account:`, e);
     }
     return null;
   };
 
-  const saveAccountForProvider = (userProfile: UserProfile, provider: 'guest' | 'google' | 'facebook') => {
+  const saveAccountForProvider = (userProfile: UserProfile, provider: 'guest' | 'google' | 'facebook', nameOrId?: string) => {
     try {
+      if (nameOrId) {
+        const key = `ludo_${provider}_${nameOrId.toLowerCase().trim().replace(/\s+/g, '_')}`;
+        localStorage.setItem(key, JSON.stringify(userProfile));
+      }
       localStorage.setItem(`ludo_${provider}_account`, JSON.stringify(userProfile));
     } catch (e) {
       console.warn(`Failed to save ${provider} account:`, e);
@@ -109,6 +116,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     avatar: string;
     guestId: string;
   }) => {
+    const existing = getSavedAccount('guest', data.name);
+    if (existing) {
+      setUser(existing);
+      setShowGuestRegModal(false);
+      onSuccessLogin?.();
+      return;
+    }
     const newUser: UserProfile = {
       id: data.guestId || `GST-${Date.now()}`,
       username: data.name,
@@ -128,7 +142,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       nextLevelXp: 1000,
       loginProvider: 'guest',
     };
-    saveAccountForProvider(newUser, 'guest');
+    saveAccountForProvider(newUser, 'guest', data.name);
     setJustClaimedWelcome(true);
     setUser(newUser);
     setShowGuestRegModal(false);
@@ -150,6 +164,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
   };
 
   const handleCompleteGoogleAuth = (profile: GoogleUserProfile) => {
+    const existing = getSavedAccount('google', profile.name) || getSavedAccount('google', profile.email);
+    if (existing) {
+      setUser(existing);
+      setShowGoogleModal(false);
+      onSuccessLogin?.();
+      return;
+    }
     const newGoogleUser: UserProfile = {
       id: `goog_${profile.sub || Date.now()}`,
       username: profile.name,
@@ -167,7 +188,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       loginProvider: 'google',
       googleId: profile.sub,
     };
-    saveAccountForProvider(newGoogleUser, 'google');
+    saveAccountForProvider(newGoogleUser, 'google', profile.name);
     setJustClaimedWelcome(true);
     setUser(newGoogleUser);
     setShowGoogleModal(false);
@@ -178,6 +199,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     const finalName = googleName.trim() || "Google User";
     const finalEmail = googleEmail.trim() || `${finalName.toLowerCase().replace(/\s+/g, '')}@gmail.com`;
     const finalAvatar = googleAvatarUrl.trim() || undefined;
+
+    const existing = getSavedAccount('google', finalName) || getSavedAccount('google', finalEmail);
+    if (existing) {
+      setUser(existing);
+      setShowGoogleModal(false);
+      onSuccessLogin?.();
+      return;
+    }
 
     const newGoogleUser: UserProfile = {
       id: `goog_${Date.now()}`,
@@ -196,7 +225,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       loginProvider: 'google',
       googleId: `goog_acc_${Date.now()}`,
     };
-    saveAccountForProvider(newGoogleUser, 'google');
+    saveAccountForProvider(newGoogleUser, 'google', finalName);
     setJustClaimedWelcome(true);
     setUser(newGoogleUser);
 
@@ -263,6 +292,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     const finalName = fbUserName.trim() || 'TASAVVUR';
     const finalAvatar = fbAvatarUrl.trim() || undefined;
 
+    const existing = getSavedAccount('facebook', finalName);
+    if (existing) {
+      setUser(existing);
+      setShowFBModal(false);
+      onSuccessLogin?.();
+      return;
+    }
+
     const newFBUser: UserProfile = {
       id: `fb_sim_${Date.now()}`,
       username: finalName,
@@ -281,7 +318,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       facebookId: '1020304050',
       syncedFBFriends: selectedFriends
     };
-    saveAccountForProvider(newFBUser, 'facebook');
+    saveAccountForProvider(newFBUser, 'facebook', finalName);
     setJustClaimedWelcome(true);
     setUser(newFBUser);
 

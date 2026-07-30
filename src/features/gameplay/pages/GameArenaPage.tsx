@@ -178,34 +178,60 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
             <img src="/assets/images/icons/luxury_star_icon.png" alt="Star 8" className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.95)]" />
           </div>
 
-          {/* 1v1 MATCH TOKENS: 4 GREEN TOKENS (Top-Left Green House) & 4 BLUE TOKENS (Bottom-Right Blue House) */}
-          {/* Green House 4 Tokens (Top-Left) */}
-          <div className="absolute top-[20.5%] left-[20.5%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[28px] z-30 pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
-            <img src="/assets/images/icons/token_green_3d.png" alt="Green Token 1" className="w-full h-full object-contain" />
-          </div>
-          <div className="absolute top-[20.5%] left-[32.5%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[28px] z-30 pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
-            <img src="/assets/images/icons/token_green_3d.png" alt="Green Token 2" className="w-full h-full object-contain" />
-          </div>
-          <div className="absolute top-[32.5%] left-[20.5%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[28px] z-30 pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
-            <img src="/assets/images/icons/token_green_3d.png" alt="Green Token 3" className="w-full h-full object-contain" />
-          </div>
-          <div className="absolute top-[32.5%] left-[32.5%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[28px] z-30 pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
-            <img src="/assets/images/icons/token_green_3d.png" alt="Green Token 4" className="w-full h-full object-contain" />
-          </div>
+          {/* DYNAMIC PLAYER COLOR SCAN & HOUSE TOKEN RENDER ENGINE */}
+          {gameState?.players.map((player) => {
+            const tokenAssetMap: Record<string, string> = {
+              RED: '/assets/images/icons/token_red_3d.png',
+              GREEN: '/assets/images/icons/token_green_3d.png',
+              YELLOW: '/assets/images/icons/token_yellow_3d.png',
+              BLUE: '/assets/images/icons/token_blue_3d.png',
+            };
 
-          {/* Blue House 4 Tokens (Bottom-Right) */}
-          <div className="absolute top-[67.5%] left-[67.5%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[28px] z-30 pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
-            <img src="/assets/images/icons/token_blue_3d.png" alt="Blue Token 1" className="w-full h-full object-contain" />
-          </div>
-          <div className="absolute top-[67.5%] left-[79.5%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[28px] z-30 pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
-            <img src="/assets/images/icons/token_blue_3d.png" alt="Blue Token 2" className="w-full h-full object-contain" />
-          </div>
-          <div className="absolute top-[79.5%] left-[67.5%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[28px] z-30 pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
-            <img src="/assets/images/icons/token_blue_3d.png" alt="Blue Token 3" className="w-full h-full object-contain" />
-          </div>
-          <div className="absolute top-[79.5%] left-[79.5%] -translate-x-1/2 -translate-y-1/2 w-[22px] h-[28px] z-30 pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
-            <img src="/assets/images/icons/token_blue_3d.png" alt="Blue Token 4" className="w-full h-full object-contain" />
-          </div>
+            // 4 Yard spot offsets for each House
+            const houseOffsets: Record<string, Array<{ top: string; left: string }>> = {
+              RED: [
+                { top: '20.5%', left: '20.5%' },
+                { top: '20.5%', left: '32.5%' },
+                { top: '32.5%', left: '20.5%' },
+                { top: '32.5%', left: '32.5%' },
+              ],
+              YELLOW: [
+                { top: '20.5%', left: '67.5%' },
+                { top: '20.5%', left: '79.5%' },
+                { top: '32.5%', left: '67.5%' },
+                { top: '32.5%', left: '79.5%' },
+              ],
+              GREEN: [
+                { top: '67.5%', left: '20.5%' },
+                { top: '67.5%', left: '32.5%' },
+                { top: '79.5%', left: '20.5%' },
+                { top: '79.5%', left: '32.5%' },
+              ],
+              BLUE: [
+                { top: '67.5%', left: '67.5%' },
+                { top: '67.5%', left: '79.5%' },
+                { top: '79.5%', left: '67.5%' },
+                { top: '79.5%', left: '79.5%' },
+              ],
+            };
+
+            const offsets = houseOffsets[player.color];
+            const tokenImg = tokenAssetMap[player.color];
+
+            return (
+              <React.Fragment key={player.color}>
+                {offsets.map((pos, idx) => (
+                  <div
+                    key={`${player.color}_token_${idx}`}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 w-[22px] h-[28px] z-30 pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]"
+                    style={{ top: pos.top, left: pos.left }}
+                  >
+                    <img src={tokenImg} alt={`${player.color} Token ${idx + 1}`} className="w-full h-full object-contain" />
+                  </div>
+                ))}
+              </React.Fragment>
+            );
+          })}
 
           {/* Top Center Green Royal Frame & Opponent 3D Dice */}
           <div className="absolute -top-[20px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] z-50 flex items-center justify-center pointer-events-auto">

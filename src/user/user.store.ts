@@ -33,7 +33,7 @@ interface UserState {
   logout: () => void;
 }
 
-const STORAGE_KEY = 'ludo_user_profile_v4';
+const STORAGE_KEY = 'ludo_user_profile_v5';
 
 const getInitialProfile = (): UserProfile => {
   if (typeof window !== 'undefined') {

@@ -408,18 +408,18 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
             <div className="currencyBar">
               {/* Crowns (left section) */}
               <div className="currency-item">
-                <img src="/assets/images/icons/icon_diamond.png" alt="diamond" className="currency-icon drop-shadow-[0_0_6px_rgba(100,149,237,0.8)]" style={{ animation: 'sparkle 2s ease-in-out infinite' }} draggable={false} />
-                <span className="currency-value currency-crowns">{formatCurrency(85)}</span>
+                <img src="/assets/images/icons/icon_gem.png" alt="crown" className="currency-icon drop-shadow-[0_0_6px_rgba(100,149,237,0.8)]" style={{ animation: 'sparkle 2s ease-in-out infinite' }} draggable={false} />
+                <span className="currency-value currency-crowns">{formatCurrency(user?.crowns || 0)}</span>
               </div>
               {/* Coins (middle section) */}
               <div className="currency-item">
                 <img src="/assets/images/icons/icon_coin.png" alt="coin" className="currency-icon drop-shadow-[0_0_6px_rgba(255,179,0,0.8)]" style={{ animation: 'sparkle 2.2s ease-in-out infinite' }} draggable={false} />
-                <span className="currency-value currency-coins">{formatCurrency(25000)}</span>
+                <span className="currency-value currency-coins">{formatCurrency(user?.coins || 0)}</span>
               </div>
               {/* Gems (right section) */}
               <div className="currency-item translate-x-[10px]">
-                <img src="/assets/images/icons/icon_gem.png" alt="gem" className="currency-icon drop-shadow-[0_0_6px_rgba(168,85,247,0.8)]" style={{ animation: 'sparkle 2.5s ease-in-out infinite' }} draggable={false} />
-                <span className="currency-value currency-gems">{formatCurrency(1250)}</span>
+                <img src="/assets/images/icons/icon_diamond.png" alt="diamond" className="currency-icon drop-shadow-[0_0_6px_rgba(168,85,247,0.8)]" style={{ animation: 'sparkle 2.5s ease-in-out infinite' }} draggable={false} />
+                <span className="currency-value currency-gems">{formatCurrency(user?.gems || 0)}</span>
               </div>
             </div>
           </button>

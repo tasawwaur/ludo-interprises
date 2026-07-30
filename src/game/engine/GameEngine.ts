@@ -8,7 +8,7 @@ export class GameEngine {
   /**
    * Initializes a fresh Duel (1v1), Team (2v2), or 4-Player Ludo Match state.
    */
-  static createInitialState(mode: '2P' | '2v2' | '4P', hostName: string): GameState {
+  static createInitialState(mode: '2P' | '2v2' | '4P', hostName: string, roomMembers?: any[]): GameState {
     // Official Seating & Color Assignment
     // Duel (1v1): GREEN vs YELLOW (Top-Left vs Top-Right)
     // 2v2 & 4P: GREEN (TL), YELLOW (TR), BLUE (BR), RED (BL)
@@ -16,14 +16,24 @@ export class GameEngine {
 
     const players: Player[] = colors.map((color, index) => {
       const isHost = index === 0;
-      let name = isHost ? hostName : `Bot ${color}`;
 
-      if (mode === '2v2') {
-        if (color === 'GREEN') name = isHost ? hostName : 'Player Green (Team A)';
-        if (color === 'BLUE') name = 'Partner Blue (Team A)';
-        if (color === 'YELLOW') name = 'Opponent Yellow (Team B)';
-        if (color === 'RED') name = 'Opponent Red (Team B)';
+      // Find matching member by color from room members
+      const member = roomMembers?.find((m) => m.color === color);
+
+      let name = member?.name;
+      if (!name) {
+        name = isHost ? hostName : `Rahul Sharma`;
+        if (mode === '2v2') {
+          if (color === 'GREEN') name = isHost ? hostName : 'Priya Verma';
+          if (color === 'BLUE') name = 'Vikram Singh';
+          if (color === 'YELLOW') name = 'Rahul Sharma';
+          if (color === 'RED') name = 'Ananya Roy';
+        }
       }
+
+      const avatar = member?.avatar;
+      const profileFrame = member?.profileFrame;
+      const nameBanner = member?.nameBanner;
 
       // Team Assignment: Team A = Green & Blue, Team B = Red & Yellow
       let team: TeamName | undefined = undefined;
@@ -45,15 +55,18 @@ export class GameEngine {
         name,
         color,
         team,
-        isAi: !isHost,
+        avatar,
+        profileFrame,
+        nameBanner,
+        isAi: false,
         isHost,
         isReady: true,
         tokens,
-        level: isHost ? 24 : 18,
-        coins: isHost ? 150000 : 85000,
-        gems: isHost ? 450 : 210,
-        winRate: isHost ? 68.4 : 54.2,
-        matchesPlayed: isHost ? 342 : 190,
+        level: isHost ? 24 : 22,
+        coins: isHost ? 150000 : 120000,
+        gems: isHost ? 450 : 380,
+        winRate: isHost ? 68.4 : 62.1,
+        matchesPlayed: isHost ? 342 : 280,
       };
     });
 

@@ -157,7 +157,7 @@ export const LudoPageBackground: React.FC<LudoPageBackgroundProps> = ({
     settings: '/assets/images/settings/settings_background.webp',
     tournament: '/assets/images/tournament/tournament_background.webp',
     room: '/assets/images/private-room/private_room_background.webp',
-    gameplay: '/assets/images/practice/practice_background.webp',
+    gameplay: '/assets/images/backgrounds/custom_arena_bg.jpg',
     victory: '/assets/images/rewards/rewards_background.webp',
     leaderboard: '/assets/images/leaderboard/leaderboard_background.webp',
   };

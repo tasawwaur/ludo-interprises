@@ -3,6 +3,7 @@ import { GameState, MoveableToken, PlayerColor } from '../game/engine/Engine.typ
 import { GameEngine } from '../game/engine/GameEngine';
 import { ReplayRecorder } from '../game/replay/ReplayRecorder';
 import { SoundEngine } from '../game/sound/SoundEngine';
+import { useRoomStore } from '../features/matchmaking/rooms/RoomStore';
 
 interface GameStoreState {
   gameState: GameState | null;
@@ -31,12 +32,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   replayRecorder: new ReplayRecorder(),
   activeHoverTokenId: null,
   selectedTokenId: null,
-  isMuted: false,
+  isMuted: true,
   turnTimerSeconds: 15,
   isAutoMode: false,
 
   startMatch: (mode, hostName) => {
-    const initialState = GameEngine.createInitialState(mode, hostName);
+    const members = useRoomStore.getState().members;
+    const initialState = GameEngine.createInitialState(mode, hostName, members);
     const recorder = new ReplayRecorder();
     recorder.recordEvent('TURN_CHANGE', 'RED', { mode, hostName });
 
@@ -64,15 +66,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   setSelectedToken: (tokenId) => set({ selectedTokenId: tokenId }),
 
   tickTurnTimer: () => {
-    const { gameState, turnTimerSeconds, isAutoMode } = get();
+    const { gameState, turnTimerSeconds } = get();
     if (!gameState || gameState.gameStatus === 'GAME_OVER') return;
 
     if (turnTimerSeconds > 1) {
       set({ turnTimerSeconds: turnTimerSeconds - 1 });
     } else {
-      // 15s TIMEOUT -> ENTER AUTO MODE (5s timer for next turns)
-      set({ isAutoMode: true, turnTimerSeconds: 5 });
-      get().triggerAiMoveIfNeeded();
+      set({ turnTimerSeconds: 15 });
     }
   },
 
@@ -98,9 +98,9 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         turnTimerSeconds: isAutoMode ? 5 : 15,
       });
 
-      // Auto movement ONLY if 1 legal move AND in Auto Mode or AI turn
+      // Auto movement ONLY if AI turn and 1 legal move
       const activePlayer = nextState.players[nextState.activePlayerIndex];
-      const shouldAutoMove = (activePlayer.isAi || isAutoMode) && nextState.movableTokens.length === 1;
+      const shouldAutoMove = activePlayer.isAi && nextState.movableTokens.length === 1;
 
       if (nextState.gameStatus === 'MOVE_WAIT' && shouldAutoMove) {
         const autoTokenId = nextState.movableTokens[0].tokenId;
@@ -209,8 +209,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const activePlayer = gameState.players[gameState.activePlayerIndex];
     if (!activePlayer) return;
 
-    // CRITICAL FIX: Only auto-play if player is AI OR timed out into Auto Mode!
-    if (!activePlayer.isAi && !isAutoMode) {
+    // CRITICAL: Auto-play ONLY for AI players (disabled for humans as requested)
+    if (!activePlayer.isAi) {
       return;
     }
 

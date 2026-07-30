@@ -19,6 +19,8 @@ export interface Player {
   color: PlayerColor;
   team?: TeamName;
   avatar?: string;
+  profileFrame?: string;
+  nameBanner?: string;
   isAi: boolean;
   isHost: boolean;
   isReady: boolean;

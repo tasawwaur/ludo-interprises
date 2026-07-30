@@ -57,6 +57,7 @@ const MainApp: React.FC = () => {
   const [showLuckySpin, setShowLuckySpin] = useState(false);
 
   const user = useUserStore((s) => s.user);
+  const updateUser = useUserStore((s) => s.updateUser);
   const isAuthenticated = useUserStore((s) => s.isAuthenticated);
   const { startQueue, cancelQueue } = useQueueStore();
   const { createRoom } = useRoomStore();
@@ -102,6 +103,15 @@ const MainApp: React.FC = () => {
       setCurrentView("SHOP");
       return;
     }
+
+    // Check entry fee (5,000 Coins)
+    const userCoins = user?.coins ?? 0;
+    if (userCoins < 5000) {
+      alert("Insufficient Coins");
+      setCurrentView("SHOP");
+      return;
+    }
+
     startQueue(selectedMode);
     setCurrentView("QUEUE");
   };
@@ -134,9 +144,33 @@ const MainApp: React.FC = () => {
               cancelQueue();
               setCurrentView("HOME");
             }}
-            onMatchFound={() => {
-              createRoom("2P Classic", 2, user?.displayName || user?.username || "Govind");
-              setCurrentView("ROOM");
+            onMatchFound={(opponent) => {
+              // Deduct 5,000 coins entry fee for 2P Match
+              const currentCoins = user?.coins || 20000;
+              updateUser({ coins: Math.max(0, currentCoins - 5000) });
+              
+              const hostName = user?.displayName || user?.username || "Govind";
+              const hostAvatar = user?.avatar || "/assets/images/icons/icon_club_crown.png";
+              
+              const code = createRoom(
+                "2P Classic",
+                2,
+                hostName,
+                hostAvatar,
+                "/assets/images/icons/profile_frame_v3.png",
+                "/assets/images/icons/name_banner_v2.png"
+              );
+              
+              if (opponent) {
+                useRoomStore.getState().joinRoom(
+                  code,
+                  opponent.name,
+                  opponent.avatar,
+                  opponent.profileFrame,
+                  opponent.nameBanner
+                );
+              }
+              setCurrentView("GAME_ARENA");
             }}
           />
         );
@@ -256,7 +290,7 @@ const MainApp: React.FC = () => {
           )}
 
           {/* Modals */}
-          <ReadyCheck onMatchAccepted={handleMatchAccepted} />
+          {/* <ReadyCheck onMatchAccepted={handleMatchAccepted} /> */}
           <LuckySpinModal
             isOpen={showLuckySpin}
             onClose={() => setShowLuckySpin(false)}

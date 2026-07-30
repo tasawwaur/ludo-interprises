@@ -47,9 +47,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
 
   // Simulated link states stored in localStorage or store
   const [isFBLinked, setIsFBLinked] = useState(() => {
+    if (user?.loginProvider === 'guest') return false;
     return user?.loginProvider === 'facebook' || !!user?.facebookId || localStorage.getItem("ludo_fb_linked") === "true";
   });
   const [isGoogleLinked, setIsGoogleLinked] = useState(() => {
+    if (user?.loginProvider === 'guest') return false;
     return user?.loginProvider === 'google' || !!user?.googleId || localStorage.getItem("ludo_google_linked") === "true";
   });
   const [isPhoneLinked, setIsPhoneLinked] = useState(() => {

@@ -218,10 +218,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
           triggerToast("Google Linked Successfully!");
         });
       } catch (e) {
-        console.warn('Google link popup failed, falling back to simulated verification modal:', e);
-        setShowGoogleLinkModal(true);
+        console.warn('Google link popup failed or cancelled:', e);
+        triggerToast("Google Login Cancelled");
       }
     } else if (provider === 'facebook') {
+      const FB = (window as any).FB;
+      if (!FB) {
+        console.warn('Facebook SDK not loaded. Falling back to simulated login verification.');
+        setShowFBLinkModal(true);
+        return;
+      }
+
       try {
         const profile = await loginWithFacebook();
         
@@ -246,8 +253,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
         setIsFBLinked(true);
         triggerToast("Facebook Linked Successfully!");
       } catch (err) {
-        console.warn('Facebook link failed, falling back to simulated verification modal:', err);
-        setShowFBLinkModal(true);
+        console.warn('Facebook link failed or cancelled:', err);
+        triggerToast("Facebook Login Cancelled");
       }
     }
   };

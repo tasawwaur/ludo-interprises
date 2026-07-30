@@ -474,6 +474,55 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
           </div>
         </div>
 
+        {/* ── CARD 3: LINKED ACCOUNTS (GUEST ONLY) ── */}
+        {user?.loginProvider === 'guest' && (
+          <div className="bg-gradient-to-b from-[#2E0B4E]/90 to-[#1F0736]/90 border-2 border-purple-500/40 rounded-3xl p-5 shadow-2xl mb-4 relative glow-purple-border animate-fade-in">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-400"></div>
+
+            <h3 className="text-xs font-black text-amber-300 uppercase tracking-widest mb-3 flex items-center gap-2">
+              <span>🔗</span> Link Social Account
+            </h3>
+
+            <div className="space-y-2.5">
+              {/* Facebook Link Row */}
+              <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-lg">📘</span>
+                  <span className="text-xs font-black text-white">Facebook</span>
+                </div>
+                {isFBLinked ? (
+                  <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">Linked ✓</span>
+                ) : (
+                  <button
+                    onClick={() => handleLinkAccount('facebook')}
+                    className="px-3.5 py-1.5 bg-[#1877F2] text-white font-black text-[10px] rounded-xl hover:bg-blue-600 active:scale-95 transition-transform uppercase"
+                  >
+                    Link
+                  </button>
+                )}
+              </div>
+
+              {/* Google Link Row */}
+              <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-lg">🔴</span>
+                  <span className="text-xs font-black text-white">Google</span>
+                </div>
+                {isGoogleLinked ? (
+                  <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">Linked ✓</span>
+                ) : (
+                  <button
+                    onClick={() => handleLinkAccount('google')}
+                    className="px-3.5 py-1.5 bg-red-600 text-white font-black text-[10px] rounded-xl hover:bg-red-700 active:scale-95 transition-transform uppercase"
+                  >
+                    Link
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Logout Button */}
         <button
           onClick={handleLogoutClick}

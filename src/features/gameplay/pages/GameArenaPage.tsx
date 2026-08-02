@@ -439,15 +439,6 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                 playerColor={opponentPlayer?.color}
               />
             </div>
-
-            {/* Dice Value Badge on the Right */}
-            {opponentPlayer && gameState.currentTurnColor === opponentPlayer.color && gameState.diceValue && (
-              <div className="absolute left-[88px] top-1/2 -translate-y-1/2 px-3 py-1 bg-gradient-to-r from-amber-500 to-yellow-400 border border-amber-300 rounded-xl shadow-[0_0_15px_rgba(251,191,36,0.65)] flex items-center justify-center min-w-[34px] animate-[fadeIn_0.2s_ease-out] z-50 pointer-events-none">
-                <span className="text-[14px] font-black text-slate-950 font-mono drop-shadow-sm">
-                  {gameState.diceValue}
-                </span>
-              </div>
-            )}
           </div>
 
           {/* 🛡️ PROTECT BUTTON — Centered between bottom-left profile & bottom-center dice */}
@@ -486,15 +477,6 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                 playerColor={localPlayer?.color}
               />
             </div>
-
-            {/* Dice Value Badge on the Right */}
-            {localPlayer && gameState.currentTurnColor === localPlayer.color && gameState.diceValue && (
-              <div className="absolute left-[88px] top-1/2 -translate-y-1/2 px-3 py-1 bg-gradient-to-r from-amber-500 to-yellow-400 border border-amber-300 rounded-xl shadow-[0_0_15px_rgba(251,191,36,0.65)] flex items-center justify-center min-w-[34px] animate-[fadeIn_0.2s_ease-out] z-50 pointer-events-none">
-                <span className="text-[14px] font-black text-slate-950 font-mono drop-shadow-sm">
-                  {gameState.diceValue}
-                </span>
-              </div>
-            )}
           </div>
 
         </div>

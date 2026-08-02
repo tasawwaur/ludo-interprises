@@ -19,15 +19,33 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
 }) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [displayVal, setDisplayVal] = useState<number>(value || 1);
-  // 🔒 Lock ref — prevents double-click and overlapping rolls
-  const isRollingRef = useRef(false);
+  const [showBadge, setShowBadge] = useState(false);
+  const lastValueRef = useRef<number | null>(null);
 
-  // Show final dice value after server resolves it
+  // Trigger roll animation when value changes
   useEffect(() => {
-    if (value && value > 0) {
-      setDisplayVal(value);
+    if (value && value > 0 && value !== lastValueRef.current) {
+      lastValueRef.current = value;
+      setIsAnimating(true);
+      setShowBadge(false);
+
+      let count = 0;
+      const interval = setInterval(() => {
+        setDisplayVal(Math.floor(Math.random() * 6) + 1);
+        count++;
+        if (count >= 10) {
+          clearInterval(interval);
+          setDisplayVal(value);
+          setIsAnimating(false);
+          setShowBadge(true);
+        }
+      }, 55);
+
+      return () => clearInterval(interval);
+    } else if (!value) {
+      lastValueRef.current = null;
+      setShowBadge(false);
       setIsAnimating(false);
-      isRollingRef.current = false;
     }
   }, [value]);
 
@@ -35,30 +53,14 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
     e.stopPropagation();
     e.preventDefault();
 
-    // 🚫 Guards — only allow click when it's your turn and not already rolling
-    if (!canRoll || isRollingRef.current || isAnimating) return;
+    // Guards — only allow click when it's your turn and not already rolling
+    if (!canRoll || isAnimating) return;
 
-    // 🔒 Lock immediately to block any second click
-    isRollingRef.current = true;
+    // Start local visual roll immediately
     setIsAnimating(true);
-
-    let count = 0;
-    const interval = setInterval(() => {
-      setDisplayVal(Math.floor(Math.random() * 6) + 1);
-      count++;
-      if (count >= 8) {
-        clearInterval(interval);
-        setIsAnimating(false);
-        // ✅ Fire roll ONCE after animation completes
-        onRoll?.();
-        // Unlock after short cooldown so state can update
-        setTimeout(() => {
-          isRollingRef.current = false;
-        }, 600);
-      }
-    }, 50);
+    setShowBadge(false);
+    onRoll?.();
   };
-
 
   // Render 3D Ivory White Royal Cube with Pips
   const renderPips = (val: number) => {
@@ -155,6 +157,15 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
           {renderPips(displayVal)}
         </div>
       </div>
+
+      {/* Dice Value Badge on the Right */}
+      {showBadge && (
+        <div className="absolute left-[88px] top-1/2 -translate-y-1/2 px-3 py-1 bg-gradient-to-r from-amber-500 to-yellow-400 border border-amber-300 rounded-xl shadow-[0_0_15px_rgba(251,191,36,0.65)] flex items-center justify-center min-w-[34px] animate-[fadeIn_0.2s_ease-out] z-50 pointer-events-none">
+          <span className="text-[14px] font-black text-slate-950 font-mono drop-shadow-sm">
+            {displayVal}
+          </span>
+        </div>
+      )}
     </div>
   );
 };

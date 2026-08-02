@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import { LudoPageBackground } from "../../../components/effects/LudoPageBackground";
 import { useUserStore } from "../../../user/user.store";
 import { UserProfileModal } from "../../../components/modal/UserProfileModal";
+import { GLOBAL_PLAYER_DATABASE } from "../../../store/player-database.store";
 import confetti from "canvas-confetti";
 
 interface FriendsPageProps {
@@ -74,14 +75,19 @@ export const FriendsPage: React.FC<FriendsPageProps> = ({ onBack, onInviteFriend
     return val ? parseFloat(val) : 0;
   });
 
-  // Default friends with pre-configured Facebook indicator and custom stats
-  const [friendsList, setFriendsList] = useState<Friend[]>([
-    { id: 'g_f1', name: "Roxana", status: "Online", isOnline: true, isFB: true, coins: 25000, level: 12 },
-    { id: 'g_f2', name: "Aman", status: "Online", isOnline: true, isFB: true, coins: 1250000, level: 15 },
-    { id: 'g_f3', name: "Imran", status: "Online", isOnline: true, isFB: false, coins: 80000, level: 8 },
-    { id: 'g_f4', name: "Tasavvur", status: "Offline", isOnline: false, isFB: false, coins: 500000, level: 25 },
-    { id: 'g_f5', name: "Syed", status: "Online", isOnline: true, isFB: false, coins: 10000, level: 5 },
-  ]);
+  // Default friends mapped from the realistic database
+  const [friendsList, setFriendsList] = useState<Friend[]>(() => {
+    return GLOBAL_PLAYER_DATABASE.slice(0, 10).map((player, idx) => ({
+      id: player.playerId,
+      name: player.username,
+      status: idx % 3 === 0 ? "Offline" : "Online",
+      isOnline: idx % 3 !== 0,
+      isFB: idx % 2 === 0,
+      avatarUrl: player.avatarUrl,
+      coins: player.currentCoins,
+      level: player.level
+    }));
+  });
 
   // Synchronized Facebook list from user store (if logged in with FB)
   const mergedFriends = useMemo(() => {
@@ -111,41 +117,41 @@ export const FriendsPage: React.FC<FriendsPageProps> = ({ onBack, onInviteFriend
     return activeTab === "ONLINE" ? mergedFriends.filter((f) => f.isOnline) : mergedFriends;
   }, [activeTab, mergedFriends]);
 
-  // Search player handler (UID search starts with LUDO-, else searches by name)
+  // Search player handler (UID search, else searches by name in GLOBAL_PLAYER_DATABASE)
   const handleSearchFriend = () => {
-    const q = searchQuery.trim().toUpperCase();
+    const q = searchQuery.trim();
     if (!q) return;
 
-    // Simulate search logic
-    if (q.startsWith("LUDO-")) {
-      const randId = `f_${Math.floor(Math.random() * 9000) + 1000}`;
+    const queryUpper = q.toUpperCase();
+
+    // Query 100 players database
+    const matchedPlayer = GLOBAL_PLAYER_DATABASE.find(
+      p => p.playerId.toUpperCase() === queryUpper || p.username.toUpperCase() === queryUpper
+    );
+
+    if (matchedPlayer) {
       setSearchResult({
-        id: randId,
-        name: `PRO_PLAYER_${q.replace("LUDO-", "")}`,
+        id: matchedPlayer.playerId,
+        name: matchedPlayer.username,
         status: "Online",
         isOnline: true,
-        isFB: false,
-        coins: 950000,
-        level: 18
+        isFB: Math.random() > 0.5,
+        avatarUrl: matchedPlayer.avatarUrl,
+        coins: matchedPlayer.currentCoins,
+        level: matchedPlayer.level
       });
     } else {
-      // Name search
-      const found = mergedFriends.find(f => f.name.toUpperCase() === q);
-      if (found) {
-        setSearchResult(found);
-      } else {
-        // Mock new player
-        const randId = `f_${Math.floor(Math.random() * 9000) + 1000}`;
-        setSearchResult({
-          id: randId,
-          name: q,
-          status: "Offline",
-          isOnline: false,
-          isFB: false,
-          coins: 45000,
-          level: 6
-        });
-      }
+      // Mock new player
+      const randId = `PVZV${1000 + Math.floor(Math.random() * 8000)}`;
+      setSearchResult({
+        id: randId,
+        name: q,
+        status: "Offline",
+        isOnline: false,
+        isFB: false,
+        coins: 15000,
+        level: 3
+      });
     }
   };
 
@@ -556,22 +562,61 @@ export const FriendsPage: React.FC<FriendsPageProps> = ({ onBack, onInviteFriend
       {/* ── MODAL 3: FRIEND PROFILE CARD (COINS, LEVEL, REMOVE, GIFT) ── */}
       {selectedFriendProfile && (() => {
         const friend = selectedFriendProfile;
+        
+        // Find player in our unique database
+        const dbPlayer = GLOBAL_PLAYER_DATABASE.find(
+          p => p.playerId === friend.id || p.username.toLowerCase() === friend.name.toLowerCase()
+        );
+
+        if (dbPlayer) {
+          const mappedUserStats = {
+            id: dbPlayer.playerId,
+            name: dbPlayer.username,
+            avatarUrl: dbPlayer.avatarUrl,
+            equippedFrame: dbPlayer.equippedFrame,
+            level: dbPlayer.level,
+            country: dbPlayer.country,
+            countryFlag: dbPlayer.countryFlag,
+            totalEarning: dbPlayer.totalEarning,
+            currentGold: dbPlayer.currentCoins,
+            currentLeague: dbPlayer.currentLeague,
+            gamesWon: dbPlayer.matchesWon,
+            gamesPlayed: dbPlayer.matchesPlayed,
+            teamWins: dbPlayer.teamWins,
+            winStreak: dbPlayer.currentWinStreak,
+            twoPlayerWins: dbPlayer.twoPlayerWins,
+            titanBadgeCount: dbPlayer.titanBadgeCount,
+            fourPlayerWins: dbPlayer.fourPlayerWins,
+            killCount: dbPlayer.killCount
+          };
+          return (
+            <UserProfileModal 
+              userStats={mappedUserStats} 
+              onClose={() => setSelectedFriendProfile(null)}
+              onSendGift={handleSendGift}
+              onRemove={() => {
+                setFriendsList(prev => prev.filter(f => f.id !== friend.id));
+                triggerToast(`Removed ${friend.name} from Friends!`);
+                setSelectedFriendProfile(null);
+              }}
+            />
+          );
+        }
+
+        // Fallback stats
         const totalEarningVal = friend.coins * 1.8;
-        const totalEarning = totalEarningVal > 1000000000 
-          ? `${(totalEarningVal / 1000000000).toFixed(1)} B`
-          : totalEarningVal > 1000000 
-            ? `${(totalEarningVal / 1000000).toFixed(1)} M` 
-            : `${totalEarningVal.toLocaleString()}`;
-        const isPak = friend.name === "Ahmed Mujtaba";
+        const totalEarning = totalEarningVal > 1000000 
+          ? `${(totalEarningVal / 1000000).toFixed(1)} M` 
+          : `${(totalEarningVal / 1000).toFixed(0)} K`;
 
         const statsObj = {
-          id: `PVZV${friend.id.replace(/[^\d]/g, '') || '7225'}`,
+          id: friend.id,
           name: friend.name,
           avatarUrl: friend.avatarUrl,
           equippedFrame: friend.isFB ? 'frame_luxury_2' : 'frame_default',
           level: friend.level,
-          country: isPak ? "PAKISTAN" : "INDIA",
-          countryFlag: isPak ? "🇵🇰" : "🇮🇳",
+          country: "INDIA",
+          countryFlag: "🇮🇳",
           totalEarning: totalEarning,
           currentGold: friend.coins,
           currentLeague: friend.level > 12 ? "Diamond" : "Bronze",

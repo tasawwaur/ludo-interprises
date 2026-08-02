@@ -249,6 +249,8 @@ io.on("connection", (socket) => {
       }
     }
   });
+});
+
 // Fallback all non-API GET requests to index.html (SPA routing)
 app.get("*", (req, res, next) => {
   if (req.path.startsWith("/api") || req.path.startsWith("/socket.io")) {

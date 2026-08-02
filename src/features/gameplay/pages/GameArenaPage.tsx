@@ -62,17 +62,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [isVibrate, setIsVibrate] = useState(true);
-  const [showTimeoutText, setShowTimeoutText] = useState(false);
   const isMuted = useGameStore((s) => s.isMuted);
-
-  useEffect(() => {
-    const handleTimeout = () => {
-      setShowTimeoutText(true);
-      setTimeout(() => setShowTimeoutText(false), 1200);
-    };
-    window.addEventListener('game_timeout', handleTimeout);
-    return () => window.removeEventListener('game_timeout', handleTimeout);
-  }, []);
   const toggleMute = useGameStore((s) => s.toggleMute);
 
   const handleVibrateToggle = () => {
@@ -745,20 +735,6 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         onSendMessage={handleSendMessage}
         messages={chatHistory}
       />
-
-      {/* Time Out Alert Overlay */}
-      {showTimeoutText && (
-        <div className="absolute inset-0 bg-black/40 z-50 flex items-center justify-center pointer-events-none animate-[fadeIn_0.2s_ease-out]">
-          <div className="px-6 py-3 bg-red-600/90 backdrop-blur-md border border-red-400 rounded-2xl shadow-[0_0_30px_rgba(239,68,68,0.6)] animate-[bounce_0.6s_ease-out] flex flex-col items-center">
-            <span className="text-[20px] font-black tracking-widest text-white uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
-              ⏳ TIME OUT
-            </span>
-            <span className="text-[9px] font-bold text-red-200 mt-1 uppercase tracking-wider">
-              Turn Passed!
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

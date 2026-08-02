@@ -233,7 +233,12 @@ export const useGameStore = create<GameStoreState>()(
       stepCounter++;
       const currentStep = targetMove.fromStep + stepCounter;
 
-      SoundEngine.play('TOKEN_STEP');
+      const isOpenToken = targetMove.fromStep === -1 && targetMove.toStep === 0;
+      if (isOpenToken) {
+        SoundEngine.play('TOKEN_OPEN');
+      } else {
+        SoundEngine.play('TOKEN_STEP');
+      }
 
       set((state) => {
         if (!state.gameState) return state;

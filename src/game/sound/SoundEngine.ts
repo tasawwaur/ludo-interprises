@@ -9,7 +9,8 @@ export type SoundEffect =
   | 'TURN_CHANGE'
   | 'GAME_START'
   | 'TICK'
-  | 'TIMEOUT';
+  | 'TIMEOUT'
+  | 'TOKEN_OPEN';
 
 export class SoundEngine {
   private static audioCtx: AudioContext | null = null;
@@ -109,6 +110,7 @@ export class SoundEngine {
         gain.connect(ctx.destination);
         osc.start(now);
         osc.stop(now + 0.35);
+        this.speak("Makha ladle meow!");
         break;
       }
       case 'SAFE_TILE': {
@@ -138,6 +140,7 @@ export class SoundEngine {
         gain.connect(ctx.destination);
         osc.start(now);
         osc.stop(now + 0.35);
+        this.speak("Maza aaya!");
         break;
       }
       case 'WIN': {
@@ -154,6 +157,7 @@ export class SoundEngine {
           osc.start(now + idx * 0.12);
           osc.stop(now + idx * 0.12 + 0.25);
         });
+        this.speak("Maza aaya!");
         break;
       }
       case 'TURN_CHANGE': {
@@ -210,6 +214,43 @@ export class SoundEngine {
         osc.stop(now + 0.45);
         break;
       }
+      case 'TOKEN_OPEN': {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.4);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.4);
+        this.speak("Khelega free fire!");
+        break;
+      }
+    }
+  }
+
+  private static speak(text: string): void {
+    if (this.isMuted) return;
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.volume = 1.0;
+      utterance.rate = 1.0;
+      utterance.pitch = 1.15;
+      
+      const voices = window.speechSynthesis.getVoices();
+      const hindiVoice = voices.find(v => v.lang.startsWith('hi') || v.lang.startsWith('en-IN'));
+      if (hindiVoice) {
+        utterance.voice = hindiVoice;
+      }
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.error("Speech Synthesis failed:", e);
     }
   }
 }

@@ -26,6 +26,7 @@ import { useGlobalModalStore, getPlayerProfile } from "./store/global-modal.stor
 import { UserProfileModal } from "./components/modal/UserProfileModal";
 
 import { useUserStore } from "./user/user.store";
+import { ValidationEngine } from "./game/validation/ValidationEngine";
 import { useQueueStore } from "./features/matchmaking/queue/QueueStore";
 import { useRoomStore } from "./features/matchmaking/rooms/RoomStore";
 import { useGameStore } from "./store/game.store";
@@ -65,12 +66,23 @@ const MainApp: React.FC = () => {
     }
     return "SPLASH";
   });
-  const [showLuckySpin, setShowLuckySpin] = useState(false);
-  const [lastRewardedMatchId, setLastRewardedMatchId] = useState<string | null>(null);
-
   const user = useUserStore((s) => s.user);
   const updateUser = useUserStore((s) => s.updateUser);
   const isAuthenticated = useUserStore((s) => s.isAuthenticated);
+
+  const [isBanned, setIsBanned] = useState(false);
+  const [banReasons, setBanReasons] = useState<string[]>([]);
+
+  useEffect(() => {
+    const audit = ValidationEngine.performFullSecurityCheck(user?.id || "guest");
+    if (audit.bansRequired || ValidationEngine.isBanned()) {
+      setIsBanned(true);
+      setBanReasons(audit.alerts.length > 0 ? audit.alerts : ["UNSAFE_CLIENT_EXECUTION_ENVIRONMENT"]);
+    }
+  }, [user]);
+
+  const [showLuckySpin, setShowLuckySpin] = useState(false);
+  const [lastRewardedMatchId, setLastRewardedMatchId] = useState<string | null>(null);
 
   const activeProfilePlayerId = useGlobalModalStore((s) => s.activeProfilePlayerId);
   const closeProfile = useGlobalModalStore((s) => s.closeProfile);
@@ -188,6 +200,52 @@ const MainApp: React.FC = () => {
   };
 
   const renderCurrentView = () => {
+    if (isBanned) {
+      return (
+        <div className="absolute inset-0 bg-[#090214] text-white flex flex-col items-center justify-center p-6 z-[1000] border-[4px] border-yellow-500 rounded-[24px]">
+          {/* Radial Glowing Background */}
+          <div className="absolute w-64 h-64 rounded-full bg-red-600/10 blur-3xl pointer-events-none"></div>
+
+          {/* Golden shield with broken padlock */}
+          <div className="text-6xl mb-6 filter drop-shadow-[0_0_15px_rgba(239,68,68,0.7)] animate-pulse">
+            🛡️💔
+          </div>
+
+          <h2 className="text-xl font-black bg-gradient-to-r from-red-400 via-rose-500 to-red-500 bg-clip-text text-transparent tracking-widest uppercase text-center mb-2 glow-red-text">
+            SECURITY VIOLATION
+          </h2>
+          <span className="text-[9.5px] font-black tracking-wider text-amber-400 uppercase bg-black/40 px-3 py-1 rounded-full border border-red-500/30 mb-6">
+            Account Restricted
+          </span>
+
+          <div className="w-full bg-black/55 border border-red-500/20 p-4 rounded-2xl flex flex-col gap-3.5 mb-6 text-xs max-h-[160px] overflow-y-auto no-scrollbar shadow-inner">
+            <p className="text-[10px] text-purple-200/90 leading-relaxed text-center">
+              Your device environment has been flagged for active security violations. Cheating tools, hooking frameworks, or memory patchers are strictly prohibited.
+            </p>
+            <div className="border-t border-purple-500/15 pt-2 flex flex-col gap-1.5 font-mono text-[9px] text-left text-gray-400">
+              <div><span className="text-red-400 font-bold">DEVICE ID:</span> PVA483729</div>
+              <div><span className="text-red-400 font-bold">TIMESTAMP:</span> {new Date().toISOString()}</div>
+              <div>
+                <span className="text-red-400 font-bold">SIGNALS:</span>
+                <ul className="list-disc pl-4 mt-1 text-gray-300 flex flex-col gap-0.5">
+                  {banReasons.map((r, i) => (
+                    <li key={i} className="truncate">{r}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => alert("Your ban appeal has been submitted to the Security Council for review.")}
+            className="w-full py-3.5 bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white font-black text-xs tracking-widest uppercase rounded-2xl shadow-lg border border-red-400 active:scale-95 transition-transform cursor-pointer"
+          >
+            Appeal Restriction
+          </button>
+        </div>
+      );
+    }
+
     switch (currentView) {
       case "SPLASH":
         return <SplashScreen onFinish={handleSplashFinish} />;

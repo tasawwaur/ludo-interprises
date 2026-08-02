@@ -10,6 +10,8 @@ import { CreateAccount } from './CreateAccount';
 interface LoginCardProps {
   onLoginSubmit: (username: string, pass: string) => void;
   onGuestLogin: () => void;
+  onGoogleLogin: () => void;
+  onFacebookLogin: () => void;
   onToggleRegister: () => void;
   isLoading?: boolean;
 }
@@ -17,6 +19,8 @@ interface LoginCardProps {
 export const LoginCard: React.FC<LoginCardProps> = ({
   onLoginSubmit,
   onGuestLogin,
+  onGoogleLogin,
+  onFacebookLogin,
   onToggleRegister,
   isLoading = false,
 }) => {
@@ -26,7 +30,8 @@ export const LoginCard: React.FC<LoginCardProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onLoginSubmit(username || 'Guest4296', password || 'password123');
+    if (!username.trim() || !password.trim()) return;
+    onLoginSubmit(username.trim(), password);
   };
 
   return (
@@ -77,7 +82,10 @@ export const LoginCard: React.FC<LoginCardProps> = ({
       </form>
 
       {/* Social Login Options */}
-      <SocialLogin onSelectProvider={(providerId) => onLoginSubmit(`user_${providerId}`, 'social_pass')} />
+      <SocialLogin
+        onGoogleLogin={onGoogleLogin}
+        onFacebookLogin={onFacebookLogin}
+      />
 
       {/* Guest Login Option */}
       <div className="mt-1">

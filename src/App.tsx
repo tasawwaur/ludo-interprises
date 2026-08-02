@@ -405,7 +405,12 @@ const MainApp: React.FC = () => {
         return <ClubPage onBack={() => setCurrentView("HOME")} />;
 
       case "INVENTORY":
-        return <InventoryPage onBack={() => setCurrentView("HOME")} />;
+        return (
+          <InventoryPage
+            onBack={() => setCurrentView("HOME")}
+            onOpenDiceWorkshop={() => setCurrentView("DICE_MAIN")}
+          />
+        );
 
       case "MATCH_HISTORY":
         return <MatchHistoryPage onBack={() => setCurrentView("PROFILE")} />;

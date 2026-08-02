@@ -43,21 +43,161 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
     { id: "cr4", label: "Royal Crown", costType: "DIAMONDS" as const, costAmount: 2500, displayCost: "2,500 Gems", img: "/assets/images/icons/icon_gem.png", filter: "hue-rotate-[130deg] brightness-[1.2] drop-shadow-[0_0_10px_rgba(239,68,68,0.7)]", isPopular: false, isBest: true },
   ];
 
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if ((window as any).Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.head.appendChild(script);
+    });
+  };
+
+  const initiatePayment = async (pack: { label: string; amount: number; price: string }, type: "COINS" | "DIAMONDS") => {
+    if (isProcessingPayment) return;
+    setIsProcessingPayment(true);
+
+    try {
+      const priceNumeric = parseFloat(pack.price.replace(/[^\d.]/g, ""));
+      if (isNaN(priceNumeric) || priceNumeric <= 0) {
+        triggerToast("❌ Invalid pack price!");
+        setIsProcessingPayment(false);
+        return;
+      }
+
+      // 1. Load Razorpay script
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        triggerToast("❌ Failed to load payment gateway SDK!");
+        setIsProcessingPayment(false);
+        return;
+      }
+
+      // 2. Create order on backend
+      const response = await fetch("/api/payments/create-order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: priceNumeric,
+          packageName: pack.label,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create order on server");
+      }
+
+      const orderData = await response.json();
+
+      // 3. Open Razorpay payment sheet
+      const options = {
+        key: orderData.keyId,
+        amount: Math.round(priceNumeric * 100), // in paise
+        currency: orderData.currency || "INR",
+        name: "LUDO Enterprise",
+        description: `Purchase: ${pack.label}`,
+        order_id: orderData.orderId,
+        handler: async function (paymentRes: any) {
+          triggerToast("🔄 Verifying payment...");
+          try {
+            const verifyRes = await fetch("/api/payments/verify-payment", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                paymentId: paymentRes.razorpay_payment_id,
+                orderId: paymentRes.razorpay_order_id,
+                signature: paymentRes.razorpay_signature,
+              }),
+            });
+
+            const verifyData = await verifyRes.json();
+            if (verifyRes.ok && verifyData.success) {
+              // 4. Update state upon successful verification
+              if (type === "COINS") {
+                updateUser({ coins: currentCoins + pack.amount });
+                confetti({ particleCount: 50, spread: 60, colors: ["#FFD700", "#FFA500"] });
+                triggerToast(`✅ ${pack.label} purchased! +${pack.amount.toLocaleString()} Coins`);
+              } else {
+                updateUser({ gems: currentGems + pack.amount });
+                confetti({ particleCount: 50, spread: 60, colors: ["#818CF8", "#6366F1"] });
+                triggerToast(`✅ ${pack.label} purchased! +${pack.amount.toLocaleString()} Gems`);
+              }
+            } else {
+              triggerToast("❌ Payment verification failed!");
+            }
+          } catch (err: any) {
+            console.error(err);
+            triggerToast("❌ Verification error: " + err.message);
+          } finally {
+            setIsProcessingPayment(false);
+          }
+        },
+        prefill: {
+          name: user?.displayName || user?.username || "Ludo Player",
+          email: user?.email || "player@ludolegends.com",
+        },
+        theme: {
+          color: "#D97706",
+        },
+        modal: {
+          ondismiss: function () {
+            setIsProcessingPayment(false);
+            triggerToast("⚠️ Payment cancelled.");
+          },
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on("payment.failed", function (failRes: any) {
+        console.error("Payment failed:", failRes.error);
+        triggerToast("❌ Payment failed: " + (failRes.error.description || "Transaction failed"));
+        setIsProcessingPayment(false);
+      });
+      rzp.open();
+
+    } catch (err: any) {
+      console.error(err);
+      triggerToast("❌ Error initiating payment: " + err.message);
+      setIsProcessingPayment(false);
+    }
+  };
+
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 2500);
   };
 
   const handleBuyCoins = (amount: number, label: string) => {
-    confetti({ particleCount: 40, spread: 60, colors: ['#FFD700', '#FFA500'] });
-    updateUser({ coins: currentCoins + amount });
-    triggerToast(`✅ ${label} purchased! +${amount.toLocaleString()} Coins`);
+    const pack = coinPacks.find((p) => p.label === label);
+    if (pack) {
+      initiatePayment(pack, "COINS");
+    } else {
+      confetti({ particleCount: 40, spread: 60, colors: ['#FFD700', '#FFA500'] });
+      updateUser({ coins: currentCoins + amount });
+      triggerToast(`✅ ${label} purchased! +${amount.toLocaleString()} Coins`);
+    }
   };
 
   const handleBuyDiamonds = (amount: number, label: string) => {
-    confetti({ particleCount: 40, spread: 60, colors: ['#818CF8', '#6366F1'] });
-    updateUser({ gems: currentGems + amount });
-    triggerToast(`✅ ${label} purchased! +${amount.toLocaleString()} Gems`);
+    const pack = diamondPacks.find((p) => p.label === label);
+    if (pack) {
+      initiatePayment(pack, "DIAMONDS");
+    } else {
+      confetti({ particleCount: 40, spread: 60, colors: ['#818CF8', '#6366F1'] });
+      updateUser({ gems: currentGems + amount });
+      triggerToast(`✅ ${label} purchased! +${amount.toLocaleString()} Gems`);
+    }
   };
 
   const handleUnlockCrown = (costType: "COINS" | "DIAMONDS", costAmount: number, label: string) => {

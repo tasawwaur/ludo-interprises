@@ -8,6 +8,7 @@ import { BottomNavigation } from "../components/BottomNavigation";
 import { LuckySpinModal } from "../../events/LuckySpinModal";
 import { XPBar } from "../components/Profile/XPBar";
 import { useUserStore } from "../../../user/user.store";
+import { getFrameFilter } from "../../../store/cosmetics.store";
 import { getDefaultAvatar } from "../../../utils/avatar";
 import confetti from 'canvas-confetti';
 
@@ -308,6 +309,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
             alt="Profile Frame"
             className="absolute inset-0 w-full h-full object-contain z-20 pointer-events-none"
             draggable={false}
+            style={{ filter: getFrameFilter(user?.equippedFrame) }}
           />
         </button>
 
@@ -459,7 +461,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
                 style={{ transform: `scale(${photoScale}) translateY(${photoOffsetY}px)`, transformOrigin: 'center center' }}
               />
             </div>
-            <img src="/assets/images/icons/profile_frame_v3.png" alt="" className="absolute inset-0 w-full h-full object-contain z-20 pointer-events-none" />
+            <img src="/assets/images/icons/profile_frame_v3.png" alt="" className="absolute inset-0 w-full h-full object-contain z-20 pointer-events-none" style={{ filter: getFrameFilter(user?.equippedFrame) }} />
           </div>
 
           {/* Zoom slider */}

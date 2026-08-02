@@ -20,7 +20,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
   const [syncRoxana, setSyncRoxana] = useState(true);
   const [syncAman, setSyncAman] = useState(true);
   const [syncGovind, setSyncGovind] = useState(true);
-  const [fbUserName, setFbUserName] = useState("TASAVVUR");
+  const [fbUserName, setFbUserName] = useState("");
   const [fbAvatarUrl, setFbAvatarUrl] = useState("");
 
   const [isGoogleSDKReady, setIsGoogleSDKReady] = useState(false);
@@ -133,16 +133,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     avatar: string;
     guestId: string;
   }) => {
-    const existing = getSavedAccount('guest', data.name);
-    if (existing) {
-      setUser(existing);
+    // Pehle check karo agar is naam ka account pehle se hai
+    const existingByName = getSavedAccount('guest', data.name);
+    if (existingByName) {
+      setUser(existingByName);
       setShowGuestRegModal(false);
       onSuccessLogin?.();
       return;
     }
+    // Also check by guestId
+    const existingById = getSavedAccount('guest', data.guestId);
+    if (existingById) {
+      setUser(existingById);
+      setShowGuestRegModal(false);
+      onSuccessLogin?.();
+      return;
+    }
+
+    const guestId = data.guestId || `GST-${Date.now()}`;
     const newUser: UserProfile = {
-      id: data.guestId || `GST-${Date.now()}`,
-      uid: formatPlayerUID({ id: data.guestId, username: data.name }),
+      id: guestId,
+      uid: formatPlayerUID({ id: guestId, username: data.name }),
       username: data.name,
       displayName: data.name,
       email: `${data.name.toLowerCase().replace(/\s+/g, '')}@ludolegends.com`,
@@ -160,12 +171,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       nextLevelXp: 1000,
       loginProvider: 'guest',
     };
+    // Name aur guestId dono se save karo for reliable lookup
     saveAccountForProvider(newUser, 'guest', data.name);
+    saveAccountForProvider(newUser, 'guest', guestId);
     setJustClaimedWelcome(true);
     setUser(newUser);
     setShowGuestRegModal(false);
     onSuccessLogin?.();
   };
+
 
   // Google Login Handler — Always executes login authentication window
   const handleGoogleLogin = () => {
@@ -470,7 +484,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
                   onClick={handleCompleteSimulatedFBLogin}
                   className="w-full py-3 bg-[#1877F2] hover:bg-blue-600 text-white font-black text-xs tracking-wider uppercase rounded-xl shadow-lg active:scale-95 transition-transform"
                 >
-                  Continue as {fbUserName.trim() || 'Tasavvur'} ✓
+                  Continue as {fbUserName.trim() || 'Facebook User'} ✓
                 </button>
                 <button
                   onClick={() => setShowFBModal(false)}

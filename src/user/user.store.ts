@@ -22,6 +22,9 @@ export interface UserProfile {
   syncedFBFriends?: Array<{ id: string; name: string; avatarUrl?: string; isOnline: boolean }>;
   crowns?: number;
   uid?: string;
+  equippedFrame?: string;
+  equippedToken?: string;
+  equippedBoard?: string;
 }
 
 interface UserState {
@@ -58,13 +61,14 @@ const getInitialProfile = (): UserProfile | null => {
 };
 
 
-// Check if a saved user is a real logged-in user (not just the default guest)
+// Check if a saved user is a real logged-in user (guest, google, facebook, phone sab valid)
 const isRealLoggedInUser = (user: UserProfile | null): boolean => {
   if (!user) return false;
-  // Default guest profile ID se identify karo
-  if (user.id === 'usr_guest4296') return false;
-  // loginProvider hona chahiye (fb, google, phone)
-  return !!user.loginProvider;
+  // loginProvider hona chahiye (guest, google, facebook, phone — sab valid)
+  if (!user.loginProvider) return false;
+  // Sanity check: id aur username hona chahiye
+  if (!user.id || !user.username) return false;
+  return true;
 };
 
 const _initialProfile = getInitialProfile();

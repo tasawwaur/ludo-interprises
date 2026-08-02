@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useUserStore } from "../../../user/user.store";
 import { LudoPageBackground } from "../../../components/effects/LudoPageBackground";
+import { getFrameFilter } from "../../../store/cosmetics.store";
 import confetti from "canvas-confetti";
 import { formatPlayerUID } from "../../../utils/uuid";
 import { loginWithFacebook } from "../../../auth/utils/fb";
@@ -404,6 +405,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
               alt="Profile Frame"
               className="absolute inset-0 w-full h-full object-contain z-20 pointer-events-none"
               draggable={false}
+              style={{ filter: getFrameFilter(user?.equippedFrame) }}
             />
             <div className="absolute bottom-[28px] right-[18px] z-30 bg-amber-500 text-slate-950 rounded-full w-[22px] h-[22px] flex items-center justify-center shadow-lg border border-amber-200 hover:scale-110 active:scale-95 transition-all text-[10px]">
               📷

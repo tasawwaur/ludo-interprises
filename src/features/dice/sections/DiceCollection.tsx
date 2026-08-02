@@ -20,6 +20,7 @@ export const DiceCollection: React.FC<DiceCollectionProps> = ({
   userCoins,
 }) => {
   const [filter, setFilter] = useState<'ALL' | 'OWNED' | 'LOCKED'>('ALL');
+  const [limit, setLimit] = useState(30);
 
   const filteredItems = diceItems.filter((item) => {
     if (filter === 'ALL') return true;
@@ -28,6 +29,11 @@ export const DiceCollection: React.FC<DiceCollectionProps> = ({
     return true;
   });
 
+  const handleFilterChange = (tab: 'ALL' | 'OWNED' | 'LOCKED') => {
+    setFilter(tab);
+    setLimit(30);
+  };
+
   return (
     <div className="flex flex-col gap-4">
       {/* Filters bar */}
@@ -35,7 +41,7 @@ export const DiceCollection: React.FC<DiceCollectionProps> = ({
         {(['ALL', 'OWNED', 'LOCKED'] as const).map((tab) => (
           <button
             key={tab}
-            onClick={() => setFilter(tab)}
+            onClick={() => handleFilterChange(tab)}
             className={`flex-1 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all ${
               filter === tab
                 ? 'bg-purple-700 text-white shadow-md'
@@ -49,7 +55,7 @@ export const DiceCollection: React.FC<DiceCollectionProps> = ({
 
       {/* Dice Grid */}
       <div className="grid grid-cols-2 gap-3.5">
-        {filteredItems.map((dice) => (
+        {filteredItems.slice(0, limit).map((dice) => (
           <DiceCard
             key={dice.id}
             dice={dice}
@@ -61,6 +67,15 @@ export const DiceCollection: React.FC<DiceCollectionProps> = ({
           />
         ))}
       </div>
+
+      {filteredItems.length > limit && (
+        <button
+          onClick={() => setLimit((prev) => prev + 30)}
+          className="w-full py-2.5 bg-purple-900/60 hover:bg-purple-800/80 text-amber-300 font-extrabold text-[11px] uppercase tracking-wider rounded-xl border border-purple-500/30 transition-all active:scale-[0.98] mt-2"
+        >
+          Load More (+30 of {filteredItems.length - limit} remaining)
+        </button>
+      )}
     </div>
   );
 };

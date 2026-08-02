@@ -47,9 +47,9 @@ export const GuestRegistrationModal: React.FC<GuestRegistrationModalProps> = ({
   onComplete,
 }) => {
   const [step, setStep] = useState<number>(1);
-  const [name, setName] = useState<string>('Tasavvur');
-  const [age, setAge] = useState<string>('21');
-  const [is18Plus, setIs18Plus] = useState<boolean | null>(true);
+  const [name, setName] = useState<string>('');
+  const [age, setAge] = useState<string>('');
+  const [is18Plus, setIs18Plus] = useState<boolean | null>(null);
   const [gender, setGender] = useState<'male' | 'female' | 'other'>('male');
   const [selectedAvatar, setSelectedAvatar] = useState<string>('');
   const [customAvatar, setCustomAvatar] = useState<string | null>(null);
@@ -167,9 +167,9 @@ export const GuestRegistrationModal: React.FC<GuestRegistrationModalProps> = ({
     const numAge = parseInt(age, 10) || 21;
 
     onComplete({
-      name: name.trim() || 'Tasavvur',
+      name: name.trim(),
       age: numAge,
-      is18Plus: is18Plus ?? true,
+      is18Plus: is18Plus ?? false,
       gender,
       avatar: finalAvatar,
       guestId: guestId || generateGuestId(),

@@ -3,11 +3,35 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import path from "path";
 import { fileURLToPath } from "url";
+import fs from "fs";
+import crypto from "crypto";
+import https from "https";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Manually load env variables from root .env
+try {
+  const envPath = path.join(__dirname, "../.env");
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, "utf-8");
+    envContent.split("\n").forEach((line) => {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith("#") && trimmed.includes("=")) {
+        const eqIdx = trimmed.indexOf("=");
+        const key = trimmed.substring(0, eqIdx).trim();
+        const value = trimmed.substring(eqIdx + 1).trim().replace(/^["']|["']$/g, "");
+        process.env[key] = value;
+      }
+    });
+    console.log("Loaded local .env file successfully.");
+  }
+} catch (e) {
+  console.warn("Could not load local .env file:", e);
+}
+
 const app = express();
+app.use(express.json());
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: { origin: "*" }
@@ -19,6 +43,112 @@ app.use(express.static(distPath));
 
 app.get("/api/status", (req, res) => {
   res.json({ status: "online", service: "LUDO-ENTERPRISE Multiplayer Server", timestamp: Date.now() });
+});
+
+// Create secure order for Razorpay payment
+app.post("/api/payments/create-order", async (req, res) => {
+  try {
+    const { amount, packageName } = req.body;
+    if (!amount) {
+      return res.status(400).json({ message: "Amount is required" });
+    }
+
+    const keyId = process.env.VITE_RAZORPAY_KEY_ID || "";
+    const keySecret = process.env.RAZORPAY_KEY_SECRET || "";
+
+    if (!keyId || !keySecret) {
+      console.error("Razorpay API keys are missing in .env");
+      return res.status(500).json({ message: "Payment gateway keys not configured on server" });
+    }
+
+    const amountInPaise = Math.round(amount * 100);
+    const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
+    const postData = JSON.stringify({
+      amount: amountInPaise,
+      currency: "INR",
+      receipt: "ludo_rcpt_" + Date.now().toString().slice(-8)
+    });
+
+    const orderId = await new Promise<string>((resolve, reject) => {
+      const options = {
+        hostname: "api.razorpay.com",
+        port: 443,
+        path: "/v1/orders",
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(postData),
+          "Authorization": `Basic ${auth}`
+        }
+      };
+
+      const rReq = https.request(options, (rRes) => {
+        let body = "";
+        rRes.on("data", (chunk) => (body += chunk));
+        rRes.on("end", () => {
+          try {
+            const parsed = JSON.parse(body);
+            if (parsed && parsed.id) {
+              resolve(parsed.id);
+            } else {
+              reject(new Error(parsed.error?.description || "Razorpay order creation failed"));
+            }
+          } catch (e) {
+            reject(e);
+          }
+        });
+      });
+
+      rReq.on("error", (err) => reject(err));
+      rReq.write(postData);
+      rReq.end();
+    });
+
+    res.json({
+      success: true,
+      orderId,
+      amount,
+      currency: "INR",
+      keyId,
+      packageName
+    });
+  } catch (error: any) {
+    console.error("Error creating order:", error);
+    res.status(500).json({ message: error.message || "Order creation failed" });
+  }
+});
+
+// Secure server-side signature verification
+app.post("/api/payments/verify-payment", async (req, res) => {
+  try {
+    const { paymentId, orderId, signature } = req.body;
+
+    if (!paymentId || !orderId || !signature) {
+      return res.status(400).json({ message: "Verification parameters are missing" });
+    }
+
+    const secret = process.env.RAZORPAY_KEY_SECRET || "";
+    if (!secret) {
+      return res.status(500).json({ message: "Payment gateway secret not configured" });
+    }
+
+    const shasum = crypto.createHmac("sha256", secret);
+    shasum.update(orderId + "|" + paymentId);
+    const digest = shasum.digest("hex");
+    const isVerified = digest === signature;
+
+    if (!isVerified) {
+      return res.status(400).json({ success: false, message: "Payment signature verification failed!" });
+    }
+
+    res.json({
+      success: true,
+      message: "Payment verified successfully!"
+    });
+  } catch (error: any) {
+    console.error("Error verifying payment:", error);
+    res.status(500).json({ message: error.message || "Payment verification failed" });
+  }
 });
 
 
@@ -263,7 +393,7 @@ app.get("*", (req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8000;
 httpServer.listen(PORT, () => {
   console.log(`Ludo Enterprise Server running on port ${PORT}`);
 });

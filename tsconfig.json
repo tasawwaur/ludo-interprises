@@ -18,5 +18,5 @@
     "types": ["vite/client"]
   },
   "include": ["src"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx", "qa"]
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx", "qa", "src/game/luxury-engine"]
 }

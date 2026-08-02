@@ -12,8 +12,7 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
-  const [showPhoneModal, setShowPhoneModal] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState("");
+
   const [showGuestRegModal, setShowGuestRegModal] = useState(false);
   
   // Facebook Modal State
@@ -111,46 +110,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     onSuccessLogin?.();
   };
 
-  const handlePhoneLogin = (phoneNum: string) => {
-    const trimmed = phoneNum.trim();
-    if (!trimmed || trimmed.length < 10) {
-      alert("Please enter a valid 10-digit mobile number!");
-      return;
-    }
-    
-    // Attempt to restore account matching this phone number
-    const existing = getSavedAccount('phone', trimmed);
-    if (existing) {
-      setUser(existing);
-      setShowPhoneModal(false);
-      onSuccessLogin?.();
-      return;
-    }
-    
-    // Create new Phone account if it doesn't exist
-    const newPhoneUser: UserProfile = {
-      id: `phone_${trimmed}`,
-      uid: formatPlayerUID({ id: `phone_${trimmed}`, username: `Player_${trimmed.slice(-4)}` }),
-      username: `Player_${trimmed.slice(-4)}`,
-      displayName: `Player_${trimmed.slice(-4)}`,
-      email: `${trimmed}@ludophone.com`,
-      avatar: getDefaultAvatar(`Player_${trimmed.slice(-4)}`),
-      country: "🇮🇳",
-      rank: 1,
-      coins: 20000,
-      gems: 200,
-      crowns: 10,
-      level: 1,
-      xp: 0,
-      nextLevelXp: 1000,
-      loginProvider: 'phone',
-    };
-    saveAccountForProvider(newPhoneUser, 'phone', trimmed);
-    setJustClaimedWelcome(true);
-    setUser(newPhoneUser);
-    setShowPhoneModal(false);
-    onSuccessLogin?.();
-  };
+
 
   const setJustClaimedWelcome = useUserStore((s) => s.setJustClaimedWelcome);
 
@@ -418,59 +378,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
         title="Guest Play"
       ></button>
 
-      {/* D. PHONE LOGIN LINK */}
-      <button
-        onClick={() => setShowPhoneModal(true)}
-        className="absolute z-20 px-4 py-1 bg-black/50 border border-amber-400/40 hover:bg-black/75 text-amber-300 font-extrabold text-[9px] tracking-wider uppercase rounded-full shadow active:scale-95 transition-all"
-        style={{ bottom: "4.5%", left: "50%", transform: "translateX(-50%)", WebkitTapHighlightColor: "transparent" }}
-      >
-        📞 Login via Phone / OTP
-      </button>
 
-      {/* Phone Login Modal Popup */}
-      {showPhoneModal && (
-        <div className="absolute inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-[340px] bg-gradient-to-b from-[#28093D] via-[#1A052A] to-[#0D0216] border-2 border-amber-400 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-4 relative">
-            <button
-              onClick={() => setShowPhoneModal(false)}
-              className="absolute top-3 right-4 text-amber-300 text-xl font-black hover:text-white"
-            >
-              ✕
-            </button>
-
-            <div className="text-center">
-              <span className="text-3xl">📱</span>
-              <h3 className="text-xl font-black text-amber-300 tracking-wider mt-1">
-                PHONE LOGIN / OTP
-              </h3>
-              <p className="text-xs text-amber-200/70">
-                Enter your 10-digit mobile number
-              </p>
-            </div>
-
-            <div className="w-full flex gap-2">
-              <div className="px-3.5 py-2.5 bg-black/70 border border-amber-400/40 rounded-xl text-amber-300 font-extrabold text-sm flex items-center">
-                +91
-              </div>
-              <input
-                type="tel"
-                maxLength={10}
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="Mobile Number..."
-                className="w-full px-3.5 py-2.5 bg-black/70 border border-amber-400/40 rounded-xl text-white placeholder-amber-200/40 font-bold text-sm focus:outline-none focus:border-amber-400"
-              />
-            </div>
-
-            <button
-              onClick={() => handlePhoneLogin(phoneNumber)}
-              className="w-full py-3 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-500 text-black font-black text-sm tracking-wider uppercase rounded-xl shadow-lg active:scale-95 transition-transform"
-            >
-              GET OTP & PLAY 🎮
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Facebook Simulated OAuth Modal */}
       {showFBModal && (

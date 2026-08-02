@@ -1,0 +1,3 @@
+export const ANIMATION_DEFAULTS = {
+  DEFAULT_DURATION: 300,
+};

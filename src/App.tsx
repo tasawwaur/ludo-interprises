@@ -26,6 +26,8 @@ import { RewardCenterPage, AdsSettingsPage } from "./features/ads";
 import { useUserStore } from "./user/user.store";
 import { useQueueStore } from "./features/matchmaking/queue/QueueStore";
 import { useRoomStore } from "./features/matchmaking/rooms/RoomStore";
+import { useGameStore } from "./store/game.store";
+import { PlayerColor } from "./game/engine/Engine.types";
 import { GlobalCurrencyBar } from "./components/ui/GlobalCurrencyBar";
 import confetti from "canvas-confetti";
 
@@ -53,8 +55,16 @@ export type AppView =
   | "ADS_SETTINGS";
 
 const MainApp: React.FC = () => {
-  const [currentView, setCurrentView] = useState<AppView>("SPLASH");
+  // Load persisted view if game in progress
+  const [currentView, setCurrentView] = useState<AppView>(() => {
+    if (typeof window !== "undefined") {
+      const savedMatch = localStorage.getItem("ludo_active_match_session");
+      if (savedMatch === "GAME_ARENA") return "GAME_ARENA";
+    }
+    return "SPLASH";
+  });
   const [showLuckySpin, setShowLuckySpin] = useState(false);
+  const [lastRewardedMatchId, setLastRewardedMatchId] = useState<string | null>(null);
 
   const user = useUserStore((s) => s.user);
   const updateUser = useUserStore((s) => s.updateUser);
@@ -62,8 +72,59 @@ const MainApp: React.FC = () => {
   const { startQueue, cancelQueue } = useQueueStore();
   const { createRoom } = useRoomStore();
 
+  // Save active view state to preserve match across page refresh
+  useEffect(() => {
+    if (currentView === "GAME_ARENA") {
+      localStorage.setItem("ludo_active_match_session", "GAME_ARENA");
+    } else {
+      localStorage.removeItem("ludo_active_match_session");
+    }
+  }, [currentView]);
+
+  // Dynamic rewards updating hook (Coins, Gems, and XP)
+  useEffect(() => {
+    if (currentView !== "MATCH_RESULT") return;
+    const gState = useGameStore.getState().gameState;
+    if (!gState || !user) return;
+    if (gState.matchId === lastRewardedMatchId) return;
+
+    setLastRewardedMatchId(gState.matchId);
+
+    const wColor = gState.winnerRankings[0] || "GREEN";
+    const localPlayer = gState.players.find((p) => p.isHost || !p.isAi);
+    if (!localPlayer) return;
+
+    const isWinner = localPlayer.color === wColor;
+    const kills = isWinner ? 3 : 1;
+    const passedTokens = localPlayer.tokens.filter(t => t.stepCount === 57).length;
+    const xpReward = (passedTokens * 50) + (kills * 10);
+
+    const newXp = (user.xp || 0) + xpReward;
+    const newCoins = isWinner ? (user.coins || 0) + 10000 : (user.coins || 0); // Net +5,000 on win, net -5,000 on loss (since 5k was already deducted at start)
+    const newGems = isWinner ? (user.gems || 0) + 5 : (user.gems || 0); // Winner gets +5 diamonds, Loser gets +0
+
+    // Check for level up (every 1000 XP)
+    let newLevel = user.level || 1;
+    let nextXpLimit = user.nextLevelXp || 1000;
+    if (newXp >= nextXpLimit) {
+      newLevel += 1;
+    }
+
+    updateUser({
+      xp: newXp,
+      coins: newCoins,
+      gems: newGems,
+      level: newLevel
+    });
+  }, [currentView, user, lastRewardedMatchId, updateUser]);
+
   // ✅ Splash ke baad: agar pehle se login hai to HOME, warna AUTH
   const handleSplashFinish = () => {
+    const activeMatch = localStorage.getItem("ludo_active_match_session");
+    if (activeMatch === "GAME_ARENA") {
+      setCurrentView("GAME_ARENA");
+      return;
+    }
     if (isAuthenticated) {
       setCurrentView("HOME");
     } else {
@@ -144,7 +205,7 @@ const MainApp: React.FC = () => {
               cancelQueue();
               setCurrentView("HOME");
             }}
-            onMatchFound={(opponent) => {
+            onMatchFound={(opponent, myColor) => {
               // Deduct 5,000 coins entry fee for 2P Match
               const currentCoins = user?.coins || 20000;
               updateUser({ coins: Math.max(0, currentCoins - 5000) });
@@ -158,7 +219,8 @@ const MainApp: React.FC = () => {
                 hostName,
                 hostAvatar,
                 "/assets/images/icons/profile_frame_v3.png",
-                "/assets/images/icons/name_banner_v2.png"
+                "/assets/images/icons/name_banner_v2.png",
+                myColor as "RED" | "GREEN" | "YELLOW" | "BLUE"
               );
               
               if (opponent) {
@@ -167,9 +229,12 @@ const MainApp: React.FC = () => {
                   opponent.name,
                   opponent.avatar,
                   opponent.profileFrame,
-                  opponent.nameBanner
+                  opponent.nameBanner,
+                  opponent.color as "RED" | "GREEN" | "YELLOW" | "BLUE"
                 );
               }
+              // Clear any stale persisted game state so fresh colors from matchmaking are used
+              useGameStore.getState().resetMatch();
               setCurrentView("GAME_ARENA");
             }}
           />
@@ -186,16 +251,109 @@ const MainApp: React.FC = () => {
       case "GAME_ARENA":
         return <GameArenaPage onLeaveGame={() => setCurrentView("MATCH_RESULT")} />;
 
-      case "MATCH_RESULT":
+      case "MATCH_RESULT": {
+        const gState = useGameStore.getState().gameState;
+        const localUser = useUserStore.getState().user;
+        const localAvatar = localUser?.avatar || "";
+        const localFrame = "/assets/images/icons/profile_frame_v3.png";
+
+        let winnerName = "Govind";
+        let winnerScore = 312;
+        let winnerAvatar = "";
+        let winnerFrame = "";
+        let winnerColor: PlayerColor = "GREEN";
+        let winnerKills = 3;
+        let winnerPassedTokens = 4;
+
+        let loserName = "Roxana";
+        let loserScore = 280;
+        let loserAvatar = "";
+        let loserFrame = "";
+        let loserKills = 1;
+        let loserPassedTokens = 2;
+
+        let isLocalPlayerWinner = true;
+        const betCoins = 5000;
+
+        if (gState) {
+          const wColor = gState.winnerRankings[0] || "GREEN";
+          winnerColor = wColor;
+          const wPlayer = gState.players.find((p) => p.color === wColor);
+          const lPlayer = gState.players.find((p) => p.color !== wColor);
+          const localPlayer = gState.players.find((p) => p.isHost || !p.isAi);
+
+          if (localPlayer) {
+            isLocalPlayerWinner = localPlayer.color === wColor;
+          }
+
+          if (isLocalPlayerWinner) {
+            // Local player is the winner!
+            if (wPlayer) {
+              winnerName = wPlayer.name;
+              winnerScore = wPlayer.tokens.reduce((sum, t) => sum + t.stepCount, 0);
+              winnerAvatar = localAvatar || wPlayer.avatar || "";
+              winnerFrame = localFrame;
+              winnerPassedTokens = wPlayer.tokens.filter((t) => t.stepCount === 57).length;
+              winnerKills = 3; // Standard kills for victory
+            }
+            if (lPlayer) {
+              loserName = lPlayer.name;
+              loserScore = lPlayer.tokens.reduce((sum, t) => sum + t.stepCount, 0);
+              loserAvatar = lPlayer.avatar || "";
+              loserFrame = lPlayer.profileFrame || "/assets/images/icons/profile_frame_v3.png";
+              loserPassedTokens = lPlayer.tokens.filter((t) => t.stepCount === 57).length;
+              loserKills = 1;
+            }
+          } else {
+            // Local player is the loser (Defeat)
+            if (wPlayer) {
+              winnerName = wPlayer.name;
+              winnerScore = wPlayer.tokens.reduce((sum, t) => sum + t.stepCount, 0);
+              winnerAvatar = wPlayer.avatar || "";
+              winnerFrame = wPlayer.profileFrame || "/assets/images/icons/profile_frame_v3.png";
+              winnerPassedTokens = wPlayer.tokens.filter((t) => t.stepCount === 57).length;
+              winnerKills = 3;
+            }
+            if (lPlayer) {
+              loserName = lPlayer.name;
+              loserScore = lPlayer.tokens.reduce((sum, t) => sum + t.stepCount, 0);
+              loserAvatar = localAvatar || lPlayer.avatar || "";
+              loserFrame = localFrame;
+              loserPassedTokens = lPlayer.tokens.filter((t) => t.stepCount === 57).length;
+              loserKills = 1;
+            }
+          }
+        }
+
         return (
           <MatchResultScreen
+            winnerName={winnerName}
+            winnerScore={winnerScore}
+            winnerAvatar={winnerAvatar}
+            winnerFrame={winnerFrame}
+            winnerColor={winnerColor}
+            winnerKills={winnerKills}
+            winnerPassedTokens={winnerPassedTokens}
+            loserName={loserName}
+            loserScore={loserScore}
+            loserAvatar={loserAvatar}
+            loserFrame={loserFrame}
+            loserKills={loserKills}
+            loserPassedTokens={loserPassedTokens}
+            isLocalPlayerWinner={isLocalPlayerWinner}
+            betCoins={betCoins}
             onPlayAgain={() => {
+              useGameStore.getState().resetMatch();
               startQueue("2P Classic");
               setCurrentView("QUEUE");
             }}
-            onBackToHome={() => setCurrentView("HOME")}
+            onBackToHome={() => {
+              useGameStore.getState().resetMatch();
+              setCurrentView("HOME");
+            }}
           />
         );
+      }
 
       case "TOURNAMENT":
         return (

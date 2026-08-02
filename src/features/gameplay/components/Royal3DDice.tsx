@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface Royal3DDiceProps {
   value: number | null;
@@ -6,6 +6,7 @@ interface Royal3DDiceProps {
   canRoll?: boolean;
   onRoll?: () => void;
   size?: number;
+  playerColor?: string;
 }
 
 export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
@@ -14,49 +15,59 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
   canRoll = false,
   onRoll,
   size = 46,
+  playerColor,
 }) => {
   const [isAnimating, setIsAnimating] = useState(false);
-  const [tempValue, setTempValue] = useState<number>(value || 1);
+  const [displayVal, setDisplayVal] = useState<number>(value || 1);
+  // 🔒 Lock ref — prevents double-click and overlapping rolls
+  const isRollingRef = useRef(false);
 
-  const displayVal = isAnimating ? tempValue : value || 1;
-
-  // Trigger rolling animation when value changes or when rolling is triggered
+  // Show final dice value after server resolves it
   useEffect(() => {
-    if (value && value > 0) {
-      setIsAnimating(true);
+    if (value && value > 0 && !isRollingRef.current) {
+      // Quick shuffle animation then settle on real value
       let count = 0;
       const interval = setInterval(() => {
-        setTempValue(Math.floor(Math.random() * 6) + 1);
+        setDisplayVal(Math.floor(Math.random() * 6) + 1);
         count++;
-        if (count >= 8) {
+        if (count >= 6) {
           clearInterval(interval);
+          setDisplayVal(value);
           setIsAnimating(false);
         }
-      }, 50);
+      }, 55);
       return () => clearInterval(interval);
     }
   }, [value]);
 
   const handleDiceClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isAnimating) return;
+    e.preventDefault();
 
+    // 🚫 Guards — only allow click when it's your turn and not already rolling
+    if (!canRoll || isRollingRef.current || isAnimating) return;
+
+    // 🔒 Lock immediately to block any second click
+    isRollingRef.current = true;
     setIsAnimating(true);
+
     let count = 0;
     const interval = setInterval(() => {
-      setTempValue(Math.floor(Math.random() * 6) + 1);
+      setDisplayVal(Math.floor(Math.random() * 6) + 1);
       count++;
-      if (count >= 10) {
+      if (count >= 8) {
         clearInterval(interval);
         setIsAnimating(false);
-        if (onRoll) {
-          onRoll();
-        } else {
-          setTempValue(Math.floor(Math.random() * 6) + 1);
-        }
+        // ✅ Fire roll ONCE after animation completes
+        onRoll?.();
+        // Unlock after short cooldown so state can update
+        setTimeout(() => {
+          isRollingRef.current = false;
+        }, 600);
       }
     }, 50);
   };
+
 
   // Render 3D Ivory White Royal Cube with Pips
   const renderPips = (val: number) => {
@@ -122,6 +133,12 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
     }
   };
 
+  let glowBg = "bg-amber-400/50";
+  if (playerColor === "RED") glowBg = "bg-red-500/60 shadow-[0_0_15px_rgba(239,68,68,0.7)]";
+  else if (playerColor === "BLUE") glowBg = "bg-blue-500/60 shadow-[0_0_15px_rgba(59,130,246,0.7)]";
+  else if (playerColor === "GREEN") glowBg = "bg-emerald-500/60 shadow-[0_0_15px_rgba(16,185,129,0.7)]";
+  else if (playerColor === "YELLOW") glowBg = "bg-amber-400/60 shadow-[0_0_15px_rgba(251,191,36,0.7)]";
+
   return (
     <div
       onClick={handleDiceClick}
@@ -130,7 +147,7 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
     >
       {/* 3D Glowing Active Aura when turn is active */}
       {isActiveTurn && (
-        <div className="absolute -inset-2 rounded-2xl bg-amber-400/50 blur-md animate-pulse pointer-events-none"></div>
+        <div className={`absolute -inset-2 rounded-2xl ${glowBg} blur-md animate-pulse pointer-events-none`}></div>
       )}
 
       {/* 3D Ivory Royal Dice Box */}

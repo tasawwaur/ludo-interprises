@@ -76,6 +76,47 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
 
       {/* 1. Profile Photo Frame */}
       <div className="relative w-[84px] h-[84px] flex items-center justify-center p-1">
+        {/* Circular SVG Timer Ring — smooth green→yellow→red melt */}
+        {isActive && (() => {
+          const t = turnTimerSeconds / 15; // 1.0 = full, 0.0 = empty
+          // Interpolate hue: 120=green, 60=yellow, 0=red
+          const hue = Math.round(t * 120);
+          const sat = 90;
+          const lit = t > 0.5 ? 48 : 52;
+          const ringColor = `hsl(${hue}, ${sat}%, ${lit}%)`;
+          const glowColor = `hsl(${hue}, ${sat}%, 55%)`;
+          const circumference = 2 * Math.PI * 37;
+
+          return (
+            <svg className="absolute inset-0 w-full h-full -rotate-90 z-25 pointer-events-none">
+              {/* Track ring (dim background) */}
+              <circle
+                cx="42" cy="42" r="37"
+                stroke="rgba(255,255,255,0.08)"
+                strokeWidth="3.5"
+                fill="transparent"
+              />
+              {/* Active timer ring */}
+              <circle
+                cx="42" cy="42" r="37"
+                stroke={ringColor}
+                strokeWidth="3.5"
+                fill="transparent"
+                strokeDasharray={circumference}
+                strokeDashoffset={circumference * (1 - t)}
+                strokeLinecap="round"
+                className="transition-all duration-1000 ease-linear"
+                style={{
+                  filter: turnTimerSeconds <= 5
+                    ? `drop-shadow(0 0 7px ${glowColor})`
+                    : `drop-shadow(0 0 3px ${glowColor})`
+                }}
+              />
+            </svg>
+          );
+        })()}
+
+
         {/* Avatar Image cutout */}
         <div
           className="absolute rounded-full overflow-hidden z-10 bg-slate-900"

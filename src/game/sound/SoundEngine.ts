@@ -7,7 +7,9 @@ export type SoundEffect =
   | 'HOME_ENTRY'
   | 'WIN'
   | 'TURN_CHANGE'
-  | 'GAME_START';
+  | 'GAME_START'
+  | 'TICK'
+  | 'TIMEOUT';
 
 export class SoundEngine {
   private static audioCtx: AudioContext | null = null;
@@ -180,6 +182,32 @@ export class SoundEngine {
         gain.connect(ctx.destination);
         osc.start(now);
         osc.stop(now + 0.3);
+        break;
+      }
+      case 'TICK': {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.05);
+        break;
+      }
+      case 'TIMEOUT': {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(110, now);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.linearRampToValueAtTime(0.001, now + 0.45);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.45);
         break;
       }
     }

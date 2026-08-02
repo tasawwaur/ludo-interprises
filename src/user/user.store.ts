@@ -36,47 +36,7 @@ interface UserState {
 
 const STORAGE_KEY = 'ludo_user_profile_v8';
 
-// 🧹 Reset crowns to 10, coins to 20k, gems to 200 for all local accounts to purge the 999T values
-if (typeof window !== 'undefined') {
-  try {
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('ludo_')) {
-        const item = localStorage.getItem(key);
-        if (item) {
-          try {
-            const parsed = JSON.parse(item);
-            if (parsed && typeof parsed === 'object') {
-              parsed.crowns = 10;
-              parsed.coins = 20000;
-              parsed.gems = 200;
-              localStorage.setItem(key, JSON.stringify(parsed));
-            }
-          } catch (jsonErr) {}
-        }
-      }
-    });
-    // Unlink active session from FB and Phone
-    const active = localStorage.getItem('ludo_user_profile_v8');
-    if (active) {
-      const parsed = JSON.parse(active);
-      parsed.facebookId = undefined;
-      parsed.loginProvider = 'google';
-      parsed.email = 'trlife0786@gmail.com';
-      parsed.crowns = 10;
-      parsed.coins = 20000;
-      parsed.gems = 200;
-      localStorage.setItem('ludo_user_profile_v8', JSON.stringify(parsed));
-    }
-    localStorage.removeItem("ludo_fb_linked");
-    localStorage.removeItem("ludo_phone_linked");
-    localStorage.removeItem("ludo_facebook_account");
-    localStorage.removeItem("ludo_phone_account");
-  } catch (e) {
-    console.warn('Failed to reset crowns or clear old keys:', e);
-  }
-}
-
-const getInitialProfile = (): UserProfile => {
+const getInitialProfile = (): UserProfile | null => {
   if (typeof window !== 'undefined') {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -84,8 +44,9 @@ const getInitialProfile = (): UserProfile => {
         const parsed = JSON.parse(saved);
         return {
           ...parsed,
-          coins: (parsed.coins !== undefined && parsed.coins > 0) ? parsed.coins : 20000,
-          gems: (parsed.gems !== undefined && parsed.gems > 0) ? parsed.gems : 200,
+          // Restore exact saved values — only fallback if truly undefined/missing
+          coins: parsed.coins !== undefined ? parsed.coins : 20000,
+          gems: parsed.gems !== undefined ? parsed.gems : 200,
           crowns: parsed.crowns !== undefined ? parsed.crowns : 10,
         };
       }
@@ -93,24 +54,9 @@ const getInitialProfile = (): UserProfile => {
       console.warn('Failed to load profile from localStorage:', e);
     }
   }
-
-  return {
-    id: 'usr_guest4296',
-    uid: 'LUDO-84920153',
-    username: 'Guest4296',
-    displayName: 'Ludo King',
-    email: 'guest@ludostar.com',
-    avatar: undefined,
-    country: '🇮🇳',
-    rank: 1,
-    coins: 20000,
-    gems: 200,
-    level: 1,
-    xp: 0,
-    nextLevelXp: 1000,
-    crowns: 10,
-  };
+  return null; // No saved session — user must login
 };
+
 
 // Check if a saved user is a real logged-in user (not just the default guest)
 const isRealLoggedInUser = (user: UserProfile | null): boolean => {

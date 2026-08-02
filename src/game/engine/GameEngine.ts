@@ -9,17 +9,35 @@ export class GameEngine {
    * Initializes a fresh Duel (1v1), Team (2v2), or 4-Player Ludo Match state.
    */
   static createInitialState(mode: '2P' | '2v2' | '4P', hostName: string, roomMembers?: any[]): GameState {
-    // Official Seating & Color Assignment
-    // Duel (1v1): Supports RED vs BLUE or GREEN vs YELLOW based on room selection
-    const colors: PlayerColor[] = mode === '2P' 
-      ? (roomMembers?.[0]?.color === 'RED' || roomMembers?.[1]?.color === 'RED' ? ['RED', 'BLUE'] : ['GREEN', 'YELLOW'])
-      : ['GREEN', 'YELLOW', 'BLUE', 'RED'];
+    // Valid 2P Duel pairs (opposite seating): BLUE↔GREEN, RED↔YELLOW
+    const VALID_2P_PAIRS: Record<PlayerColor, PlayerColor> = {
+      BLUE: 'GREEN', GREEN: 'BLUE', RED: 'YELLOW', YELLOW: 'RED',
+    };
+
+    let colors: PlayerColor[];
+    if (mode === '2P') {
+      if (roomMembers && roomMembers.length >= 2 && roomMembers[0].color && roomMembers[1].color) {
+        const hostColor = roomMembers[0].color as PlayerColor;
+        const guestColor = roomMembers[1].color as PlayerColor;
+        // Validate pair — if invalid, auto-correct guest to valid opposite
+        if (VALID_2P_PAIRS[hostColor] === guestColor) {
+          colors = [hostColor, guestColor];
+        } else {
+          colors = [hostColor, VALID_2P_PAIRS[hostColor]];
+        }
+      } else {
+        // Random valid pair fallback
+        colors = Math.random() < 0.5 ? ['BLUE', 'GREEN'] : ['RED', 'YELLOW'];
+      }
+    } else {
+      colors = ['GREEN', 'YELLOW', 'BLUE', 'RED'];
+    }
 
     const players: Player[] = colors.map((color, index) => {
       const isHost = index === 0;
 
-      // Find matching member by color from room members
-      const member = roomMembers?.find((m) => m.color === color);
+      // Map member by index to guarantee both real players are loaded into the match
+      const member = roomMembers?.[index];
 
       let name = member?.name;
       if (!name) {
@@ -59,7 +77,7 @@ export class GameEngine {
         avatar,
         profileFrame,
         nameBanner,
-        isAi: false,
+        isAi: !isHost,
         isHost,
         isReady: true,
         tokens,
@@ -276,6 +294,26 @@ export class GameEngine {
       movableTokens: [],
       winnerRankings: updatedWinnerRankings,
       lastActionSummary: summaryText,
+    };
+  }
+
+  /**
+   * Skips active player turn due to timeout.
+   */
+  static skipTurn(state: GameState): GameState {
+    const nextIndex = TurnManager.getNextPlayerIndex(state);
+    const nextColor = TurnManager.getPlayerColorByIndex(state, nextIndex);
+    const nextPlayer = state.players[nextIndex];
+    return {
+      ...state,
+      diceValue: null,
+      isDiceRolled: false,
+      consecutiveSixes: 0,
+      activePlayerIndex: nextIndex,
+      currentTurnColor: nextColor,
+      gameStatus: 'ROLL_WAIT',
+      movableTokens: [],
+      lastActionSummary: `Time Out! Turn passed to ${nextPlayer.name}.`,
     };
   }
 }

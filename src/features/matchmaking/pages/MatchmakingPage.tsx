@@ -6,7 +6,10 @@ import { useUserStore } from "../../../user/user.store";
 
 interface MatchmakingPageProps {
   onCancel: () => void;
-  onMatchFound: (opponent?: { name: string; avatar?: string; profileFrame?: string; nameBanner?: string }) => void;
+  onMatchFound: (
+    opponent?: { name: string; avatar?: string; profileFrame?: string; nameBanner?: string; color?: string },
+    myColor?: string
+  ) => void;
 }
 
 
@@ -27,7 +30,8 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
     return `${mm}:${ss}`;
   };
 
-  const [opponent, setOpponent] = useState<{ name: string; avatar?: string; profileFrame?: string; nameBanner?: string } | null>(null);
+  const [opponent, setOpponent] = useState<{ name: string; avatar?: string; profileFrame?: string; nameBanner?: string; color?: string } | null>(null);
+  const [myAssignedColor, setMyAssignedColor] = useState<string | null>(null);
   const [matchConnected, setMatchConnected] = useState(false);
   const [matchCountdown, setMatchCountdown] = useState(5);
   const [coinsDeducted, setCoinsDeducted] = useState(false);
@@ -56,8 +60,10 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
           avatar: data.opponent.avatar,
           profileFrame: data.opponent.profileFrame || "/assets/images/icons/profile_frame_v3.png",
           nameBanner: data.opponent.nameBanner || "/assets/images/icons/name_banner_v2.png",
+          color: data.opponent.color,
         });
       }
+      setMyAssignedColor(data.color);
       setMatchConnected(true);
     });
 
@@ -96,12 +102,32 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
         if (prev <= 1) {
           clearInterval(countdownTimer);
           setMatchFound(true);
-          onMatchFound(opponent || {
-            name: "Rahul Sharma",
-            avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80",
-            profileFrame: "/assets/images/icons/profile_frame_v3.png",
-            nameBanner: "/assets/images/icons/name_banner_v2.png",
-          });
+
+          let finalMyColor = myAssignedColor;
+          let finalOpponent = opponent;
+
+          if (!finalOpponent) {
+            // Local bot fallback match -> Randomly select Pair A (BLUE vs GREEN) or Pair B (RED vs YELLOW)
+            const selectedPair = Math.random() < 0.5 ? "PAIR_A" : "PAIR_B";
+            const swapColors = Math.random() < 0.5;
+            const myColor = selectedPair === "PAIR_A"
+              ? (swapColors ? "BLUE" : "GREEN")
+              : (swapColors ? "RED" : "YELLOW");
+            const oppColor = selectedPair === "PAIR_A"
+              ? (swapColors ? "GREEN" : "BLUE")
+              : (swapColors ? "YELLOW" : "RED");
+
+            finalMyColor = myColor;
+            finalOpponent = {
+              name: "Rahul Sharma",
+              avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80",
+              profileFrame: "/assets/images/icons/profile_frame_v3.png",
+              nameBanner: "/assets/images/icons/name_banner_v2.png",
+              color: oppColor,
+            };
+          }
+
+          onMatchFound(finalOpponent, finalMyColor || "GREEN");
           return 0;
         }
         return prev - 1;
@@ -109,7 +135,7 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
     }, 1000);
 
     return () => clearInterval(countdownTimer);
-  }, [matchConnected, onMatchFound, setMatchFound]);
+  }, [matchConnected, onMatchFound, setMatchFound, opponent, myAssignedColor]);
 
   return (
     <div className="min-h-screen w-full bg-[#12061F] text-white flex flex-col justify-between items-center px-4 py-8 relative overflow-hidden select-none font-sans">

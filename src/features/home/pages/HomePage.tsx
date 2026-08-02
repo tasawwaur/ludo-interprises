@@ -311,6 +311,22 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
           />
         </button>
 
+        {/* Rejoin Active Game Button */}
+        {typeof window !== 'undefined' && localStorage.getItem("ludo_active_match_session") === "GAME_ARENA" && (
+          <button
+            onClick={() => onOpenView?.("GAME_ARENA")}
+            className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 font-black text-sm uppercase rounded-2xl border-2 border-yellow-200 shadow-[0_0_20px_rgba(255,215,0,0.8)] hover:scale-105 active:scale-95 transition-all flex items-center justify-between animate-bounce cursor-pointer mb-2"
+          >
+            <span className="flex items-center gap-2">
+              <span className="w-3 h-3 bg-red-600 rounded-full animate-ping"></span>
+              🎮 GAME IN PROGRESS
+            </span>
+            <span className="bg-slate-950 text-amber-300 px-3 py-1 rounded-xl text-xs font-black shadow">
+              REJOIN MATCH ➜
+            </span>
+          </button>
+        )}
+
         {/* Name Banner — Auto-scaled font size with Hindi & English support */}
         <button
           onClick={handleNameClick}
@@ -573,20 +589,35 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
       {/* ── GAME MODE GRID ── */}
       <div className="relative z-20 w-full flex justify-center px-3 pb-0 translate-y-[24px]">
         <div className="w-full max-w-[420px] relative">
-          {/* 2 Player Mode Custom Graphic Overlay (Overlaying the BG slot) */}
-          <button
-            onClick={handleTwoPlayerClick}
-            className="absolute top-[-96px] left-0 right-0 h-[88px] z-30 cursor-pointer border-0 outline-none p-0 bg-transparent flex items-center justify-center hover:scale-[1.02] active:scale-[0.96] transition-transform"
-            style={{ WebkitTapHighlightColor: "transparent" }}
-            aria-label="2 Player Mode"
-          >
-            <img
-              src="/assets/images/home/cards/two_player_banner_custom.png"
-              alt="2 Player Mode Accent"
-              className="w-[94%] h-auto max-h-full object-contain pointer-events-none"
-              draggable={false}
-            />
-          </button>
+          {/* 2 Player Mode Custom Graphic Overlay or REJOIN MATCH Banner */}
+          {typeof window !== 'undefined' && localStorage.getItem("ludo_active_match_session") === "GAME_ARENA" ? (
+            <button
+              onClick={() => onOpenView?.("GAME_ARENA")}
+              className="absolute top-[-96px] left-0 right-0 h-[88px] z-30 cursor-pointer border-2 border-amber-300 rounded-[18px] p-3 bg-gradient-to-r from-purple-900 via-amber-600 to-purple-900 flex items-center justify-between shadow-[0_0_25px_rgba(245,158,11,0.9)] hover:scale-[1.02] active:scale-[0.96] transition-transform animate-pulse"
+            >
+              <div className="flex items-center gap-2">
+                <span className="w-3.5 h-3.5 bg-emerald-400 rounded-full animate-ping"></span>
+                <span className="font-black text-amber-200 text-sm tracking-wider">LIVE MATCH IN PROGRESS</span>
+              </div>
+              <span className="bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 px-3 py-1.5 rounded-xl font-black text-xs shadow-lg uppercase">
+                REJOIN NOW ➜
+              </span>
+            </button>
+          ) : (
+            <button
+              onClick={handleTwoPlayerClick}
+              className="absolute top-[-96px] left-0 right-0 h-[88px] z-30 cursor-pointer border-0 outline-none p-0 bg-transparent flex items-center justify-center hover:scale-[1.02] active:scale-[0.96] transition-transform"
+              style={{ WebkitTapHighlightColor: "transparent" }}
+              aria-label="2 Player Mode"
+            >
+              <img
+                src="/assets/images/home/cards/two_player_banner_custom.png"
+                alt="2 Player Mode"
+                className="w-full h-full object-fill rounded-[18px]"
+                draggable={false}
+              />
+            </button>
+          )}
           <GameModeGrid
             onSelectMode={(modeKey) => {
               if (modeKey === "Tournament") {

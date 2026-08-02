@@ -11,6 +11,7 @@ type BackgroundVariant =
   | 'room'
   | 'gameplay'
   | 'victory'
+  | 'defeat'
   | 'leaderboard';
 
 interface LudoPageBackgroundProps {
@@ -136,6 +137,17 @@ export const LudoPageBackground: React.FC<LudoPageBackgroundProps> = ({
       ],
       accentText: 'VICTORY ARENA',
     },
+    defeat: {
+      gradient: 'from-[#3B0A11] via-[#1F082B] to-[#0E0317]',
+      glowColor: 'bg-red-500/20',
+      floatElements: [
+        { icon: '✨', style: { top: '10%', left: '15%', fontSize: '2.0rem' }, anim: 'animate-float-slow' },
+        { icon: '🪙', style: { top: '25%', right: '15%', fontSize: '1.8rem' }, anim: 'animate-float-mid' },
+        { icon: '💔', style: { bottom: '30%', left: '12%', fontSize: '2.2rem' }, anim: 'animate-float-fast' },
+        { icon: '✨', style: { bottom: '40%', right: '10%', fontSize: '1.6rem' }, anim: 'animate-float-slow' },
+      ],
+      accentText: 'DEFEAT ARENA',
+    },
     leaderboard: {
       gradient: 'from-[#3D2905] via-[#24063D] to-[#12061F]',
       glowColor: 'bg-yellow-500/10',
@@ -159,6 +171,7 @@ export const LudoPageBackground: React.FC<LudoPageBackgroundProps> = ({
     room: '/assets/images/private-room/private_room_background.webp',
     gameplay: '/assets/images/backgrounds/custom_arena_bg.jpg',
     victory: '/assets/images/rewards/rewards_background.webp',
+    defeat: '/assets/images/rewards/defeat_background.jpg',
     leaderboard: '/assets/images/leaderboard/leaderboard_background.webp',
   };
 

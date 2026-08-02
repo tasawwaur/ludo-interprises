@@ -53,30 +53,43 @@ export class BoardCanvasRenderer {
     const innerCellSize = innerSize / 15;
     this.cellSize = innerCellSize;
 
-    // White Board Canvas
-    ctx.fillStyle = '#ffffff';
+    // White Board Canvas (Subtle off-white marble look)
+    ctx.fillStyle = '#fafaf9';
     ctx.fillRect(0, 0, innerSize, innerSize);
 
-    // 2. Corner Color Yards (EXACT MATCH to Reference Image 2)
-    // Top-Left GREEN Yard (Green Background + White Circle + Green Diamond Crown)
-    this.drawReferenceYard(0, 0, 6, 6, '#16a34a', 'GREEN', true);
+    // Inner gold beveled board border
+    const innerGold = ctx.createLinearGradient(0, 0, innerSize, innerSize);
+    innerGold.addColorStop(0, '#fbbf24');
+    innerGold.addColorStop(0.5, '#d97706');
+    innerGold.addColorStop(1, '#b45309');
+    ctx.strokeStyle = innerGold;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(0, 0, innerSize, innerSize);
 
-    // Top-Right YELLOW Yard (Yellow Background + White Circle + 4 Yellow Dots)
-    this.drawReferenceYard(9, 0, 6, 6, '#eab308', 'YELLOW', false);
+    // 2. Corner Color Yards (EXACT MATCH to Reference Image 2 and BoardCoordinates.ts)
+    // Top-Left RED Yard (Red Background + White Circle + Red Dots)
+    this.drawReferenceYard(0, 0, 6, 6, 'RED', false);
 
-    // Bottom-Right BLUE Yard (Blue Background + White Circle + 4 Blue Dots)
-    this.drawReferenceYard(9, 9, 6, 6, '#2563eb', 'BLUE', false);
+    // Top-Right GREEN Yard (Green Background + White Circle + Green Diamond Crown)
+    this.drawReferenceYard(9, 0, 6, 6, 'GREEN', true);
 
-    // Bottom-Left RED Yard (Red Background + White Circle + 4 Red Dots)
-    this.drawReferenceYard(0, 9, 6, 6, '#dc2626', 'RED', false);
+    // Bottom-Right YELLOW Yard (Yellow Background + White Circle + Yellow Dots)
+    this.drawReferenceYard(9, 9, 6, 6, 'YELLOW', false);
 
-    // 3. Outer Track Cells (White Grid with Grey Borders)
+    // Bottom-Left BLUE Yard (Blue Background + White Circle + Blue Dots)
+    this.drawReferenceYard(0, 9, 6, 6, 'BLUE', false);
+
+    // 3. Outer Track Cells (Subtle Gradient Grid with Grey Borders)
     OUTER_TRACK_COORDS.forEach((pos, idx) => {
       const x = pos.col * innerCellSize;
       const y = pos.row * innerCellSize;
 
-      ctx.fillStyle = '#ffffff';
+      const cellGrad = ctx.createLinearGradient(x, y, x + innerCellSize, y + innerCellSize);
+      cellGrad.addColorStop(0, '#ffffff');
+      cellGrad.addColorStop(1, '#f8fafc'); // Light slate
+      ctx.fillStyle = cellGrad;
       ctx.fillRect(x, y, innerCellSize, innerCellSize);
+
       ctx.strokeStyle = '#cbd5e1';
       ctx.lineWidth = 1.5;
       ctx.strokeRect(x, y, innerCellSize, innerCellSize);
@@ -87,11 +100,11 @@ export class BoardCanvasRenderer {
       }
     });
 
-    // 4. Home Corridors (Green left, Yellow top, Blue right, Red bottom)
-    this.drawCorridor(HOME_CORRIDORS.GREEN, '#16a34a');
-    this.drawCorridor(HOME_CORRIDORS.YELLOW, '#eab308');
-    this.drawCorridor(HOME_CORRIDORS.BLUE, '#2563eb');
-    this.drawCorridor(HOME_CORRIDORS.RED, '#dc2626');
+    // 4. Home Corridors (Red left, Green top, Yellow right, Blue bottom)
+    this.drawCorridor(HOME_CORRIDORS.RED, '#dc2626', 'RED');
+    this.drawCorridor(HOME_CORRIDORS.GREEN, '#16a34a', 'GREEN');
+    this.drawCorridor(HOME_CORRIDORS.YELLOW, '#eab308', 'YELLOW');
+    this.drawCorridor(HOME_CORRIDORS.BLUE, '#2563eb', 'BLUE');
 
     // 5. Center Arrows (Meeting arrows matching Reference Image 2)
     this.drawCenterArrows(innerSize, innerCellSize);
@@ -134,7 +147,6 @@ export class BoardCanvasRenderer {
     row: number,
     cols: number,
     rows: number,
-    colorHex: string,
     color: PlayerColor,
     hasDiamondCrown: boolean
   ) {
@@ -144,24 +156,57 @@ export class BoardCanvasRenderer {
     const w = cols * cellSize;
     const h = rows * cellSize;
 
-    // Outer Yard Box
-    ctx.fillStyle = colorHex;
+    // Rich gradient for Yard Box
+    const yardGrad = ctx.createLinearGradient(x, y, x + w, y + h);
+    if (color === 'GREEN') {
+      yardGrad.addColorStop(0, '#064e3b'); // Dark Emerald
+      yardGrad.addColorStop(0.5, '#047857'); // Medium Emerald
+      yardGrad.addColorStop(1, '#022c22'); // Deep Emerald
+    } else if (color === 'YELLOW') {
+      yardGrad.addColorStop(0, '#78350f'); // Dark Amber
+      yardGrad.addColorStop(0.5, '#d97706'); // Medium Amber
+      yardGrad.addColorStop(1, '#451a03'); // Deep Amber
+    } else if (color === 'BLUE') {
+      yardGrad.addColorStop(0, '#1e3a8a'); // Dark Royal Blue
+      yardGrad.addColorStop(0.5, '#1d4ed8'); // Medium Blue
+      yardGrad.addColorStop(1, '#172554'); // Deep Blue
+    } else { // RED
+      yardGrad.addColorStop(0, '#881337'); // Dark Crimson
+      yardGrad.addColorStop(0.5, '#be123c'); // Medium Crimson
+      yardGrad.addColorStop(1, '#4c0519'); // Deep Crimson
+    }
+
+    ctx.fillStyle = yardGrad;
     ctx.fillRect(x, y, w, h);
-    ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x, y, w, h);
+
+    // Golden Royal Border Frame around Yard Box
+    const goldGrad = ctx.createLinearGradient(x, y, x + w, y + h);
+    goldGrad.addColorStop(0, '#fef08a');
+    goldGrad.addColorStop(0.5, '#fbbf24');
+    goldGrad.addColorStop(1, '#b45309');
+    ctx.strokeStyle = goldGrad;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
 
     // Center Large White Circle
     const cx = x + w / 2;
     const cy = y + h / 2;
     const circleRadius = cellSize * 2.1;
 
+    // Radial silver/cream gradient for inner circle
+    const circleGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, circleRadius);
+    circleGrad.addColorStop(0, '#ffffff');
+    circleGrad.addColorStop(0.8, '#f1f5f9');
+    circleGrad.addColorStop(1, '#cbd5e1');
+
     ctx.beginPath();
     ctx.arc(cx, cy, circleRadius, 0, Math.PI * 2);
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = circleGrad;
     ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+
+    // Golden border around the inner white circle
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = goldGrad;
     ctx.stroke();
 
     if (hasDiamondCrown) {
@@ -176,7 +221,7 @@ export class BoardCanvasRenderer {
       ctx.lineTo(-circleRadius * 0.5, 0);
       ctx.closePath();
       ctx.lineWidth = 4;
-      ctx.strokeStyle = colorHex;
+      ctx.strokeStyle = '#047857';
       ctx.stroke();
 
       // Inner Crown Peak Symbol
@@ -188,12 +233,12 @@ export class BoardCanvasRenderer {
       ctx.lineTo(circleRadius * 0.25, -circleRadius * 0.1);
       ctx.lineTo(0, circleRadius * 0.2);
       ctx.closePath();
-      ctx.fillStyle = colorHex;
+      ctx.fillStyle = '#047857';
       ctx.fill();
 
       ctx.restore();
     } else {
-      // 4 Inner Colored Dots (Matching Reference Image 2)
+      // 4 Inner Colored Dots with golden bezels
       const dotOffsets = [
         { dx: -circleRadius * 0.4, dy: -circleRadius * 0.4 },
         { dx: circleRadius * 0.4, dy: -circleRadius * 0.4 },
@@ -201,24 +246,69 @@ export class BoardCanvasRenderer {
         { dx: circleRadius * 0.4, dy: circleRadius * 0.4 },
       ];
 
+      const dotColorMap: Record<PlayerColor, string> = {
+        GREEN: '#047857',
+        YELLOW: '#d97706',
+        BLUE: '#1d4ed8',
+        RED: '#be123c',
+      };
+
       dotOffsets.forEach((off) => {
+        const dcx = cx + off.dx;
+        const dcy = cy + off.dy;
+        const radius = cellSize * 0.45;
+
+        // Draw gold outer ring for the dot
         ctx.beginPath();
-        ctx.arc(cx + off.dx, cy + off.dy, cellSize * 0.45, 0, Math.PI * 2);
-        ctx.fillStyle = colorHex;
+        ctx.arc(dcx, dcy, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = goldGrad;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // Draw radial colored gradient inside the dot
+        const dotGrad = ctx.createRadialGradient(dcx, dcy, 0, dcx, dcy, radius);
+        dotGrad.addColorStop(0, '#ffffff');
+        dotGrad.addColorStop(0.3, dotColorMap[color]);
+        dotGrad.addColorStop(1, '#020617'); // Deep dark edge
+
+        ctx.beginPath();
+        ctx.arc(dcx, dcy, radius - 1, 0, Math.PI * 2);
+        ctx.fillStyle = dotGrad;
         ctx.fill();
       });
     }
   }
 
-  private drawCorridor(corridor: { col: number; row: number }[], colorHex: string) {
+  private drawCorridor(corridor: { col: number; row: number }[], colorHex: string, color: PlayerColor) {
     const { ctx, cellSize } = this;
+    
+    // Choose premium gradients for corridor cells
+    const gradMap: Record<PlayerColor, [string, string]> = {
+      GREEN: ['#10b981', '#064e3b'],
+      YELLOW: ['#fbbf24', '#78350f'],
+      BLUE: ['#3b82f6', '#1e3a8a'],
+      RED: ['#f43f5e', '#881337'],
+    };
+
+    const colors = gradMap[color] || [colorHex, '#000000'];
+
     corridor.forEach((pos) => {
       const x = pos.col * cellSize;
       const y = pos.row * cellSize;
-      ctx.fillStyle = colorHex;
+
+      const cellGrad = ctx.createLinearGradient(x, y, x + cellSize, y + cellSize);
+      cellGrad.addColorStop(0, colors[0]);
+      cellGrad.addColorStop(1, colors[1]);
+
+      ctx.fillStyle = cellGrad;
       ctx.fillRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1;
+
+      // Gold borders separating home corridor cells
+      const goldGrad = ctx.createLinearGradient(x, y, x + cellSize, y + cellSize);
+      goldGrad.addColorStop(0, '#fde047');
+      goldGrad.addColorStop(1, '#ca8a04');
+      ctx.strokeStyle = goldGrad;
+      ctx.lineWidth = 1.5;
       ctx.strokeRect(x, y, cellSize, cellSize);
     });
   }
@@ -231,68 +321,116 @@ export class BoardCanvasRenderer {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(6 * cellSize, 6 * cellSize, 3 * cellSize, 3 * cellSize);
 
-    // Left GREEN Arrow (pointing right)
+    // Left RED Arrow (pointing right)
+    const redGrad = ctx.createLinearGradient(6 * cellSize, 7.5 * cellSize, cx, cy);
+    redGrad.addColorStop(0, '#881337');
+    redGrad.addColorStop(1, '#f43f5e');
     ctx.beginPath();
     ctx.moveTo(6 * cellSize, 9 * cellSize);
     ctx.lineTo(6 * cellSize, 6 * cellSize);
     ctx.lineTo(cx, cy);
     ctx.closePath();
-    ctx.fillStyle = '#16a34a';
+    ctx.fillStyle = redGrad;
     ctx.fill();
 
-    // Top YELLOW Arrow (pointing down)
+    // Top GREEN Arrow (pointing down)
+    const greenGrad = ctx.createLinearGradient(7.5 * cellSize, 6 * cellSize, cx, cy);
+    greenGrad.addColorStop(0, '#064e3b');
+    greenGrad.addColorStop(1, '#10b981');
     ctx.beginPath();
     ctx.moveTo(6 * cellSize, 6 * cellSize);
     ctx.lineTo(9 * cellSize, 6 * cellSize);
     ctx.lineTo(cx, cy);
     ctx.closePath();
-    ctx.fillStyle = '#eab308';
+    ctx.fillStyle = greenGrad;
     ctx.fill();
 
-    // Right BLUE Arrow (pointing left)
+    // Right YELLOW Arrow (pointing left)
+    const yellowGrad = ctx.createLinearGradient(9 * cellSize, 7.5 * cellSize, cx, cy);
+    yellowGrad.addColorStop(0, '#78350f');
+    yellowGrad.addColorStop(1, '#fbbf24');
     ctx.beginPath();
     ctx.moveTo(9 * cellSize, 6 * cellSize);
     ctx.lineTo(9 * cellSize, 9 * cellSize);
     ctx.lineTo(cx, cy);
     ctx.closePath();
-    ctx.fillStyle = '#2563eb';
+    ctx.fillStyle = yellowGrad;
     ctx.fill();
 
-    // Bottom RED Arrow (pointing up)
+    // Bottom BLUE Arrow (pointing up)
+    const blueGrad = ctx.createLinearGradient(7.5 * cellSize, 9 * cellSize, cx, cy);
+    blueGrad.addColorStop(0, '#1e3a8a');
+    blueGrad.addColorStop(1, '#3b82f6');
     ctx.beginPath();
     ctx.moveTo(9 * cellSize, 9 * cellSize);
     ctx.lineTo(6 * cellSize, 9 * cellSize);
     ctx.lineTo(cx, cy);
     ctx.closePath();
-    ctx.fillStyle = '#dc2626';
+    ctx.fillStyle = blueGrad;
     ctx.fill();
 
-    ctx.strokeStyle = '#64748b';
-    ctx.lineWidth = 2;
+    // Center Gold Board Separator Frame
+    const goldGrad = ctx.createLinearGradient(6 * cellSize, 6 * cellSize, 9 * cellSize, 9 * cellSize);
+    goldGrad.addColorStop(0, '#fef08a');
+    goldGrad.addColorStop(0.5, '#fbbf24');
+    goldGrad.addColorStop(1, '#b45309');
+    ctx.strokeStyle = goldGrad;
+    ctx.lineWidth = 3;
     ctx.strokeRect(6 * cellSize, 6 * cellSize, 3 * cellSize, 3 * cellSize);
+
+    // Royal Golden Medallion in the absolute center
+    const medRadius = cellSize * 0.7;
+    ctx.beginPath();
+    ctx.arc(cx, cy, medRadius, 0, Math.PI * 2);
+    const medRadGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, medRadius);
+    medRadGrad.addColorStop(0, '#fef08a');
+    medRadGrad.addColorStop(0.6, '#fbbf24');
+    medRadGrad.addColorStop(1, '#d97706');
+    ctx.fillStyle = medRadGrad;
+    ctx.fill();
+
+    ctx.strokeStyle = goldGrad;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Inner gold ring
+    ctx.beginPath();
+    ctx.arc(cx, cy, medRadius * 0.72, 0, Math.PI * 2);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Draw central royal star inside the medallion
+    this.drawStar(cx, cy, medRadius * 0.35, '#ffffff');
   }
 
   private drawCurvedTrackArrows(cellSize: number) {
     const { ctx } = this;
-    ctx.strokeStyle = '#64748b';
-    ctx.lineWidth = 2;
+    
+    // Gold/Bronze colored curved entry paths
+    const goldGrad = ctx.createLinearGradient(0, 0, 15 * cellSize, 15 * cellSize);
+    goldGrad.addColorStop(0, '#fbbf24');
+    goldGrad.addColorStop(0.5, '#d97706');
+    goldGrad.addColorStop(1, '#ca8a04');
+    
+    ctx.strokeStyle = goldGrad;
+    ctx.lineWidth = 2.5;
 
-    // Curved Arrow Top Edge (Entering Yellow Track)
+    // Curved Arrow Top Edge (Entering Green Track)
     ctx.beginPath();
     ctx.arc(6.5 * cellSize, 1.5 * cellSize, cellSize * 0.8, Math.PI, Math.PI * 1.8);
     ctx.stroke();
 
-    // Curved Arrow Right Edge (Entering Blue Track)
+    // Curved Arrow Right Edge (Entering Yellow Track)
     ctx.beginPath();
     ctx.arc(13.5 * cellSize, 6.5 * cellSize, cellSize * 0.8, (Math.PI * 3) / 2, Math.PI * 2.3);
     ctx.stroke();
 
-    // Curved Arrow Bottom Edge (Entering Red Track)
+    // Curved Arrow Bottom Edge (Entering Blue Track)
     ctx.beginPath();
     ctx.arc(8.5 * cellSize, 13.5 * cellSize, cellSize * 0.8, 0, Math.PI * 0.8);
     ctx.stroke();
 
-    // Curved Arrow Left Edge (Entering Green Track)
+    // Curved Arrow Left Edge (Entering Red Track)
     ctx.beginPath();
     ctx.arc(1.5 * cellSize, 8.5 * cellSize, cellSize * 0.8, Math.PI / 2, Math.PI * 1.3);
     ctx.stroke();
@@ -311,7 +449,7 @@ export class BoardCanvasRenderer {
     if (img.complete && img.naturalWidth > 0) {
       ctx.drawImage(img, cx - size / 2, cy - size / 2, size, size);
     } else {
-      this.drawStar(cx, cy, size * 0.4, '#eab308');
+      this.drawStar(cx, cy, size * 0.4, '#fbbf24');
     }
   }
 
@@ -346,11 +484,12 @@ export class BoardCanvasRenderer {
     const { ctx, cellSize } = this;
     const pulseOffset = Math.sin(this.animPulseAngle) * 6;
 
+    // Arrow configurations shifted to match seating order: RED (TL), GREEN (TR), YELLOW (BR), BLUE (BL)
     const arrowMap: Record<PlayerColor, { x: number; y: number; angle: number; colorHex: string }> = {
-      GREEN: { x: 3 * cellSize, y: 0.8 * cellSize + pulseOffset, angle: Math.PI / 2, colorHex: '#16a34a' },
-      YELLOW: { x: 12 * cellSize, y: 0.8 * cellSize + pulseOffset, angle: Math.PI / 2, colorHex: '#eab308' },
-      BLUE: { x: 12 * cellSize, y: 14.2 * cellSize - pulseOffset, angle: (Math.PI * 3) / 2, colorHex: '#2563eb' },
-      RED: { x: 3 * cellSize, y: 14.2 * cellSize - pulseOffset, angle: (Math.PI * 3) / 2, colorHex: '#dc2626' },
+      RED: { x: 3 * cellSize, y: 0.8 * cellSize + pulseOffset, angle: Math.PI / 2, colorHex: '#dc2626' },
+      GREEN: { x: 12 * cellSize, y: 0.8 * cellSize + pulseOffset, angle: Math.PI / 2, colorHex: '#16a34a' },
+      YELLOW: { x: 12 * cellSize, y: 14.2 * cellSize - pulseOffset, angle: (Math.PI * 3) / 2, colorHex: '#eab308' },
+      BLUE: { x: 3 * cellSize, y: 14.2 * cellSize - pulseOffset, angle: (Math.PI * 3) / 2, colorHex: '#2563eb' },
     };
 
     const config = arrowMap[color];

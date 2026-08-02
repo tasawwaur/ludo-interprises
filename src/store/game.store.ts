@@ -491,6 +491,26 @@ export const useGameStore = create<GameStoreState>()(
           const bestTokenId = moves[0].tokenId;
           // Execute AI-driven best move locally (with isRemote = true to prevent infinite socket loops)
           get().moveToken(bestTokenId, true);
+        } else if (gameState.gameStatus === 'ROLL_WAIT' && !gameState.isDiceRolled) {
+          // Auto roll on timeout if it's the local player's turn to roll!
+          const activePlayer = gameState.players[gameState.activePlayerIndex];
+          const localPlayer = gameState.players.find((p) => p.color === get().localPlayerColor) || gameState.players[0];
+
+          if (activePlayer.color === localPlayer.color && !activePlayer.isAi) {
+            get().rollDice();
+          } else {
+            // Otherwise forfeit/skip turn as normal
+            const nextState = GameEngine.skipTurn(gameState);
+            set({
+              gameState: nextState,
+              turnTimerSeconds: 15,
+              isAutoMode: false,
+            });
+
+            setTimeout(() => {
+              get().triggerAiMoveIfNeeded();
+            }, 800);
+          }
         } else {
           // Otherwise forfeit/skip turn as normal
           const nextState = GameEngine.skipTurn(gameState);

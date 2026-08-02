@@ -1,4 +1,5 @@
 import React from 'react';
+import { LevelBadge } from '../../../../components/badges/LevelBadge';
 
 interface XPBarProps {
   progressPercent?: number;
@@ -26,11 +27,9 @@ export const XPBar: React.FC<XPBarProps> = ({ progressPercent = 75, level = 85 }
         draggable={false}
       />
 
-      {/* 3. Level Text (centered in the left circular shield, italic) */}
-      <div className="absolute left-[16.6%] top-[58%] -translate-x-1/2 -translate-y-1/2 z-20 flex items-center justify-center pointer-events-none">
-        <span className="text-[13px] font-black text-amber-200 italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-          {level}
-        </span>
+      {/* 3. Premium Dynamic Level Badge Frame */}
+      <div className="absolute left-[16.6%] top-[50%] -translate-x-1/2 -translate-y-1/2 z-20 flex items-center justify-center">
+        <LevelBadge level={level} size={35} />
       </div>
 
       {/* 4. Progress Text (centered on the progress bar, italic) */}

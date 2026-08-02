@@ -6,6 +6,8 @@ import {
   SAFE_TRACK_INDICES,
   COLOR_START_INDEX,
   getPixelCoordinates,
+  getCoordinateColor,
+  getQuadrantPlayerColor,
 } from '../board/BoardCoordinates';
 
 export class BoardCanvasRenderer {
@@ -24,6 +26,7 @@ export class BoardCanvasRenderer {
 
   public render(
     state: GameState,
+    localPlayerColor: PlayerColor | null,
     activeHoverTokenId?: string | null,
     selectedTokenId?: string | null
   ) {
@@ -66,18 +69,23 @@ export class BoardCanvasRenderer {
     ctx.lineWidth = 4;
     ctx.strokeRect(0, 0, innerSize, innerSize);
 
-    // 2. Corner Color Yards (EXACT MATCH to Reference Image 2 and BoardCoordinates.ts)
-    // Top-Left RED Yard (Red Background + White Circle + Red Dots)
-    this.drawReferenceYard(0, 0, 6, 6, 'RED', false);
+    // Dynamic Quadrant Mapped Player Colors (Alignment matching Reference Image 2)
+    const redPlayer = getQuadrantPlayerColor('RED', localPlayerColor);
+    const greenPlayer = getQuadrantPlayerColor('GREEN', localPlayerColor);
+    const yellowPlayer = getQuadrantPlayerColor('YELLOW', localPlayerColor);
+    const bluePlayer = getQuadrantPlayerColor('BLUE', localPlayerColor);
 
-    // Top-Right GREEN Yard (Green Background + White Circle + Green Diamond Crown)
-    this.drawReferenceYard(9, 0, 6, 6, 'GREEN', true);
+    // Top-Left (traditionally RED)
+    this.drawReferenceYard(0, 0, 6, 6, redPlayer, false);
 
-    // Bottom-Right YELLOW Yard (Yellow Background + White Circle + Yellow Dots)
-    this.drawReferenceYard(9, 9, 6, 6, 'YELLOW', false);
+    // Top-Right (traditionally GREEN)
+    this.drawReferenceYard(9, 0, 6, 6, greenPlayer, true);
 
-    // Bottom-Left BLUE Yard (Blue Background + White Circle + Blue Dots)
-    this.drawReferenceYard(0, 9, 6, 6, 'BLUE', false);
+    // Bottom-Right (traditionally YELLOW)
+    this.drawReferenceYard(9, 9, 6, 6, yellowPlayer, false);
+
+    // Bottom-Left (traditionally BLUE)
+    this.drawReferenceYard(0, 9, 6, 6, bluePlayer, false);
 
     // 3. Outer Track Cells (Subtle Gradient Grid with Grey Borders)
     OUTER_TRACK_COORDS.forEach((pos, idx) => {
@@ -100,32 +108,38 @@ export class BoardCanvasRenderer {
       }
     });
 
-    // 4. Home Corridors (Red left, Green top, Yellow right, Blue bottom)
-    this.drawCorridor(HOME_CORRIDORS.RED, '#dc2626', 'RED');
-    this.drawCorridor(HOME_CORRIDORS.GREEN, '#16a34a', 'GREEN');
-    this.drawCorridor(HOME_CORRIDORS.YELLOW, '#eab308', 'YELLOW');
-    this.drawCorridor(HOME_CORRIDORS.BLUE, '#2563eb', 'BLUE');
+    // 4. Home Corridors (Mapped color order)
+    this.drawCorridor(HOME_CORRIDORS.RED, '#dc2626', redPlayer);
+    this.drawCorridor(HOME_CORRIDORS.GREEN, '#16a34a', greenPlayer);
+    this.drawCorridor(HOME_CORRIDORS.YELLOW, '#eab308', yellowPlayer);
+    this.drawCorridor(HOME_CORRIDORS.BLUE, '#2563eb', bluePlayer);
 
-    // 5. Center Arrows (Meeting arrows matching Reference Image 2)
-    this.drawCenterArrows(innerSize, innerCellSize);
+    // 5. Center Arrows (Meeting arrows matching dynamic color order)
+    this.drawCenterArrows(innerSize, innerCellSize, redPlayer, greenPlayer, yellowPlayer, bluePlayer);
 
     // 6. Track Entry Curved Arrows (Matching Reference Image 2)
     this.drawCurvedTrackArrows(innerCellSize);
 
-    // 7. Animated Turn Arrow
-    this.drawTurnArrow(state.currentTurnColor);
+    // 6. Pulse Active Player Arrow
+    if (state.gameStatus !== 'GAME_OVER') {
+      this.drawTurnArrow(state.currentTurnColor, localPlayerColor);
+    }
 
-    // 8. Destination Path Highlight
+    // 7. Destination Path Indicator for hovered/selected token
     const activeTokenId = selectedTokenId || activeHoverTokenId;
-    if (activeTokenId && state.movableTokens.length > 0) {
-      const move = state.movableTokens.find((m) => m.tokenId === activeTokenId);
-      if (move) {
-        this.drawDestinationPath(state.currentTurnColor, move.fromStep, move.toStep);
+    if (activeTokenId && state.gameStatus === 'MOVE_WAIT') {
+      const activeToken = state.players
+        .flatMap((p) => p.tokens)
+        .find((t) => t.id === activeTokenId);
+      const targetMove = state.movableTokens.find((m) => m.tokenId === activeTokenId);
+
+      if (activeToken && targetMove) {
+        this.drawDestinationPath(activeToken.color, targetMove.fromStep, targetMove.toStep, localPlayerColor);
       }
     }
 
-    // 9. Draw Player Tokens
-    this.drawAllTokens(state, activeHoverTokenId, selectedTokenId);
+    // 8. Draw All Tokens
+    this.drawAllTokens(state, localPlayerColor, activeHoverTokenId, selectedTokenId);
 
     ctx.restore();
   }
@@ -313,7 +327,14 @@ export class BoardCanvasRenderer {
     });
   }
 
-  private drawCenterArrows(innerSize: number, cellSize: number) {
+  private drawCenterArrows(
+    innerSize: number,
+    cellSize: number,
+    redPlayer: PlayerColor,
+    greenPlayer: PlayerColor,
+    yellowPlayer: PlayerColor,
+    bluePlayer: PlayerColor
+  ) {
     const { ctx } = this;
     const cx = 7.5 * cellSize;
     const cy = 7.5 * cellSize;
@@ -321,10 +342,18 @@ export class BoardCanvasRenderer {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(6 * cellSize, 6 * cellSize, 3 * cellSize, 3 * cellSize);
 
+    const gradMap: Record<PlayerColor, [string, string]> = {
+      GREEN: ['#064e3b', '#10b981'],
+      YELLOW: ['#78350f', '#fbbf24'],
+      BLUE: ['#1e3a8a', '#3b82f6'],
+      RED: ['#881337', '#f43f5e'],
+    };
+
     // Left RED Arrow (pointing right)
+    const redColors = gradMap[redPlayer];
     const redGrad = ctx.createLinearGradient(6 * cellSize, 7.5 * cellSize, cx, cy);
-    redGrad.addColorStop(0, '#881337');
-    redGrad.addColorStop(1, '#f43f5e');
+    redGrad.addColorStop(0, redColors[0]);
+    redGrad.addColorStop(1, redColors[1]);
     ctx.beginPath();
     ctx.moveTo(6 * cellSize, 9 * cellSize);
     ctx.lineTo(6 * cellSize, 6 * cellSize);
@@ -334,9 +363,10 @@ export class BoardCanvasRenderer {
     ctx.fill();
 
     // Top GREEN Arrow (pointing down)
+    const greenColors = gradMap[greenPlayer];
     const greenGrad = ctx.createLinearGradient(7.5 * cellSize, 6 * cellSize, cx, cy);
-    greenGrad.addColorStop(0, '#064e3b');
-    greenGrad.addColorStop(1, '#10b981');
+    greenGrad.addColorStop(0, greenColors[0]);
+    greenGrad.addColorStop(1, greenColors[1]);
     ctx.beginPath();
     ctx.moveTo(6 * cellSize, 6 * cellSize);
     ctx.lineTo(9 * cellSize, 6 * cellSize);
@@ -346,9 +376,10 @@ export class BoardCanvasRenderer {
     ctx.fill();
 
     // Right YELLOW Arrow (pointing left)
+    const yellowColors = gradMap[yellowPlayer];
     const yellowGrad = ctx.createLinearGradient(9 * cellSize, 7.5 * cellSize, cx, cy);
-    yellowGrad.addColorStop(0, '#78350f');
-    yellowGrad.addColorStop(1, '#fbbf24');
+    yellowGrad.addColorStop(0, yellowColors[0]);
+    yellowGrad.addColorStop(1, yellowColors[1]);
     ctx.beginPath();
     ctx.moveTo(9 * cellSize, 6 * cellSize);
     ctx.lineTo(9 * cellSize, 9 * cellSize);
@@ -358,9 +389,10 @@ export class BoardCanvasRenderer {
     ctx.fill();
 
     // Bottom BLUE Arrow (pointing up)
+    const blueColors = gradMap[bluePlayer];
     const blueGrad = ctx.createLinearGradient(7.5 * cellSize, 9 * cellSize, cx, cy);
-    blueGrad.addColorStop(0, '#1e3a8a');
-    blueGrad.addColorStop(1, '#3b82f6');
+    blueGrad.addColorStop(0, blueColors[0]);
+    blueGrad.addColorStop(1, blueColors[1]);
     ctx.beginPath();
     ctx.moveTo(9 * cellSize, 9 * cellSize);
     ctx.lineTo(6 * cellSize, 9 * cellSize);
@@ -480,9 +512,11 @@ export class BoardCanvasRenderer {
     ctx.fill();
   }
 
-  private drawTurnArrow(color: PlayerColor) {
+  private drawTurnArrow(color: PlayerColor, localPlayerColor: PlayerColor | null) {
     const { ctx, cellSize } = this;
     const pulseOffset = Math.sin(this.animPulseAngle) * 6;
+
+    const coordColor = getCoordinateColor(color, localPlayerColor);
 
     // Arrow configurations shifted to match seating order: RED (TL), GREEN (TR), YELLOW (BR), BLUE (BL)
     const arrowMap: Record<PlayerColor, { x: number; y: number; angle: number; colorHex: string }> = {
@@ -492,14 +526,22 @@ export class BoardCanvasRenderer {
       BLUE: { x: 3 * cellSize, y: 14.2 * cellSize - pulseOffset, angle: (Math.PI * 3) / 2, colorHex: '#2563eb' },
     };
 
-    const config = arrowMap[color];
+    const colorHexMap: Record<PlayerColor, string> = {
+      RED: '#dc2626',
+      GREEN: '#16a34a',
+      YELLOW: '#eab308',
+      BLUE: '#2563eb',
+    };
+
+    const config = arrowMap[coordColor];
     if (!config) return;
 
     ctx.save();
     ctx.translate(config.x, config.y);
     ctx.rotate(config.angle);
 
-    ctx.shadowColor = config.colorHex;
+    const arrowColor = colorHexMap[color];
+    ctx.shadowColor = arrowColor;
     ctx.shadowBlur = 16 + Math.sin(this.animPulseAngle) * 8;
 
     ctx.beginPath();
@@ -512,7 +554,7 @@ export class BoardCanvasRenderer {
     ctx.lineTo(-14, 10);
     ctx.closePath();
 
-    ctx.fillStyle = config.colorHex;
+    ctx.fillStyle = arrowColor;
     ctx.fill();
     ctx.lineWidth = 2.5;
     ctx.strokeStyle = '#ffffff';
@@ -521,11 +563,11 @@ export class BoardCanvasRenderer {
     ctx.restore();
   }
 
-  private drawDestinationPath(color: PlayerColor, fromStep: number, toStep: number) {
+  private drawDestinationPath(color: PlayerColor, fromStep: number, toStep: number, localPlayerColor: PlayerColor | null) {
     const { ctx, cellSize } = this;
-
+ 
     for (let step = fromStep + 1; step <= toStep; step++) {
-      const coords = getPixelCoordinates(color, step, 0, cellSize);
+      const coords = getPixelCoordinates(color, step, 0, cellSize, localPlayerColor);
       const isDestination = step === toStep;
 
       ctx.beginPath();
@@ -546,6 +588,7 @@ export class BoardCanvasRenderer {
 
   private drawAllTokens(
     state: GameState,
+    localPlayerColor: PlayerColor | null,
     activeHoverTokenId?: string | null,
     selectedTokenId?: string | null
   ) {
@@ -556,15 +599,15 @@ export class BoardCanvasRenderer {
       BLUE: '#2563eb',
       RED: '#dc2626',
     };
-
+ 
     const moveableSet = new Set(state.movableTokens.map((m) => m.tokenId));
-
+ 
     state.players.forEach((player) => {
       player.tokens.forEach((token) => {
         const isAnimating = state.animatingToken?.tokenId === token.id;
         const displayStep = isAnimating ? state.animatingToken!.currentStep : token.stepCount;
-
-        const coords = getPixelCoordinates(token.color, displayStep, token.index, cellSize);
+ 
+        const coords = getPixelCoordinates(token.color, displayStep, token.index, cellSize, localPlayerColor);
         const radius = cellSize * 0.42;
 
         const isMoveable = moveableSet.has(token.id);

@@ -83,6 +83,49 @@ export const CENTER_HOME_POS: GridPos = { col: 7, row: 7 };
 // Safe Track Indices (Start cells + 4 Star cells)
 export const SAFE_TRACK_INDICES = new Set<number>([0, 8, 13, 21, 26, 34, 39, 47]);
 
+export function getCoordinateColor(color: PlayerColor, localPlayerColor: PlayerColor | null): PlayerColor {
+  if (!localPlayerColor) return color;
+
+  // Define opponent color
+  let opponentColor: PlayerColor = 'GREEN';
+  if (localPlayerColor === 'BLUE') opponentColor = 'GREEN';
+  else if (localPlayerColor === 'GREEN') opponentColor = 'BLUE';
+  else if (localPlayerColor === 'RED') opponentColor = 'YELLOW';
+  else if (localPlayerColor === 'YELLOW') opponentColor = 'RED';
+
+  // Map active players to bottom-left (BLUE) and top-right (GREEN)
+  if (color === localPlayerColor) return 'BLUE';
+  if (color === opponentColor) return 'GREEN';
+
+  // Map remaining two colors to top-left (RED) and bottom-right (YELLOW)
+  const remainingColors = (['RED', 'GREEN', 'YELLOW', 'BLUE'] as PlayerColor[]).filter(
+    (c) => c !== localPlayerColor && c !== opponentColor
+  );
+
+  if (color === remainingColors[0]) return 'RED';
+  return 'YELLOW';
+}
+
+export function getQuadrantPlayerColor(quadrant: PlayerColor, localPlayerColor: PlayerColor | null): PlayerColor {
+  if (!localPlayerColor) return quadrant;
+
+  let opponentColor: PlayerColor = 'GREEN';
+  if (localPlayerColor === 'BLUE') opponentColor = 'GREEN';
+  else if (localPlayerColor === 'GREEN') opponentColor = 'BLUE';
+  else if (localPlayerColor === 'RED') opponentColor = 'YELLOW';
+  else if (localPlayerColor === 'YELLOW') opponentColor = 'RED';
+
+  if (quadrant === 'BLUE') return localPlayerColor;
+  if (quadrant === 'GREEN') return opponentColor;
+
+  const remainingColors = (['RED', 'GREEN', 'YELLOW', 'BLUE'] as PlayerColor[]).filter(
+    (c) => c !== localPlayerColor && c !== opponentColor
+  );
+
+  if (quadrant === 'RED') return remainingColors[0];
+  return remainingColors[1];
+}
+
 /**
  * Calculates (x, y) canvas pixel coordinates given a stepCount (0 to 57) for a given player color.
  */
@@ -90,11 +133,15 @@ export function getPixelCoordinates(
   color: PlayerColor,
   stepCount: number,
   tokenIndex: number,
-  cellSize: number
+  cellSize: number,
+  localPlayerColor?: PlayerColor | null
 ): { x: number; y: number } {
+  // Resolve mapped coordinate color matching dynamic yard layout
+  const mappedColor = getCoordinateColor(color, localPlayerColor || null);
+
   // Case 0: Yard
   if (stepCount === 0) {
-    const pos = YARD_POSITIONS[color][tokenIndex];
+    const pos = YARD_POSITIONS[mappedColor][tokenIndex];
     return { x: pos.col * cellSize, y: pos.row * cellSize };
   }
 
@@ -116,7 +163,7 @@ export function getPixelCoordinates(
   // Case 52..56: Home Corridor
   if (stepCount >= 52 && stepCount <= 56) {
     const corridorIndex = stepCount - 52;
-    const pos = HOME_CORRIDORS[color][corridorIndex];
+    const pos = HOME_CORRIDORS[mappedColor][corridorIndex];
     const offsets = [
       { dx: -0.06, dy: -0.06 },
       { dx: 0.06, dy: -0.06 },
@@ -131,7 +178,7 @@ export function getPixelCoordinates(
   }
 
   // Case 1..51: Outer Track
-  const startIndex = COLOR_START_INDEX[color];
+  const startIndex = COLOR_START_INDEX[mappedColor];
   const outerTrackIndex = (startIndex + (stepCount - 1)) % 52;
   const pos = OUTER_TRACK_COORDS[outerTrackIndex];
 
@@ -149,7 +196,7 @@ export function getPixelCoordinates(
     { dx: 0.04, dy: 0.04 },
   ];
 
-  const cOff = colorOffsets[color];
+  const cOff = colorOffsets[mappedColor];
   const tOff = tokenOffsets[tokenIndex % 4];
 
   const finalDx = cOff.dx + tOff.dx;
@@ -167,10 +214,13 @@ export function getPixelCoordinates(
 export function getGridPos(
   color: PlayerColor,
   stepCount: number,
-  tokenIndex: number
+  tokenIndex: number,
+  localPlayerColor?: PlayerColor | null
 ): GridPos {
+  const mappedColor = getCoordinateColor(color, localPlayerColor || null);
+
   if (stepCount === 0) {
-    return YARD_POSITIONS[color][tokenIndex];
+    return YARD_POSITIONS[mappedColor][tokenIndex];
   }
   if (stepCount >= 57) {
     const offsets = [
@@ -187,9 +237,9 @@ export function getGridPos(
   }
   if (stepCount >= 52 && stepCount <= 56) {
     const corridorIndex = stepCount - 52;
-    return HOME_CORRIDORS[color][corridorIndex];
+    return HOME_CORRIDORS[mappedColor][corridorIndex];
   }
-  const startIndex = COLOR_START_INDEX[color];
+  const startIndex = COLOR_START_INDEX[mappedColor];
   const outerTrackIndex = (startIndex + (stepCount - 1)) % 52;
   return OUTER_TRACK_COORDS[outerTrackIndex];
 }

@@ -6,6 +6,7 @@ import { getPixelCoordinates } from '../../../game/board/BoardCoordinates';
 export const LudoCanvasBoard: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const gameState = useGameStore((s) => s.gameState);
+  const localPlayerColor = useGameStore((s) => s.localPlayerColor);
   const activeHoverTokenId = useGameStore((s) => s.activeHoverTokenId);
   const selectedTokenId = useGameStore((s) => s.selectedTokenId);
   const setHoverToken = useGameStore((s) => s.setHoverToken);
@@ -23,7 +24,7 @@ export const LudoCanvasBoard: React.FC = () => {
     let animFrameId: number;
 
     const renderLoop = () => {
-      renderer.render(gameState, activeHoverTokenId, selectedTokenId);
+      renderer.render(gameState, localPlayerColor, activeHoverTokenId, selectedTokenId);
       animFrameId = requestAnimationFrame(renderLoop);
     };
 
@@ -32,7 +33,7 @@ export const LudoCanvasBoard: React.FC = () => {
     return () => {
       cancelAnimationFrame(animFrameId);
     };
-  }, [gameState, activeHoverTokenId, selectedTokenId]);
+  }, [gameState, localPlayerColor, activeHoverTokenId, selectedTokenId]);
 
   if (!gameState) return null;
 
@@ -52,7 +53,7 @@ export const LudoCanvasBoard: React.FC = () => {
       const token = activePlayer.tokens.find((t) => t.id === move.tokenId);
       if (!token) continue;
 
-      const coords = getPixelCoordinates(token.color, token.stepCount, token.index, cellSize);
+      const coords = getPixelCoordinates(token.color, token.stepCount, token.index, cellSize, localPlayerColor);
       const dist = Math.hypot(clickX - coords.x, clickY - coords.y);
 
       if (dist <= cellSize * 0.5) {
@@ -88,7 +89,7 @@ export const LudoCanvasBoard: React.FC = () => {
       const token = activePlayer.tokens.find((t) => t.id === move.tokenId);
       if (!token) continue;
 
-      const coords = getPixelCoordinates(token.color, token.stepCount, token.index, cellSize);
+      const coords = getPixelCoordinates(token.color, token.stepCount, token.index, cellSize, localPlayerColor);
       const dist = Math.hypot(mouseX - coords.x, mouseY - coords.y);
 
       if (dist <= cellSize * 0.5) {

@@ -437,6 +437,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                 canRoll={false}
                 size={54}
                 playerColor={opponentPlayer?.color}
+                badgePosition="left"
               />
             </div>
           </div>
@@ -475,6 +476,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                 onRoll={rollDice}
                 size={54}
                 playerColor={localPlayer?.color}
+                badgePosition="right"
               />
             </div>
           </div>

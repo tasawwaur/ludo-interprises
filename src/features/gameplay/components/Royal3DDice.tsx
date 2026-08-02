@@ -7,6 +7,7 @@ interface Royal3DDiceProps {
   onRoll?: () => void;
   size?: number;
   playerColor?: string;
+  badgePosition?: 'left' | 'right';
 }
 
 export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
@@ -16,6 +17,7 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
   onRoll,
   size = 46,
   playerColor,
+  badgePosition = 'right',
 }) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [displayVal, setDisplayVal] = useState<number>(value || 1);
@@ -132,12 +134,29 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
   else if (playerColor === "GREEN") glowBg = "bg-emerald-500/60 shadow-[0_0_15px_rgba(16,185,129,0.7)]";
   else if (playerColor === "YELLOW") glowBg = "bg-amber-400/60 shadow-[0_0_15px_rgba(251,191,36,0.7)]";
 
+  const badgePositionClass = badgePosition === 'left'
+    ? 'right-[88px]'
+    : 'left-[88px]';
+
   return (
     <div
       onClick={handleDiceClick}
       style={{ width: `${size}px`, height: `${size}px` }}
       className="relative select-none transition-all duration-300 cursor-pointer hover:scale-110 active:scale-95 pointer-events-auto"
     >
+      <style>{`
+        @keyframes diceRollingStyle {
+          0% { transform: rotate(0deg) scale(1); }
+          25% { transform: rotate(180deg) scale(1.15); }
+          50% { transform: rotate(360deg) scale(0.95); }
+          75% { transform: rotate(540deg) scale(1.1); }
+          100% { transform: rotate(720deg) scale(1); }
+        }
+        .animate-dice-rolling {
+          animation: diceRollingStyle 0.55s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+        }
+      `}</style>
+
       {/* 3D Glowing Active Aura when turn is active */}
       {isActiveTurn && (
         <div className={`absolute -inset-2 rounded-2xl ${glowBg} blur-md animate-pulse pointer-events-none`}></div>
@@ -146,7 +165,7 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
       {/* 3D Ivory Royal Dice Box */}
       <div
         className={`w-full h-full rounded-2xl bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 border-2 border-amber-300/90 shadow-[0_8px_20px_rgba(0,0,0,0.9),inset_0_2px_4px_rgba(255,255,255,0.9),inset_0_-2px_4px_rgba(0,0,0,0.2)] flex items-center justify-center relative overflow-hidden transition-all ${
-          isAnimating ? 'animate-bounce rotate-[720deg] scale-110 duration-500' : ''
+          isAnimating ? 'animate-dice-rolling' : ''
         }`}
       >
         {/* Shiny Gloss Highlight */}
@@ -158,9 +177,9 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
         </div>
       </div>
 
-      {/* Dice Value Badge on the Right */}
+      {/* Dice Value Badge next to Dice Frame */}
       {showBadge && (
-        <div className="absolute left-[88px] top-1/2 -translate-y-1/2 px-3 py-1 bg-gradient-to-r from-amber-500 to-yellow-400 border border-amber-300 rounded-xl shadow-[0_0_15px_rgba(251,191,36,0.65)] flex items-center justify-center min-w-[34px] animate-[fadeIn_0.2s_ease-out] z-50 pointer-events-none">
+        <div className={`absolute top-1/2 -translate-y-1/2 px-3 py-1 bg-gradient-to-r from-amber-500 to-yellow-400 border border-amber-300 rounded-xl shadow-[0_0_15px_rgba(251,191,36,0.65)] flex items-center justify-center min-w-[34px] animate-[fadeIn_0.2s_ease-out] z-50 pointer-events-none ${badgePositionClass}`}>
           <span className="text-[14px] font-black text-slate-950 font-mono drop-shadow-sm">
             {displayVal}
           </span>

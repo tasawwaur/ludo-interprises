@@ -20,6 +20,7 @@ interface GameStoreState {
   isAutoMode: boolean;
   gameSocket: any | null;
   _isRolling: boolean;
+  cheatNextRollValue: number | null;
 
   // Actions
   startMatch: (mode: '2P' | '2v2' | '4P', hostName: string) => void;
@@ -51,6 +52,7 @@ export const useGameStore = create<GameStoreState>()(
   isAutoMode: false,
   gameSocket: null,
   _isRolling: false,
+  cheatNextRollValue: null,
 
   startMatch: (mode, hostName) => {
     // Force-clear any stale persisted game state FIRST
@@ -168,7 +170,19 @@ export const useGameStore = create<GameStoreState>()(
     SoundEngine.play('DICE_ROLL');
 
     setTimeout(() => {
-      const nextState = GameEngine.rollDice(gameState);
+      let nextState = GameEngine.rollDice(gameState);
+
+      // Apply cheat roll value if requested by Demo Stack
+      const cheatVal = get().cheatNextRollValue;
+      if (cheatVal !== null && nextState.diceValue) {
+        nextState.diceValue = cheatVal;
+        nextState.lastDiceValue = cheatVal;
+        // Re-compute legal moves with the forced value
+        const legalMoves = RuleValidator.getLegalMoves(nextState, cheatVal);
+        nextState.movableTokens = legalMoves;
+        // Clear flag
+        set({ cheatNextRollValue: null } as any);
+      }
 
       if (nextState.diceValue) {
         SoundEngine.play('DICE_STOP');
@@ -412,26 +426,36 @@ export const useGameStore = create<GameStoreState>()(
   },
 
   demoStack: () => {
-    const { gameState } = get();
+    const { gameState, localPlayerColor } = get();
     if (!gameState) return;
+    
+    const targetColor = localPlayerColor || gameState.players[0].color;
+    
     const updatedPlayers = gameState.players.map((player) => {
-      const updatedTokens = player.tokens.map((token, index) => {
-        if (index === 0 || index === 1) {
-          // Put token 0 & 1 on a safe cell (step 9)
-          return { ...token, stepCount: 9, state: 'TRACK' as const };
-        } else {
-          // Put token 2 & 3 in the central home triangle (step 57)
-          return { ...token, stepCount: 57, state: 'HOME' as const };
-        }
-      });
-      return { ...player, tokens: updatedTokens };
+      if (player.color === targetColor) {
+        const updatedTokens = player.tokens.map((token, index) => {
+          if (index === 0) {
+            // Put 1 token exactly 1 step away from home (step 56)
+            return { ...token, stepCount: 56, state: 'HOME_PATH' as const };
+          } else {
+            // Put other 3 tokens inside the HOME target (step 57)
+            return { ...token, stepCount: 57, state: 'HOME' as const };
+          }
+        });
+        return { ...player, tokens: updatedTokens };
+      }
+      return player;
     });
+
     set({
       gameState: {
         ...gameState,
         players: updatedPlayers,
         gameStatus: 'ROLL_WAIT',
-      }
+        isDiceRolled: false,
+        diceValue: null,
+      },
+      cheatNextRollValue: 1, // Force next dice value to be 1!
     });
   },
 

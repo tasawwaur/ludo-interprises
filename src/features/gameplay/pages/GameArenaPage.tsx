@@ -639,6 +639,18 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                 ℹ️
               </button>
 
+              {/* Fast Win Button */}
+              <button
+                onClick={() => {
+                  demoStack();
+                  setShowMenu(false);
+                }}
+                className="w-7 h-7 rounded-md bg-green-500/20 hover:bg-green-500/30 active:scale-95 transition-transform border border-green-500/35 flex items-center justify-center text-green-300 font-black text-xs"
+                title="Demo Fast Win"
+              >
+                ⚡
+              </button>
+
               {/* Exit Button */}
               <button
                 onClick={() => {

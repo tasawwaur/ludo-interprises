@@ -208,8 +208,8 @@ io.on("connection", (socket) => {
 
     if (data.actionType === 'ROLL') {
       room.gameStatus = 'MOVE_WAIT';
-      // Roll gives the player 5 seconds to select a pawn or use protect
-      startRoomTimer(room, 5);
+      // Roll gives the player 10 seconds to select a pawn or use protect
+      startRoomTimer(room, 10);
     } else if (data.actionType === 'MOVE') {
       room.gameStatus = 'ROLL_WAIT';
       if (data.nextColor) {

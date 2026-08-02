@@ -190,7 +190,7 @@ export const useGameStore = create<GameStoreState>()(
         gameState: nextState,
         selectedTokenId: null,
         _isRolling: false,
-        turnTimerSeconds: nextState.gameStatus === 'ROLL_WAIT' ? 15 : 5,
+        turnTimerSeconds: nextState.gameStatus === 'ROLL_WAIT' ? 15 : 10,
       } as any);
 
       // Automatically release token from yard on rolling a 6
@@ -334,7 +334,6 @@ export const useGameStore = create<GameStoreState>()(
     const { user, updateUser } = useUserStore.getState();
     const userGems = user?.gems ?? 0;
     if (userGems < cost) {
-      alert("Insufficient Diamonds!");
       return;
     }
 
@@ -463,7 +462,7 @@ export const useGameStore = create<GameStoreState>()(
 
     socket.on("timer_tick", (data: { seconds: number; activeColor: string }) => {
       const { turnTimerSeconds } = get();
-      if (Math.abs(turnTimerSeconds - data.seconds) > 1 || data.seconds === 15 || data.seconds === 5) {
+      if (Math.abs(turnTimerSeconds - data.seconds) > 1 || data.seconds === 15 || data.seconds === 10) {
         set({ turnTimerSeconds: data.seconds });
       }
     });
@@ -480,16 +479,31 @@ export const useGameStore = create<GameStoreState>()(
 
       const { gameState } = get();
       if (gameState) {
-        const nextState = GameEngine.skipTurn(gameState);
-        set({
-          gameState: nextState,
-          turnTimerSeconds: 15,
-          isAutoMode: false,
-        });
+        // If timed-out player is in MOVE_WAIT state and has legal moves: auto-move best token!
+        if (gameState.gameStatus === 'MOVE_WAIT' && gameState.movableTokens.length > 0) {
+          const moves = [...gameState.movableTokens];
+          moves.sort((a, b) => {
+            if (a.isCapture !== b.isCapture) return a.isCapture ? -1 : 1;
+            if (a.isHome !== b.isHome) return a.isHome ? -1 : 1;
+            if (a.fromStep === 0 !== (b.fromStep === 0)) return a.fromStep === 0 ? -1 : 1;
+            return b.toStep - a.toStep;
+          });
+          const bestTokenId = moves[0].tokenId;
+          // Execute AI-driven best move locally (with isRemote = true to prevent infinite socket loops)
+          get().moveToken(bestTokenId, true);
+        } else {
+          // Otherwise forfeit/skip turn as normal
+          const nextState = GameEngine.skipTurn(gameState);
+          set({
+            gameState: nextState,
+            turnTimerSeconds: 15,
+            isAutoMode: false,
+          });
 
-        setTimeout(() => {
-          get().triggerAiMoveIfNeeded();
-        }, 800);
+          setTimeout(() => {
+            get().triggerAiMoveIfNeeded();
+          }, 800);
+        }
       }
     });
 

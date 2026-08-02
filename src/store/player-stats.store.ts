@@ -100,6 +100,7 @@ interface PlayerStatsState {
   stats: PlayerDetailedStats;
   recordMatchEnd: (matchData: CompletedMatchData) => void;
   syncWithUserStore: () => void;
+  updateStats: (updates: Partial<PlayerDetailedStats>) => void;
   resetStats: () => void;
 }
 
@@ -198,6 +199,19 @@ export const usePlayerStatsStore = create<PlayerStatsState>((set, get) => {
           level: user.level !== undefined ? user.level : state.stats.level,
         };
         
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY_STATS, JSON.stringify(updated));
+        }
+        return { stats: updated };
+      });
+    },
+
+    updateStats: (updates) => {
+      set((state) => {
+        const updated = {
+          ...state.stats,
+          ...updates
+        };
         if (typeof window !== 'undefined') {
           localStorage.setItem(STORAGE_KEY_STATS, JSON.stringify(updated));
         }

@@ -22,7 +22,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
   const updateUser = useUserStore((s) => s.updateUser);
   const logout = useUserStore((s) => s.logout);
 
-  const { stats, syncWithUserStore } = usePlayerStatsStore();
+  const { stats, syncWithUserStore, updateStats } = usePlayerStatsStore();
 
   // Sync stores on load
   useEffect(() => {
@@ -651,6 +651,31 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
                   </button>
                 </div>
 
+                {/* Country Selection Row */}
+                <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-purple-300 font-bold uppercase tracking-wider">Select Country</span>
+                    <span className="text-sm font-black text-amber-200 uppercase tracking-widest leading-none font-sans mt-0.5">
+                      {stats.country} {stats.countryFlag}
+                    </span>
+                  </div>
+                  <select
+                    value={stats.country}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const flag = value === "INDIA" ? "🇮🇳" : value === "PAKISTAN" ? "🇵🇰" : value === "BANGLADESH" ? "🇧🇩" : "🇳🇵";
+                      updateStats({ country: value, countryFlag: flag });
+                      triggerToast(`Country updated to ${value}!`);
+                    }}
+                    className="px-3.5 py-2 bg-[#12061F] border border-purple-500/40 text-amber-300 font-black text-[10px] rounded-xl outline-none"
+                  >
+                    <option value="INDIA">INDIA</option>
+                    <option value="PAKISTAN">PAKISTAN</option>
+                    <option value="BANGLADESH">BANGLADESH</option>
+                    <option value="NEPAL">NEPAL</option>
+                  </select>
+                </div>
+
                 {/* UID Row */}
                 <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
                   <div className="flex flex-col">
@@ -1038,8 +1063,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
           avatarUrl: user?.avatar,
           equippedFrame: user?.equippedFrame || 'frame_default',
           level: myLevel,
-          country: "INDIA",
-          countryFlag: "🇮🇳",
+          country: stats.country || "INDIA",
+          countryFlag: stats.countryFlag || "🇮🇳",
           totalEarning,
           currentGold: myCoins,
           currentLeague,

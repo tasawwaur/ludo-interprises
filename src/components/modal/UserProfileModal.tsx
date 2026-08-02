@@ -57,26 +57,31 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-      {/* Outer Card with golden border */}
-      <div className="w-full max-w-[340px] bg-gradient-to-b from-[#8C1753] to-[#50082D] border-[3px] border-yellow-400 rounded-3xl shadow-[0_25px_60px_rgba(0,0,0,0.8)] text-white relative animate-in fade-in zoom-in-95 duration-200 p-4">
+      {/* Outer Card with luxury golden border background */}
+      <div 
+        style={{ backgroundImage: `url('/assets/images/icons/royal_profile_card_bg.jpg')` }}
+        className="w-full max-w-[340px] bg-cover bg-center rounded-[36px] shadow-[0_25px_60px_rgba(0,0,0,0.95)] text-white relative animate-in fade-in zoom-in-95 duration-200 p-6 pt-8 pb-6 border border-yellow-500/20"
+      >
+        {/* Dark semi-transparent overlay to ensure extreme text readability */}
+        <div className="absolute inset-0 bg-[#0c0316]/30 backdrop-blur-[0.5px] rounded-[36px] pointer-events-none z-0"></div>
         
         {/* Close Button: Red-orange square box with dynamic glow */}
         <button
           onClick={onClose}
-          className="absolute -top-2.5 -right-2.5 w-9 h-9 bg-gradient-to-b from-red-500 to-rose-600 border-[2.5px] border-yellow-400 rounded-xl flex items-center justify-center text-white font-black text-lg hover:brightness-110 active:scale-95 transition-transform z-[1000] shadow-md shadow-black/50"
+          className="absolute top-2 right-2 w-9 h-9 bg-gradient-to-b from-red-500 to-rose-600 border-[2.5px] border-yellow-400 rounded-xl flex items-center justify-center text-white font-black text-lg hover:brightness-110 active:scale-95 transition-transform z-[1000] shadow-md shadow-black/50"
         >
           ✕
         </button>
 
         {/* Title: #GameBuddy */}
-        <div className="w-full text-center -mt-2.5 mb-3 flex justify-center">
-          <span className="text-[9.5px] font-black text-pink-300 uppercase tracking-widest bg-[#50082D]/70 px-4 py-0.5 rounded-full border border-pink-500/20">
+        <div className="w-full text-center -mt-4 mb-3 flex justify-center relative z-10">
+          <span className="text-[9.5px] font-black text-pink-300 uppercase tracking-widest bg-black/60 px-4 py-0.5 rounded-full border border-pink-500/20">
             {isMe ? "#MyProfile" : "#GameBuddy"}
           </span>
         </div>
 
         {/* PROFILE HEADER SECTION */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 relative z-10">
           <div className="flex items-center gap-3">
             {/* Circular Avatar with equipped Frame */}
             <div className="w-20 h-20 relative flex-shrink-0">
@@ -124,7 +129,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         </div>
 
         {/* TWO COLUMN INFO BOXES */}
-        <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="grid grid-cols-2 gap-2 mb-4 relative z-10">
           {/* Column 1 */}
           <div className="flex flex-col gap-2">
             {/* Level Box */}
@@ -171,7 +176,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         </div>
 
         {/* STATS SECTION DIVIDER */}
-        <div className="relative flex items-center justify-center my-3.5">
+        <div className="relative flex items-center justify-center my-3.5 z-10">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-pink-500/20"></div>
           </div>
@@ -181,7 +186,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         </div>
 
         {/* 2x4 STATS GRID */}
-        <div className="grid grid-cols-2 gap-2 mb-2">
+        <div className="grid grid-cols-2 gap-2 mb-2 relative z-10">
           {/* Games Won */}
           <div className="bg-black/30 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
             <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">Games won</span>
@@ -231,7 +236,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
         {/* BOTTOM ACTION BUTTON: MUTE */}
         {!isMe && (
-          <div className="flex justify-center mt-2 flex-shrink-0">
+          <div className="flex justify-center mt-2 flex-shrink-0 relative z-10">
             <button
               onClick={() => setIsMuted(prev => !prev)}
               className={`w-full py-2 rounded-full font-black text-xs uppercase tracking-widest shadow border transition-all active:scale-95 flex items-center justify-center gap-2 ${
@@ -248,7 +253,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
         {/* Dynamic Gift / Remove Actions */}
         {!isMe && (onSendGift || onRemove) && (
-          <div className="flex flex-col gap-1.5 mt-2.5 pt-2.5 border-t border-pink-500/20">
+          <div className="flex flex-col gap-1.5 mt-2.5 pt-2.5 border-t border-pink-500/20 relative z-10">
             <div className="grid grid-cols-2 gap-2">
               {onSendGift && (
                 <>

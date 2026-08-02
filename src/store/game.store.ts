@@ -193,27 +193,7 @@ export const useGameStore = create<GameStoreState>()(
         turnTimerSeconds: nextState.gameStatus === 'ROLL_WAIT' ? 15 : 10,
       } as any);
 
-      // Automatically release token from yard on rolling a 6
-      const releaseMove = nextState.movableTokens.find((m) => m.fromStep === 0 && m.toStep === 1);
-      if (nextState.gameStatus === 'MOVE_WAIT' && releaseMove) {
-        const autoTokenId = releaseMove.tokenId;
-        set({ selectedTokenId: autoTokenId });
-        setTimeout(() => {
-          get().moveToken(autoTokenId);
-        }, 300);
-        return;
-      }
 
-      // Auto movement if there is exactly 1 legal move AND it's a 6
-      const shouldAutoMove = nextState.movableTokens.length === 1 && nextState.diceValue === 6;
-      if (nextState.gameStatus === 'MOVE_WAIT' && shouldAutoMove) {
-        const autoTokenId = nextState.movableTokens[0].tokenId;
-        set({ selectedTokenId: autoTokenId });
-        setTimeout(() => {
-          get().moveToken(autoTokenId);
-        }, 300);
-        return;
-      }
 
       setTimeout(() => {
         get().triggerAiMoveIfNeeded();

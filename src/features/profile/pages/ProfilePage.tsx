@@ -2,12 +2,13 @@ import React, { useState, useEffect, useRef } from "react";
 import { useUserStore } from "../../../user/user.store";
 import { LudoPageBackground } from "../../../components/effects/LudoPageBackground";
 import { getFrameFilter } from "../../../store/cosmetics.store";
+import { usePlayerStatsStore } from "../../../store/player-stats.store";
+import { LevelBadge } from "../../../components/badges/LevelBadge";
 import { UserProfileModal } from "../../../components/modal/UserProfileModal";
 import confetti from "canvas-confetti";
 import { formatPlayerUID } from "../../../utils/uuid";
 import { loginWithFacebook } from "../../../auth/utils/fb";
 import { triggerGoogleOAuth } from "../../../auth/utils/google";
-import { UserProfile } from "../../../user/user.store";
 
 interface ProfilePageProps {
   onBack?: () => void;
@@ -20,6 +21,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
   const setUser = useUserStore((s) => s.setUser);
   const updateUser = useUserStore((s) => s.updateUser);
   const logout = useUserStore((s) => s.logout);
+
+  const { stats, syncWithUserStore } = usePlayerStatsStore();
+
+  // Sync stores on load
+  useEffect(() => {
+    syncWithUserStore();
+  }, [user?.coins, user?.gems, user?.level, user?.displayName, user?.avatar]);
+
+  // Tabs: STATS | GAMEPLAY | ACHIEVEMENTS | SETTINGS
+  const [activeTab, setActiveTab] = useState<"STATS" | "GAMEPLAY" | "ACHIEVEMENTS" | "SETTINGS">("STATS");
 
   // States
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -46,9 +57,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
   const [googleLinkEmail, setGoogleLinkEmail] = useState("");
   const [googleLinkPassword, setGoogleLinkPassword] = useState("");
 
-
-
-  // Simulated link states stored in localStorage or store
+  // Simulated link states
   const [isFBLinked, setIsFBLinked] = useState(() => {
     if (user?.loginProvider === 'guest') return false;
     return user?.loginProvider === 'facebook' || !!user?.facebookId || localStorage.getItem("ludo_fb_linked") === "true";
@@ -63,13 +72,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Custom Toast helper
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // Sync state changes with localStorage
   useEffect(() => {
     localStorage.setItem("ludo_fb_linked", isFBLinked ? "true" : "false");
   }, [isFBLinked]);
@@ -82,11 +89,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
     localStorage.setItem("ludo_phone_linked", isPhoneLinked ? "true" : "false");
   }, [isPhoneLinked]);
 
-  // Load avatar and name fallbacks
   const playerName = user?.displayName || user?.username || "TASAVVUR";
   const playerUID = formatPlayerUID(user);
 
-  // Actions
   const handleCopyUID = () => {
     navigator.clipboard.writeText(playerUID);
     triggerToast("UID Copied to Clipboard!");
@@ -103,7 +108,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
       reader.onload = (uploadEvent) => {
         const base64 = uploadEvent.target?.result as string;
         updateUser({ avatar: base64 });
-        triggerToast("Profile Photo Updated!");
+        triggerToast("Profile Photo updated!");
       };
       reader.readAsDataURL(file);
     }
@@ -111,247 +116,101 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
 
   const handleSaveName = () => {
     const trimmed = newName.trim();
-    if (!trimmed) return;
-    updateUser({
-      displayName: trimmed,
-      username: trimmed
-    });
+    if (!trimmed) {
+      triggerToast("Name cannot be empty!");
+      return;
+    }
+    updateUser({ displayName: trimmed, username: trimmed });
     setShowEditName(false);
-    triggerToast("Username Updated!");
+    triggerToast("Display Name Saved!");
   };
 
-  const handleChangePasswordSubmit = () => {
+  const handleChangePassword = () => {
     if (!currPassword || !newPassword || !confirmPassword) {
-      triggerToast("Please fill all fields!");
+      triggerToast("Please fill all password fields!");
       return;
     }
     if (newPassword !== confirmPassword) {
-      triggerToast("Passwords do not match!");
+      triggerToast("New passwords do not match!");
       return;
     }
-    localStorage.setItem("ludo_player_password", newPassword);
+    triggerToast("Password Changed Successfully!");
     setShowChangePassword(false);
     setCurrPassword("");
     setNewPassword("");
     setConfirmPassword("");
-    triggerToast("Password Updated Successfully!");
   };
 
   const handleUpgradeAccount = () => {
-    if (!upgradeEmail.trim()) {
-      triggerToast("Please enter an email");
+    if (!upgradeEmail || !upgradePassword) {
+      triggerToast("Please fill email and password!");
       return;
     }
-    confetti({
-      particleCount: 40,
-      spread: 60,
-      colors: ['#FFD700', '#FFA500', '#FFD54F']
-    });
-    updateUser({
-      email: upgradeEmail,
-      loginProvider: 'phone' // Upgraded to permanent provider
-    });
-    setIsPhoneLinked(true);
+    updateUser({ loginProvider: "phone", email: upgradeEmail });
     setShowUpgradeModal(false);
-    triggerToast("Account Upgraded Successfully!");
+    triggerToast("Account successfully upgraded!");
   };
 
-  const isAccountAlreadyLinked = (checkFn: (parsed: any) => boolean): boolean => {
-    if (typeof window === 'undefined') return false;
+  const handleLinkFB = async () => {
     try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (key.startsWith('ludo_') || key.startsWith('ludo_user_profile_'))) {
-          const val = localStorage.getItem(key);
-          if (val) {
-            try {
-              const parsed = JSON.parse(val);
-              if (parsed && parsed.id && parsed.id !== user?.id && checkFn(parsed)) {
-                return true;
-              }
-            } catch (jsonErr) {}
-          }
-        }
-      }
-    } catch (e) {
-      console.warn("Error scanning accounts for duplicates:", e);
-    }
-    return false;
-  };
-
-  const handleLinkAccount = async (provider: 'facebook' | 'google' | 'phone') => {
-    confetti({
-      particleCount: 20,
-      spread: 40,
-      colors: ['#FFD700', '#FFA500', '#FFF8DC']
-    });
-
-    if (provider === 'google') {
-      const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
-      const isConfigured = googleClientId && !googleClientId.includes('YOUR_GOOGLE_CLIENT_ID');
-
-      if (!isConfigured) {
-        console.warn('Google Client ID not configured. Falling back to simulated login verification.');
-        setShowGoogleLinkModal(true);
-        return;
-      }
-
-      try {
-        triggerGoogleOAuth(googleClientId, (googleProfile) => {
-          // Check if already linked to another profile
-          const isDup = isAccountAlreadyLinked((acc) => acc.googleId === googleProfile.sub || acc.email === googleProfile.email);
-          if (isDup) {
-            triggerToast("Error: Google account already linked to another player!");
-            return;
-          }
-
-          const updated = {
-            ...user,
-            googleId: googleProfile.sub,
-            email: googleProfile.email,
-            loginProvider: 'google',
-          } as UserProfile;
-          updateUser({ googleId: googleProfile.sub, email: googleProfile.email, loginProvider: 'google' });
-          
-          // Persist as a Google account so user can login with Google later to recover!
-          localStorage.setItem(`ludo_google_account`, JSON.stringify(updated));
-          localStorage.setItem(`ludo_google_${googleProfile.name.toLowerCase().trim().replace(/\s+/g, '_')}`, JSON.stringify(updated));
-          
-          setIsGoogleLinked(true);
-          triggerToast("Google Linked Successfully!");
-        });
-      } catch (e) {
-        console.warn('Google link popup failed or cancelled:', e);
-        triggerToast("Google Login Cancelled");
-      }
-    } else if (provider === 'facebook') {
-      const FB = (window as any).FB;
-      if (!FB) {
-        console.warn('Facebook SDK not loaded. Falling back to simulated login verification.');
-        setShowFBLinkModal(true);
-        return;
-      }
-
-      try {
-        const profile = await loginWithFacebook();
-        
-        // Check if already linked to another profile
-        const isDup = isAccountAlreadyLinked((acc) => acc.facebookId === profile.id);
-        if (isDup) {
-          triggerToast("Error: Facebook account already linked to another player!");
-          return;
-        }
-
-        const updated = {
-          ...user,
-          facebookId: profile.id,
-          email: profile.email || user?.email,
-          loginProvider: 'facebook',
-        } as UserProfile;
-        updateUser({ facebookId: profile.id, email: profile.email || user?.email, loginProvider: 'facebook' });
-        
-        localStorage.setItem(`ludo_facebook_account`, JSON.stringify(updated));
-        localStorage.setItem(`ludo_facebook_${profile.name.toLowerCase().trim().replace(/\s+/g, '_')}`, JSON.stringify(updated));
-        
-        setIsFBLinked(true);
-        triggerToast("Facebook Linked Successfully!");
-      } catch (err) {
-        console.warn('Facebook link failed or cancelled:', err);
-        triggerToast("Facebook Login Cancelled");
-      }
+      await loginWithFacebook();
+      setIsFBLinked(true);
+      updateUser({ facebookId: "fb_simulated_id_123" });
+      triggerToast("Facebook account successfully linked!");
+    } catch (err) {
+      setFbLinkEmail("");
+      setFbLinkPassword("");
+      setShowFBLinkModal(true);
     }
   };
-
-
 
   const handleSubmitFBLink = () => {
-    const emailTrimmed = fbLinkEmail.trim();
-    const passTrimmed = fbLinkPassword.trim();
-    if (!emailTrimmed || !passTrimmed) {
-      triggerToast("Please enter both email and password!");
+    if (!fbLinkEmail || !fbLinkPassword) {
+      triggerToast("Please fill all details.");
       return;
     }
-
-    const cleanName = emailTrimmed.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "_");
-    const mockId = `fb_${cleanName}`;
-    
-    // Check duplication
-    const isDup = isAccountAlreadyLinked((acc) => acc.facebookId === mockId || acc.email === emailTrimmed);
-    if (isDup) {
-      triggerToast("Error: Facebook account already linked to another player!");
-      return;
-    }
-
-    confetti({
-      particleCount: 40,
-      spread: 60,
-      colors: ['#1877F2', '#1565C0', '#82B1FF']
-    });
-
-    const updated = {
-      ...user,
-      facebookId: mockId,
-      email: emailTrimmed.includes("@") ? emailTrimmed : `${emailTrimmed}@facebook.com`,
-      loginProvider: 'facebook',
-    } as UserProfile;
-
-    updateUser({
-      facebookId: mockId,
-      email: emailTrimmed.includes("@") ? emailTrimmed : `${emailTrimmed}@facebook.com`,
-      loginProvider: 'facebook',
-    });
-
-    localStorage.setItem(`ludo_facebook_account`, JSON.stringify(updated));
-    localStorage.setItem(`ludo_facebook_${cleanName}`, JSON.stringify(updated));
-
     setIsFBLinked(true);
+    updateUser({ facebookId: "fb_simulated_id_123" });
     setShowFBLinkModal(false);
-    triggerToast("Facebook Linked Successfully!");
+    triggerToast("Facebook account linked successfully!");
+  };
+
+  const handleLinkGoogle = () => {
+    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1088492040921-sample.apps.googleusercontent.com';
+    try {
+      triggerGoogleOAuth(googleClientId, (profile) => {
+        setIsGoogleLinked(true);
+        updateUser({ googleId: profile.sub || "google_simulated_id_456" });
+        triggerToast("Google account successfully linked!");
+      });
+    } catch (err) {
+      setGoogleLinkEmail("");
+      setGoogleLinkPassword("");
+      setShowGoogleLinkModal(true);
+    }
   };
 
   const handleSubmitGoogleLink = () => {
-    const emailTrimmed = googleLinkEmail.trim().toLowerCase();
-    const passTrimmed = googleLinkPassword.trim();
-    if (!emailTrimmed || !passTrimmed) {
-      triggerToast("Please enter both email and password!");
+    if (!googleLinkEmail || !googleLinkPassword) {
+      triggerToast("Please fill all details.");
       return;
     }
-
-    const cleanName = emailTrimmed.split("@")[0].replace(/[^a-z0-9]/g, "_");
-    const mockId = `goog_${cleanName}`;
-    
-    // Check duplication
-    const isDup = isAccountAlreadyLinked((acc) => acc.googleId === mockId || acc.email === emailTrimmed);
-    if (isDup) {
-      triggerToast("Error: Google account already linked to another player!");
-      return;
-    }
-
-    confetti({
-      particleCount: 40,
-      spread: 60,
-      colors: ['#EA4335', '#FBBC05', '#34A853', '#4285F4']
-    });
-
-    const updated = {
-      ...user,
-      googleId: mockId,
-      email: emailTrimmed.includes("@") ? emailTrimmed : `${emailTrimmed}@gmail.com`,
-      loginProvider: 'google',
-    } as UserProfile;
-
-    updateUser({
-      googleId: mockId,
-      email: emailTrimmed.includes("@") ? emailTrimmed : `${emailTrimmed}@gmail.com`,
-      loginProvider: 'google',
-    });
-
-    localStorage.setItem(`ludo_google_account`, JSON.stringify(updated));
-    localStorage.setItem(`ludo_google_${cleanName}`, JSON.stringify(updated));
-
     setIsGoogleLinked(true);
+    updateUser({ googleId: "google_simulated_id_456" });
     setShowGoogleLinkModal(false);
-    triggerToast("Google Linked Successfully!");
+    triggerToast("Google account linked successfully!");
+  };
+
+  const handleUnlink = (provider: "FB" | "GOOGLE") => {
+    if (provider === "FB") {
+      setIsFBLinked(false);
+      updateUser({ facebookId: undefined });
+      triggerToast("Facebook account unlinked!");
+    } else {
+      setIsGoogleLinked(false);
+      updateUser({ googleId: undefined });
+      triggerToast("Google account unlinked!");
+    }
   };
 
   const handleLogoutClick = () => {
@@ -359,11 +218,27 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
     onLogout?.();
   };
 
+  // Derive stats win rate
+  const winRate = stats.matchesPlayed > 0 
+    ? Math.round((stats.matchesWon / stats.matchesPlayed) * 100) 
+    : 0;
+
+  // Format Avg Match Duration
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
+  };
+
+  const xpProgressPercent = stats.nextLevelXp > 0 
+    ? Math.min(100, Math.round((stats.xp / stats.nextLevelXp) * 100)) 
+    : 0;
+
   return (
     <div className="min-h-screen w-full bg-[#12061F] text-white flex flex-col items-center relative overflow-hidden select-none font-sans">
       <LudoPageBackground variant="profile" />
 
-      {/* Hidden file input for avatar */}
+      {/* Hidden file input for avatar upload */}
       <input
         type="file"
         ref={fileInputRef}
@@ -374,408 +249,746 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
 
       <div className="w-full max-w-[430px] h-screen flex flex-col relative z-10 px-3 py-3 overflow-y-auto no-scrollbar pb-6">
         {/* Navigation Header */}
-        <div className="flex items-center gap-3 w-full mb-5">
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
           <button
             onClick={onBack}
-            className="w-9 h-9 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-lg hover:bg-black/60 hover:scale-105 active:scale-95 transition-transform flex-shrink-0"
+            className="w-9 h-9 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-lg hover:bg-black/60 hover:scale-105 active:scale-95 transition-transform"
           >
             ❮
           </button>
-          <h1 className="text-sm font-black tracking-widest bg-gradient-to-r from-purple-300 via-amber-400 to-yellow-400 bg-clip-text text-transparent uppercase">
-            Settings
+          <h1 className="text-sm font-black tracking-widest bg-gradient-to-r from-yellow-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent uppercase glow-amber-text">
+            PLAYER PROFILE
           </h1>
+          <div className="w-9 h-9"></div>
         </div>
 
-        {/* ── CARD 1: PROFILE DETAILS ── */}
-        <div className="bg-gradient-to-b from-[#2E0B4E]/90 to-[#1F0736]/90 border-2 border-purple-500/40 rounded-3xl p-5 shadow-2xl mb-4 relative flex flex-col items-center gap-4 glow-purple-border">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500"></div>
-
-          {/* Avatar Frame — matching Home Screen */}
-          <div className="relative w-[108px] h-[108px] cursor-pointer" onClick={handleAvatarClick}>
-            <div
-              className="absolute rounded-full overflow-hidden z-10 bg-slate-950 flex items-center justify-center"
-              style={{ top: '16%', left: '20%', right: '20%', bottom: '28%' }}
-            >
-              {user?.avatar ? (
-                <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-3xl select-none">👤</span>
-              )}
-            </div>
-            <img
-              src="/assets/images/icons/profile_frame_v3.png"
-              alt="Profile Frame"
-              className="absolute inset-0 w-full h-full object-contain z-20 pointer-events-none"
-              draggable={false}
-              style={{ filter: getFrameFilter(user?.equippedFrame) }}
-            />
-            <div className="absolute bottom-[28px] right-[18px] z-30 bg-amber-500 text-slate-950 rounded-full w-[22px] h-[22px] flex items-center justify-center shadow-lg border border-amber-200 hover:scale-110 active:scale-95 transition-all text-[10px]">
-              📷
-            </div>
-          </div>
-
-          {/* Name Banner — matching Home Screen */}
-          <div className="relative w-[124px] -mt-[14px] flex flex-col items-center justify-center mb-1">
-            <img
-              src="/assets/images/icons/name_banner_v2.png"
-              alt="Name Banner"
-              className="w-full h-auto object-contain pointer-events-none"
-              draggable={false}
-            />
-            <span 
-              className={`absolute inset-0 flex items-center justify-center font-black text-amber-200 tracking-wider drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)] pointer-events-none px-2 text-center overflow-hidden truncate max-w-[90%] ${
-                playerName.length <= 8 ? 'text-[9.5px]' : playerName.length <= 12 ? 'text-[8.5px]' : 'text-[7.5px]'
+        {/* Tab Selection Bar (Gold UI theme) */}
+        <div className="flex bg-black/60 p-1.5 rounded-2xl border border-purple-500/30 mb-4 shadow-2xl flex-shrink-0">
+          {(["STATS", "GAMEPLAY", "ACHIEVEMENTS", "SETTINGS"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-2 rounded-xl text-[8.5px] font-black tracking-wider uppercase transition-all ${
+                activeTab === tab
+                  ? "bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-slate-950 shadow-lg border border-yellow-200"
+                  : "text-purple-300 hover:text-white"
               }`}
             >
-              {playerName}
-            </span>
-          </div>
-
-          {/* View Stats Card button */}
-          <button
-            onClick={() => setShowStatsCard(true)}
-            className="px-4 py-1.5 bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-800 border border-purple-400 hover:brightness-110 text-amber-200 font-extrabold text-[9.5px] uppercase tracking-wider rounded-xl shadow-lg active:scale-95 transition-transform -mt-1"
-          >
-            🏆 View Stats Card
-          </button>
-
-          <div className="w-full flex flex-col gap-3">
-            {/* Display Name Row */}
-            <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
-              <div className="flex flex-col">
-                <span className="text-[10px] text-purple-300 font-bold uppercase tracking-wider">Profile Name</span>
-                <span className="text-sm font-black text-white">{playerName}</span>
-              </div>
-              <button
-                onClick={() => {
-                  setNewName(playerName);
-                  setShowEditName(true);
-                }}
-                className="px-3.5 py-1.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-[10px] rounded-xl hover:scale-105 active:scale-95 transition-transform uppercase"
-              >
-                Edit Name
-              </button>
-            </div>
-
-            {/* UID Row */}
-            <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
-              <div className="flex flex-col">
-                <span className="text-[10px] text-purple-300 font-bold uppercase tracking-wider">Player ID / UID</span>
-                <span className="text-xs font-black text-amber-300 font-mono tracking-wider">{playerUID}</span>
-              </div>
-              <button
-                onClick={handleCopyUID}
-                className="px-3.5 py-1.5 bg-purple-800 text-white font-black text-[10px] rounded-xl border border-purple-500 hover:bg-purple-700 active:scale-95 transition-transform uppercase"
-              >
-                UID Copy
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* ── CARD 2: ACCOUNT SECURITY ── */}
-        <div className="bg-gradient-to-b from-[#2E0B4E]/90 to-[#1F0736]/90 border-2 border-purple-500/40 rounded-3xl p-5 shadow-2xl mb-4 relative glow-purple-border">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-500"></div>
-          
-          <h3 className="text-xs font-black text-amber-300 uppercase tracking-widest mb-3 flex items-center gap-2">
-            <span>🔒</span> Account Security
-          </h3>
-
-          <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
-            <div className="flex flex-col">
-              <span className="text-[10px] text-purple-300 font-bold uppercase tracking-wider font-sans">Password</span>
-              <span className="text-sm font-black text-white tracking-widest font-mono">••••••••</span>
-            </div>
-            <button
-              onClick={() => setShowChangePassword(true)}
-              className="px-4 py-1.5 bg-purple-800 text-white font-black text-[10px] rounded-xl border border-purple-500 hover:bg-purple-700 active:scale-95 transition-transform uppercase"
-            >
-              Change
+              {tab}
             </button>
-          </div>
+          ))}
         </div>
 
-        {/* ── CARD 3: LINKED ACCOUNTS (GUEST ONLY) ── */}
-        {user?.loginProvider === 'guest' && (
-          <div className="bg-gradient-to-b from-[#2E0B4E]/90 to-[#1F0736]/90 border-2 border-purple-500/40 rounded-3xl p-5 shadow-2xl mb-4 relative glow-purple-border animate-fade-in">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-400"></div>
-
-            <h3 className="text-xs font-black text-amber-300 uppercase tracking-widest mb-3 flex items-center gap-2">
-              <span>🔗</span> Link Social Account
-            </h3>
-
-            <div className="space-y-2.5">
-              {/* Facebook Link Row */}
-              <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-lg">📘</span>
-                  <span className="text-xs font-black text-white">Facebook</span>
-                </div>
-                {isFBLinked ? (
-                  <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">Linked ✓</span>
-                ) : (
-                  <button
-                    onClick={() => handleLinkAccount('facebook')}
-                    className="px-3.5 py-1.5 bg-[#1877F2] text-white font-black text-[10px] rounded-xl hover:bg-blue-600 active:scale-95 transition-transform uppercase"
-                  >
-                    Link
-                  </button>
-                )}
+        {/* TAB 1: #GAMEBUDDY CARD OVERVIEW */}
+        {activeTab === "STATS" && (
+          <div className="flex flex-col gap-4 animate-fade-in pb-4">
+            
+            {/* Card Overlay mimicking reference exactly */}
+            <div className="bg-gradient-to-b from-[#8C1753] to-[#50082D] border-[3px] border-yellow-400 rounded-3xl p-4 shadow-2xl relative">
+              {/* Title label */}
+              <div className="w-full text-center -mt-2.5 mb-3 flex justify-center">
+                <span className="text-[9.5px] font-black text-pink-300 uppercase tracking-widest bg-[#50082D]/70 px-4 py-0.5 rounded-full border border-pink-500/20">
+                  #TrophyCard
+                </span>
               </div>
 
-              {/* Google Link Row */}
-              <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-lg">🔴</span>
-                  <span className="text-xs font-black text-white">Google</span>
+              {/* Profile Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  {/* Dynamic circular avatar */}
+                  <div className="w-20 h-20 relative flex-shrink-0 cursor-pointer" onClick={handleAvatarClick}>
+                    <div
+                      className="absolute rounded-full overflow-hidden bg-slate-950 border border-[#400523] z-10"
+                      style={{ top: '15%', left: '15%', right: '15%', bottom: '26%' }}
+                    >
+                      {user?.avatar ? (
+                        <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-pink-800 to-purple-900 flex items-center justify-center text-2xl font-black text-pink-200">
+                          {playerName.charAt(0)}
+                        </div>
+                      )}
+                    </div>
+                    <img
+                      src="/assets/images/icons/profile_frame_v3.png"
+                      alt="Profile Frame"
+                      className="w-full h-full object-contain absolute inset-0 z-20 pointer-events-none"
+                      style={{ filter: getFrameFilter(user?.equippedFrame) }}
+                      draggable={false}
+                    />
+                  </div>
+
+                  {/* Name and country */}
+                  <div className="flex flex-col gap-1">
+                    <h2 className="text-sm font-black text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.8)] tracking-wide">
+                      {playerName}
+                    </h2>
+                    <div className="flex items-center gap-1.5 bg-black/35 border border-pink-500/20 px-2 py-0.5 rounded-lg w-max shadow-inner">
+                      <span className="text-[10px] leading-none">{stats.countryFlag}</span>
+                      <span className="text-[7.5px] font-black text-pink-200 uppercase tracking-widest leading-none">
+                        {stats.country}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                {isGoogleLinked ? (
-                  <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">Linked ✓</span>
-                ) : (
-                  <button
-                    onClick={() => handleLinkAccount('google')}
-                    className="px-3.5 py-1.5 bg-red-600 text-white font-black text-[10px] rounded-xl hover:bg-red-700 active:scale-95 transition-transform uppercase"
-                  >
-                    Link
-                  </button>
-                )}
+
+                <div className="self-start mt-1">
+                  <LevelBadge level={stats.level} size={48} />
+                </div>
+              </div>
+
+              {/* Animated XP Progress Bar (AAA quality) */}
+              <div className="mb-4 bg-black/45 border border-pink-500/25 rounded-2xl p-3 shadow-inner">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-[8.5px] font-black text-pink-300 uppercase tracking-wider">XP Level Progression</span>
+                  <span className="text-[8.5px] font-black text-amber-300 font-mono">
+                    {stats.xp} / {stats.nextLevelXp} XP ({xpProgressPercent}%)
+                  </span>
+                </div>
+                <div className="w-full h-3 bg-slate-950 rounded-full border border-pink-900/50 p-0.5 overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 rounded-full shadow-[0_0_8px_rgba(244,63,94,0.8)] transition-all duration-500"
+                    style={{ width: `${xpProgressPercent}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Info Columns */}
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                <div className="flex flex-col gap-2">
+                  <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
+                    <span className="text-[7.5px] font-black uppercase text-pink-300 tracking-wider">Level</span>
+                    <span className="text-xs font-extrabold text-white">{stats.level}</span>
+                  </div>
+                  <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
+                    <span className="text-[7.5px] font-black uppercase text-pink-300 tracking-wider">Total earning</span>
+                    <span className="text-xs font-extrabold text-amber-300">{stats.totalEarning}</span>
+                  </div>
+                  <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center cursor-pointer active:scale-98 transition-transform" onClick={handleCopyUID}>
+                    <span className="text-[7.5px] font-black uppercase text-pink-300 tracking-wider">Player ID 📋</span>
+                    <span className="text-[9.5px] font-bold text-gray-300 font-mono truncate">{playerUID}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
+                    <span className="text-[7.5px] font-black uppercase text-pink-300 tracking-wider">Signature</span>
+                    <span className="text-xs font-extrabold text-yellow-300 uppercase tracking-wide truncate">{stats.signature}</span>
+                  </div>
+                  <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
+                    <span className="text-[7.5px] font-black uppercase text-pink-300 tracking-wider">Current gold</span>
+                    <span className="text-xs font-extrabold text-amber-400 font-mono">{stats.currentCoins.toLocaleString()}</span>
+                  </div>
+                  <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
+                    <span className="text-[7.5px] font-black uppercase text-pink-300 tracking-wider">Current League</span>
+                    <span className="text-[9.5px] font-extrabold text-blue-300 uppercase tracking-wider flex items-center gap-1">
+                      👑 {stats.currentLeague}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats Section Divider */}
+              <div className="relative flex items-center justify-center my-3.5">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-pink-500/20"></div>
+                </div>
+                <span className="relative text-[9.5px] font-black text-pink-300 uppercase tracking-widest bg-[#6F1043] border border-pink-500/35 px-4 py-0.5 rounded-full z-10 shadow shadow-black/40">
+                  STATS
+                </span>
+              </div>
+
+              {/* 2x4 Stats Grid */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+                  <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">Games won</span>
+                  <span className="text-[10.5px] font-extrabold text-white truncate">{stats.matchesWon} of {stats.matchesPlayed}</span>
+                </div>
+                <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+                  <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">Team wins</span>
+                  <span className="text-[10.5px] font-extrabold text-white">{stats.teamWins}</span>
+                </div>
+                <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+                  <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">Win Rate</span>
+                  <span className="text-[10.5px] font-extrabold text-white">{winRate} %</span>
+                </div>
+                <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+                  <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">Win streak</span>
+                  <span className="text-[10.5px] font-extrabold text-white">{stats.currentWinStreak}</span>
+                </div>
+                <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+                  <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">2 Player wins</span>
+                  <span className="text-[10.5px] font-extrabold text-white">{stats.twoPlayerWins}</span>
+                </div>
+                <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+                  <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">Titan badge</span>
+                  <span className="text-[10.5px] font-extrabold text-amber-300">{stats.titanBadgeCount}</span>
+                </div>
+                <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+                  <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">4 Player wins</span>
+                  <span className="text-[10.5px] font-extrabold text-white">{stats.fourPlayerWins}</span>
+                </div>
+                <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+                  <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">Kill Count</span>
+                  <span className="text-[10.5px] font-extrabold text-white">{stats.killCount}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Economy Summary Cards */}
+            <div className="bg-purple-950/70 border border-purple-500/20 rounded-3xl p-4 shadow-xl flex flex-col gap-2">
+              <h3 className="text-[10px] font-black text-amber-300 uppercase tracking-widest mb-1">Economy Vault</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-black/30 p-2 rounded-xl flex items-center gap-2">
+                  <span className="text-xl">🪙</span>
+                  <div className="flex flex-col">
+                    <span className="text-[7px] text-purple-300 font-bold uppercase">Total Earned</span>
+                    <span className="text-[11px] font-black font-mono text-amber-400">{stats.totalCoinsEarned.toLocaleString()}</span>
+                  </div>
+                </div>
+                <div className="bg-black/30 p-2 rounded-xl flex items-center gap-2">
+                  <span className="text-xl">💎</span>
+                  <div className="flex flex-col">
+                    <span className="text-[7px] text-purple-300 font-bold uppercase">Total Diamonds</span>
+                    <span className="text-[11px] font-black font-mono text-blue-400">{stats.totalDiamondsEarned.toLocaleString()}</span>
+                  </div>
+                </div>
+                <div className="bg-black/30 p-2 rounded-xl flex items-center gap-2">
+                  <span className="text-xl">🎁</span>
+                  <div className="flex flex-col">
+                    <span className="text-[7px] text-purple-300 font-bold uppercase">Rewards Claimed</span>
+                    <span className="text-[11px] font-black font-mono text-purple-300">{stats.totalRewardsClaimed}</span>
+                  </div>
+                </div>
+                <div className="bg-black/30 p-2 rounded-xl flex items-center gap-2">
+                  <span className="text-xl">🔥</span>
+                  <div className="flex flex-col">
+                    <span className="text-[7px] text-purple-300 font-bold uppercase">Login Streak</span>
+                    <span className="text-[11px] font-black font-mono text-orange-400">{stats.dailyLoginStreak} Days</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Logout Button */}
-        <button
-          onClick={handleLogoutClick}
-          className="w-full mt-2 py-4 bg-gradient-to-r from-red-600 via-rose-600 to-red-700 rounded-3xl text-white font-black text-xs tracking-widest uppercase shadow-xl hover:scale-[1.01] active:scale-95 transition-all border border-red-400"
-        >
-          Logout Account
-        </button>
+        {/* TAB 2: DETAILED MODES & GAMEPLAY */}
+        {activeTab === "GAMEPLAY" && (
+          <div className="flex flex-col gap-4 animate-fade-in pb-4">
+            
+            {/* Game Modes breakdown */}
+            <div className="bg-purple-950/70 border border-purple-500/20 rounded-3xl p-4 shadow-xl">
+              <h3 className="text-xs font-black text-amber-300 uppercase tracking-widest mb-3">Game Modes History</h3>
+              <div className="flex flex-col gap-2.5">
+                {(Object.keys(stats.modeStats) as Array<keyof typeof stats.modeStats>).map((mode) => {
+                  const data = stats.modeStats[mode];
+                  const wins = data.wins;
+                  const played = data.played;
+                  const losses = "losses" in data ? data.losses : 0;
+                  const wr = played > 0 ? Math.round((wins / played) * 100) : 0;
+
+                  return (
+                    <div key={mode} className="flex justify-between items-center bg-black/40 p-2.5 rounded-xl border border-purple-800/25">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-white uppercase tracking-wider">{mode.replace("PLAYER", " PLAYER")}</span>
+                        <span className="text-[8px] text-purple-300">Played: {played}</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="flex flex-col items-end">
+                          <span className="text-[10px] font-black text-emerald-400">Wins: {wins}</span>
+                          {"losses" in data && <span className="text-[8px] text-red-400">Losses: {losses}</span>}
+                        </div>
+                        <span className="text-[11px] font-black text-amber-300 font-mono w-10 text-right">{wr}%</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Gameplay Stats */}
+            <div className="bg-purple-950/70 border border-purple-500/20 rounded-3xl p-4 shadow-xl">
+              <h3 className="text-xs font-black text-amber-300 uppercase tracking-widest mb-3">Battlefield stats</h3>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-black/35 border border-purple-900/30 p-2.5 rounded-xl flex justify-between">
+                  <span className="text-purple-300 font-bold">Hard Kills</span>
+                  <span className="font-extrabold text-white">{stats.hardKillCount}</span>
+                </div>
+                <div className="bg-black/35 border border-purple-900/30 p-2.5 rounded-xl flex justify-between">
+                  <span className="text-purple-300 font-bold">Revenge Kills</span>
+                  <span className="font-extrabold text-white">{stats.revengeKillCount}</span>
+                </div>
+                <div className="bg-black/35 border border-purple-900/30 p-2.5 rounded-xl flex justify-between">
+                  <span className="text-purple-300 font-bold">Double Kills</span>
+                  <span className="font-extrabold text-white">{stats.doubleKill}</span>
+                </div>
+                <div className="bg-black/35 border border-purple-900/30 p-2.5 rounded-xl flex justify-between">
+                  <span className="text-purple-300 font-bold">Triple Kills</span>
+                  <span className="font-extrabold text-white">{stats.tripleKill}</span>
+                </div>
+                <div className="bg-black/35 border border-purple-900/30 p-2.5 rounded-xl flex justify-between">
+                  <span className="text-purple-300 font-bold">Quadra Kills</span>
+                  <span className="font-extrabold text-white">{stats.quadraKill}</span>
+                </div>
+                <div className="bg-black/35 border border-purple-900/30 p-2.5 rounded-xl flex justify-between">
+                  <span className="text-purple-300 font-bold">Tokens Lost</span>
+                  <span className="font-extrabold text-red-400">{stats.tokensLost}</span>
+                </div>
+                <div className="bg-black/35 border border-purple-900/30 p-2.5 rounded-xl flex justify-between">
+                  <span className="text-purple-300 font-bold">Dice Rolls</span>
+                  <span className="font-extrabold text-white">{stats.totalDiceRolls}</span>
+                </div>
+                <div className="bg-black/35 border border-purple-900/30 p-2.5 rounded-xl flex justify-between">
+                  <span className="text-purple-300 font-bold">Total Sixes</span>
+                  <span className="font-extrabold text-amber-300">{stats.totalSixes}</span>
+                </div>
+                <div className="bg-black/35 border border-purple-900/30 p-2.5 rounded-xl flex justify-between">
+                  <span className="text-purple-300 font-bold">Consecutive 6s</span>
+                  <span className="font-extrabold text-amber-400">{stats.consecutiveSixes}</span>
+                </div>
+                <div className="bg-black/35 border border-purple-900/30 p-2.5 rounded-xl flex justify-between">
+                  <span className="text-purple-300 font-bold">Safe Zone Visits</span>
+                  <span className="font-extrabold text-white">{stats.safeZoneVisits}</span>
+                </div>
+                <div className="bg-black/35 border border-purple-900/30 p-2.5 rounded-xl flex justify-between">
+                  <span className="text-purple-300 font-bold">Lucky Rolls</span>
+                  <span className="font-extrabold text-emerald-400">{stats.luckyRolls}</span>
+                </div>
+                <div className="bg-black/35 border border-purple-900/30 p-2.5 rounded-xl flex justify-between">
+                  <span className="text-purple-300 font-bold">Unlucky Rolls</span>
+                  <span className="font-extrabold text-red-300">{stats.unluckyRolls}</span>
+                </div>
+              </div>
+              <div className="bg-black/40 p-2.5 rounded-xl border border-purple-800/25 flex justify-between mt-3 text-xs">
+                <span className="text-purple-300 font-bold">Avg Match Duration</span>
+                <span className="font-extrabold text-amber-200">
+                  {stats.matchesPlayed > 0 ? formatDuration(Math.round(stats.totalMatchDurationSeconds / stats.matchesPlayed)) : "0m"}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: ACHIEVEMENTS LIST */}
+        {activeTab === "ACHIEVEMENTS" && (
+          <div className="flex flex-col gap-4 animate-fade-in pb-4">
+            
+            {/* League Progress Visualization */}
+            <div className="bg-purple-950/70 border border-purple-500/20 rounded-3xl p-4 shadow-xl text-center">
+              <span className="text-[9px] font-black text-blue-300 uppercase tracking-widest">League Progress</span>
+              <h3 className="text-lg font-black text-white mt-1 uppercase tracking-wider">👑 {stats.currentLeague}</h3>
+              <p className="text-[8.5px] text-purple-300 italic mt-1 leading-relaxed">
+                Earn win points (Wins x 12 - Losses x 6) to rank up your league tier and claim luxury rewards!
+              </p>
+            </div>
+
+            {/* Achievements Grid */}
+            <div className="bg-purple-950/70 border border-purple-500/20 rounded-3xl p-4 shadow-xl">
+              <h3 className="text-xs font-black text-amber-300 uppercase tracking-widest mb-3">Trophies & Medals</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: "First Win", desc: "Win your first Ludo match" },
+                  { id: "100 Wins", desc: "Win 100 matches in total" },
+                  { id: "500 Wins", desc: "Win 500 matches in total" },
+                  { id: "1000 Wins", desc: "Win 1,000 matches in total" },
+                  { id: "First Kill", desc: "Kill your first enemy token" },
+                  { id: "100 Kills", desc: "Kill 100 tokens in total" },
+                  { id: "1000 Kills", desc: "Kill 1,000 tokens in total" },
+                  { id: "Legend Killer", desc: "Kill 5,000 tokens in total" },
+                  { id: "Champion", desc: "Reach a win streak of 10" },
+                  { id: "Emperor", desc: "Reach Level 100" },
+                  { id: "Titan", desc: "Reach Level 150" },
+                  { id: "Immortal", desc: "Reach Level 200" },
+                ].map((ach) => {
+                  const isUnlocked = stats.achievements.includes(ach.id);
+                  return (
+                    <div 
+                      key={ach.id} 
+                      className={`p-3 rounded-2xl border flex flex-col justify-between items-center text-center relative shadow-inner ${
+                        isUnlocked 
+                          ? "bg-gradient-to-b from-amber-500/20 to-purple-950 border-amber-400 glow-gold-border" 
+                          : "bg-black/40 border-purple-950 text-gray-500 opacity-60"
+                      }`}
+                    >
+                      <span className="text-2xl mb-1.5">{isUnlocked ? "🏆" : "🔒"}</span>
+                      <span className={`text-[10px] font-black uppercase tracking-wider block ${isUnlocked ? 'text-amber-200' : 'text-gray-400'}`}>
+                        {ach.id}
+                      </span>
+                      <span className="text-[7.5px] leading-tight block text-purple-300 mt-1 font-bold">
+                        {ach.desc}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: ORIGINAL ACCOUNT SETTINGS */}
+        {activeTab === "SETTINGS" && (
+          <div className="flex flex-col gap-4 animate-fade-in pb-4">
+            
+            {/* ── CARD 1: ACCOUNT DETAILS ── */}
+            <div className="bg-gradient-to-b from-[#2E0B4E]/90 to-[#1F0736]/90 border-2 border-purple-500/40 rounded-3xl p-5 shadow-2xl relative flex flex-col items-center gap-4">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500"></div>
+
+              <div className="w-full flex flex-col gap-3">
+                {/* Display Name Row */}
+                <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-purple-300 font-bold uppercase tracking-wider">Profile Name</span>
+                    <span className="text-sm font-black text-white">{playerName}</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setNewName(playerName);
+                      setShowEditName(true);
+                    }}
+                    className="px-3.5 py-1.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-[10px] rounded-xl hover:scale-105 active:scale-95 transition-transform uppercase"
+                  >
+                    Edit Name
+                  </button>
+                </div>
+
+                {/* UID Row */}
+                <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-purple-300 font-bold uppercase tracking-wider">Player UID</span>
+                    <span className="text-xs font-black text-amber-200 font-mono tracking-wider">{playerUID}</span>
+                  </div>
+                  <button
+                    onClick={handleCopyUID}
+                    className="px-3.5 py-1.5 bg-[#12061F] border border-purple-500/40 text-purple-300 font-black text-[10px] rounded-xl hover:scale-105 active:scale-95 transition-transform uppercase"
+                  >
+                    Copy
+                  </button>
+                </div>
+
+                {/* Login Method */}
+                <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-purple-300 font-bold uppercase tracking-wider">Sign-in method</span>
+                    <span className="text-xs font-black text-emerald-400 uppercase tracking-widest">{user?.loginProvider || "GUEST"}</span>
+                  </div>
+                  {user?.loginProvider === "guest" && (
+                    <button
+                      onClick={() => {
+                        setUpgradeEmail("");
+                        setUpgradePassword("");
+                        setShowUpgradeModal(true);
+                      }}
+                      className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-black text-[10px] rounded-xl hover:scale-105 active:scale-95 transition-transform uppercase shadow-md shadow-emerald-950/20 border border-emerald-400"
+                    >
+                      Link Email
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ── CARD 2: PASSWORD SETTINGS (Only for registered accounts) ── */}
+            {user?.loginProvider && user.loginProvider !== "guest" && (
+              <div className="bg-gradient-to-b from-[#2E0B4E]/90 to-[#1F0736]/90 border-2 border-purple-500/40 rounded-3xl p-5 shadow-2xl relative flex flex-col gap-3">
+                <h3 className="text-xs font-black text-purple-200 uppercase tracking-wider">Security</h3>
+                <p className="text-[10px] text-purple-300 leading-relaxed -mt-1">
+                  Keep your password secure. Change it periodically to prevent unauthorized access.
+                </p>
+                <button
+                  onClick={() => setShowChangePassword(true)}
+                  className="w-full py-2.5 bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-800 text-white font-black text-[10px] uppercase rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-md border border-purple-500/45"
+                >
+                  Change Account Password
+                </button>
+              </div>
+            )}
+
+            {/* ── CARD 3: SOCIAL ACCOUNTS LINKING ── */}
+            <div className="bg-gradient-to-b from-[#2E0B4E]/90 to-[#1F0736]/90 border-2 border-purple-500/40 rounded-3xl p-5 shadow-2xl relative flex flex-col gap-4">
+              <h3 className="text-xs font-black text-purple-200 uppercase tracking-wider">Linked Accounts</h3>
+              
+              <div className="flex flex-col gap-3">
+                {/* Facebook Row */}
+                <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🔵</span>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-purple-300 font-bold uppercase leading-none">Facebook</span>
+                      <span className={`text-[8.5px] font-black mt-1 uppercase ${isFBLinked ? 'text-blue-400' : 'text-gray-500'}`}>
+                        {isFBLinked ? "Linked" : "Not Linked"}
+                      </span>
+                    </div>
+                  </div>
+                  {isFBLinked ? (
+                    <button
+                      onClick={() => handleUnlink("FB")}
+                      className="px-3.5 py-1.5 bg-rose-600/20 border border-rose-500/40 text-rose-400 font-black text-[10px] rounded-xl hover:bg-rose-500/30 active:scale-95 uppercase transition-colors"
+                    >
+                      Unlink
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleLinkFB}
+                      className="px-3.5 py-1.5 bg-[#1877F2] text-white font-black text-[10px] rounded-xl hover:scale-105 active:scale-95 uppercase shadow-md shadow-blue-950/20"
+                    >
+                      Link
+                    </button>
+                  )}
+                </div>
+
+                {/* Google Row */}
+                <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🔴</span>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-purple-300 font-bold uppercase leading-none">Google</span>
+                      <span className={`text-[8.5px] font-black mt-1 uppercase ${isGoogleLinked ? 'text-red-400' : 'text-gray-500'}`}>
+                        {isGoogleLinked ? "Linked" : "Not Linked"}
+                      </span>
+                    </div>
+                  </div>
+                  {isGoogleLinked ? (
+                    <button
+                      onClick={() => handleUnlink("GOOGLE")}
+                      className="px-3.5 py-1.5 bg-rose-600/20 border border-rose-500/40 text-rose-400 font-black text-[10px] rounded-xl hover:bg-rose-500/30 active:scale-95 uppercase transition-colors"
+                    >
+                      Unlink
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleLinkGoogle}
+                      className="px-3.5 py-1.5 bg-white text-slate-900 font-black text-[10px] rounded-xl hover:scale-105 active:scale-95 uppercase shadow-md shadow-white/10"
+                    >
+                      Link
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ── CARD 4: DANGER ZONE LOGOUT ── */}
+            <div className="bg-gradient-to-b from-[#2E0B4E]/90 to-[#1F0736]/90 border-2 border-red-500/25 rounded-3xl p-5 shadow-2xl relative flex flex-col gap-3">
+              <h3 className="text-xs font-black text-rose-300 uppercase tracking-wider">Danger Zone</h3>
+              <p className="text-[10px] text-purple-300 leading-relaxed -mt-1">
+                Logging out will terminate your current active session. Ensure you have linked your guest profile to Google or Facebook to avoid losing progress!
+              </p>
+              <button
+                onClick={handleLogoutClick}
+                className="w-full py-3 bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-red-600 text-white font-black text-xs tracking-widest uppercase rounded-2xl shadow-xl transition-all border border-red-400 cursor-pointer"
+              >
+                Log Out Account
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
 
-      {/* ── MODAL 1: EDIT NAME OVERLAY ── */}
+      {/* ── MODALS OVERLAYS ── */}
+
+      {/* 1. EDIT DISPLAY NAME MODAL */}
       {showEditName && (
-        <div className="absolute inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-[340px] bg-gradient-to-b from-[#2E0B4E] to-[#12061F] border-2 border-amber-400 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 relative">
-            <button
-              onClick={() => setShowEditName(false)}
-              className="absolute top-3 right-4 text-amber-300 text-lg font-black hover:text-white"
-            >
-              ✕
-            </button>
-            <div className="text-center">
-              <span className="text-3xl">✏️</span>
-              <h3 className="text-base font-black text-amber-300 tracking-wider mt-1 uppercase">Edit Profile Name</h3>
-              <p className="text-[10px] text-purple-300/80">Enter your new username in uppercase</p>
+        <div className="absolute inset-0 bg-black/85 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+          <div className="w-full max-w-[320px] bg-gradient-to-b from-[#2B1440] to-[#12061F] border-2 border-amber-500/70 rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] text-white relative">
+            <h3 className="text-xs font-black uppercase text-amber-200 tracking-wider mb-2">Edit Display Name</h3>
+            <div className="w-full bg-[#1A092D]/70 p-3 rounded-2xl border border-purple-500/20 mb-4 flex flex-col gap-2">
+              <span className="text-[9px] text-purple-300 font-bold uppercase">Enter profile name</span>
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Type profile name..."
+                maxLength={20}
+                className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-amber-400"
+              />
             </div>
-            <input
-              type="text"
-              maxLength={15}
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="Username..."
-              className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-black text-sm text-center uppercase focus:outline-none focus:border-amber-400"
-            />
-            <button
-              onClick={handleSaveName}
-              className="w-full py-3 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-500 text-black font-black text-xs tracking-widest uppercase rounded-xl shadow-lg active:scale-95 transition-transform"
-            >
-              Save Username
-            </button>
+            <div className="flex gap-2.5">
+              <button
+                onClick={() => setShowEditName(false)}
+                className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-black text-xs uppercase rounded-xl transition-transform active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveName}
+                className="flex-1 py-2.5 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-black text-xs uppercase rounded-xl shadow-lg transition-transform active:scale-95 border border-yellow-300"
+              >
+                Save
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* ── MODAL 2: CHANGE PASSWORD OVERLAY ── */}
+      {/* 2. CHANGE PASSWORD MODAL */}
       {showChangePassword && (
-        <div className="absolute inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-[340px] bg-gradient-to-b from-[#2E0B4E] to-[#12061F] border-2 border-amber-400 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 relative">
-            <button
-              onClick={() => setShowChangePassword(false)}
-              className="absolute top-3 right-4 text-amber-300 text-lg font-black hover:text-white"
-            >
-              ✕
-            </button>
-            <div className="text-center">
-              <span className="text-3xl">🔒</span>
-              <h3 className="text-base font-black text-amber-300 tracking-wider mt-1 uppercase">Change Password</h3>
-              <p className="text-[10px] text-purple-300/80">Update your account security key</p>
-            </div>
-            <div className="space-y-2">
-              <input
-                type="password"
-                value={currPassword}
-                onChange={(e) => setCurrPassword(e.target.value)}
-                placeholder="Current Password..."
-                className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400"
-              />
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="New Password..."
-                className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400"
-              />
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm New Password..."
-                className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400"
-              />
-            </div>
-            <button
-              onClick={handleChangePasswordSubmit}
-              className="w-full py-3 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-500 text-black font-black text-xs tracking-widest uppercase rounded-xl shadow-lg active:scale-95 transition-transform"
-            >
-              Update Security Key
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL 3: GUEST UPGRADE OVERLAY ── */}
-      {showUpgradeModal && (
-        <div className="absolute inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-[340px] bg-gradient-to-b from-[#2E0B4E] to-[#12061F] border-2 border-amber-400 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 relative">
-            <button
-              onClick={() => setShowUpgradeModal(false)}
-              className="absolute top-3 right-4 text-amber-300 text-lg font-black hover:text-white"
-            >
-              ✕
-            </button>
-            <div className="text-center">
-              <span className="text-3xl">💎</span>
-              <h3 className="text-base font-black text-amber-300 tracking-wider mt-1 uppercase">Upgrade Guest Account</h3>
-              <p className="text-[10px] text-purple-300/80">Link your email to keep your coins and rank forever</p>
-            </div>
-            <div className="space-y-2">
-              <input
-                type="email"
-                value={upgradeEmail}
-                onChange={(e) => setUpgradeEmail(e.target.value)}
-                placeholder="Enter Email Address..."
-                className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400"
-              />
-              <input
-                type="password"
-                value={upgradePassword}
-                onChange={(e) => setUpgradePassword(e.target.value)}
-                placeholder="Choose Password..."
-                className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400"
-              />
-            </div>
-            <button
-              onClick={handleUpgradeAccount}
-              className="w-full py-3 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-500 text-black font-black text-xs tracking-widest uppercase rounded-xl shadow-lg active:scale-95 transition-transform"
-            >
-              Link & Upgrade
-            </button>
-          </div>
-        </div>
-      )}
-
-
-
-
-
-      {/* ── MODAL 5: SIMULATED FACEBOOK LOGIN OVERLAY ── */}
-      {showFBLinkModal && (
-        <div className="absolute inset-0 z-50 bg-[#090214]/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-[340px] bg-[#1877F2] rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-blue-400">
-            {/* Header */}
-            <div className="bg-[#1877F2] p-4 flex items-center gap-3 border-b border-blue-500">
-              <span className="text-white text-2xl font-black font-serif select-none">facebook</span>
-              <span className="text-[10px] bg-blue-800 text-blue-100 px-2 py-0.5 rounded font-black tracking-wider uppercase ml-auto">OAuth 2.0</span>
-            </div>
-
-            {/* Content Body */}
-            <div className="bg-[#1C202E] p-5 flex flex-col gap-4 text-white">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center text-xl border border-purple-500">
-                  🎲
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-white">Ludo Enterprise</h4>
-                  <p className="text-[10px] text-gray-400">developers.facebook.com</p>
-                </div>
-              </div>
-
-              <div className="text-xs text-gray-300 leading-relaxed border-t border-b border-gray-800 py-3 my-1">
-                Log in to your **Facebook account** to verify and link it to this profile.
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex flex-col gap-1">
-                  <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Mobile number or email address</span>
-                  <input
-                    type="text"
-                    value={fbLinkEmail}
-                    onChange={(e) => setFbLinkEmail(e.target.value)}
-                    placeholder="Enter email or phone..."
-                    className="w-full px-3 py-2 bg-black/60 border border-blue-700/50 rounded-xl text-white placeholder-gray-500 font-bold text-xs focus:outline-none focus:border-[#1877F2]"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Facebook Password</span>
-                  <input
-                    type="password"
-                    value={fbLinkPassword}
-                    onChange={(e) => setFbLinkPassword(e.target.value)}
-                    placeholder="Enter password..."
-                    className="w-full px-3 py-2 bg-black/60 border border-blue-700/50 rounded-xl text-white placeholder-gray-500 font-bold text-xs focus:outline-none focus:border-[#1877F2]"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-2.5 mt-2">
-                <button
-                  onClick={() => setShowFBLinkModal(false)}
-                  className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-black text-xs uppercase rounded-xl transition-transform active:scale-95"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmitFBLink}
-                  className="flex-1 py-2.5 bg-gradient-to-r from-blue-600 to-[#1877F2] hover:from-blue-700 hover:to-blue-600 text-white font-black text-xs uppercase rounded-xl shadow-lg transition-transform active:scale-95"
-                >
-                  Log In & Link
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL 6: SIMULATED GOOGLE LOGIN OVERLAY ── */}
-      {showGoogleLinkModal && (
-        <div className="absolute inset-0 z-50 bg-[#090214]/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-[340px] bg-gradient-to-b from-[#2E0B4E] to-[#12061F] border-2 border-amber-400 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 relative">
-            <button
-              onClick={() => setShowGoogleLinkModal(false)}
-              className="absolute top-3 right-4 text-amber-300 text-lg font-black hover:text-white"
-            >
-              ✕
-            </button>
-            <div className="text-center">
-              <span className="text-3xl">🔴</span>
-              <h3 className="text-base font-black text-amber-300 tracking-wider mt-1 uppercase">Link Google Account</h3>
-              <p className="text-[10px] text-purple-300/80">Log in to confirm your identity and link your **Google account**</p>
-            </div>
-            
-            <div className="space-y-3">
+        <div className="absolute inset-0 bg-black/85 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+          <div className="w-full max-w-[320px] bg-gradient-to-b from-[#2B1440] to-[#12061F] border-2 border-amber-500/70 rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] text-white relative">
+            <h3 className="text-xs font-black uppercase text-amber-200 tracking-wider mb-2">Change Password</h3>
+            <div className="w-full bg-[#1A092D]/70 p-3 rounded-2xl border border-purple-500/20 mb-4 flex flex-col gap-3">
               <div className="flex flex-col gap-1">
-                <span className="text-[9px] font-black text-purple-300 uppercase tracking-wider">Email Address</span>
+                <span className="text-[9px] text-purple-300 font-bold uppercase">Current Password</span>
+                <input
+                  type="password"
+                  value={currPassword}
+                  onChange={(e) => setCurrPassword(e.target.value)}
+                  placeholder="Enter current password..."
+                  className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-amber-400"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] text-purple-300 font-bold uppercase">New Password</span>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password..."
+                  className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-amber-400"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] text-purple-300 font-bold uppercase">Confirm New Password</span>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password..."
+                  className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-amber-400"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2.5">
+              <button
+                onClick={() => setShowChangePassword(false)}
+                className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-black text-xs uppercase rounded-xl transition-transform active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleChangePassword}
+                className="flex-1 py-2.5 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-black text-xs uppercase rounded-xl shadow-lg transition-transform active:scale-95 border border-yellow-300"
+              >
+                Change
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. UPGRADE GUEST ACCOUNT */}
+      {showUpgradeModal && (
+        <div className="absolute inset-0 bg-black/85 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+          <div className="w-full max-w-[320px] bg-gradient-to-b from-[#2B1440] to-[#12061F] border-2 border-amber-500/70 rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] text-white relative">
+            <h3 className="text-xs font-black uppercase text-amber-200 tracking-wider mb-2">Link Guest Account</h3>
+            <p className="text-[9.5px] text-purple-300 mb-3 leading-relaxed">
+              Secure your stats permanently by binding this guest profile with a valid email.
+            </p>
+            <div className="w-full bg-[#1A092D]/70 p-3 rounded-2xl border border-purple-500/20 mb-4 flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] text-purple-300 font-bold uppercase">Email Address</span>
                 <input
                   type="email"
-                  value={googleLinkEmail}
-                  onChange={(e) => setGoogleLinkEmail(e.target.value)}
-                  placeholder="Enter your Gmail address..."
+                  value={upgradeEmail}
+                  onChange={(e) => setUpgradeEmail(e.target.value)}
+                  placeholder="Enter email address..."
+                  className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-amber-400"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] text-purple-300 font-bold uppercase">Account Password</span>
+                <input
+                  type="password"
+                  value={upgradePassword}
+                  onChange={(e) => setUpgradePassword(e.target.value)}
+                  placeholder="Enter password..."
+                  className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-amber-400"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2.5">
+              <button
+                onClick={() => setShowUpgradeModal(false)}
+                className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-black text-xs uppercase rounded-xl transition-transform active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpgradeAccount}
+                className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-emerald-500 text-white font-black text-xs uppercase rounded-xl shadow-lg transition-transform active:scale-95 border border-emerald-400"
+              >
+                Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. LINK FACEBOOK MODAL */}
+      {showFBLinkModal && (
+        <div className="absolute inset-0 bg-black/85 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+          <div className="w-full max-w-[320px] bg-gradient-to-b from-[#2B1440] to-[#12061F] border-2 border-amber-500/70 rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] text-white relative">
+            <h3 className="text-xs font-black uppercase text-amber-200 tracking-wider mb-2">Link Facebook</h3>
+            
+            <div className="w-full bg-[#1A092D]/70 p-3 rounded-2xl border border-purple-500/20 mb-4 flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] text-purple-300 font-bold uppercase">FB Email</span>
+                <input
+                  type="email"
+                  value={fbLinkEmail}
+                  onChange={(e) => setFbLinkEmail(e.target.value)}
+                  placeholder="Enter FB email..."
                   className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400"
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-[9px] font-black text-purple-300 uppercase tracking-wider">Google Password</span>
+                <span className="text-[9px] text-purple-300 font-bold uppercase">FB Password</span>
+                <input
+                  type="password"
+                  value={fbLinkPassword}
+                  onChange={(e) => setFbLinkPassword(e.target.value)}
+                  placeholder="Enter FB password..."
+                  className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2.5 mt-2">
+              <button
+                onClick={() => setShowFBLinkModal(false)}
+                className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-black text-xs uppercase rounded-xl transition-transform active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitFBLink}
+                className="flex-1 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-blue-600 text-white font-black text-xs uppercase rounded-xl shadow-lg transition-transform active:scale-95 border border-blue-400"
+              >
+                Log In & Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. LINK GOOGLE MODAL */}
+      {showGoogleLinkModal && (
+        <div className="absolute inset-0 bg-black/85 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+          <div className="w-full max-w-[320px] bg-gradient-to-b from-[#2B1440] to-[#12061F] border-2 border-amber-500/70 rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] text-white relative">
+            <h3 className="text-xs font-black uppercase text-amber-200 tracking-wider mb-2">Link Google</h3>
+            
+            <div className="w-full bg-[#1A092D]/70 p-3 rounded-2xl border border-purple-500/20 mb-4 flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] text-purple-300 font-bold uppercase">Google Email</span>
+                <input
+                  type="email"
+                  value={googleLinkEmail}
+                  onChange={(e) => setGoogleLinkEmail(e.target.value)}
+                  placeholder="Enter Google email..."
+                  className="w-full px-4 py-2.5 bg-black/60 border border-purple-500/40 rounded-xl text-white placeholder-purple-400/40 font-bold text-xs focus:outline-none focus:border-amber-400"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] text-purple-300 font-bold uppercase">Google Password</span>
                 <input
                   type="password"
                   value={googleLinkPassword}

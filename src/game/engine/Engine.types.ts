@@ -32,6 +32,10 @@ export interface Player {
   gems: number;
   winRate: number;
   matchesPlayed: number;
+  // Protect Button Reroll Counters
+  totalUndosUsed: number;
+  undosUsedThisTurn: number;
+  protectTurnsCount: number;
 }
 
 export type GameStatus = 

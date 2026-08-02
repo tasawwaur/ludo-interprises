@@ -26,9 +26,9 @@ interface RoomTimerState {
 
 const activeRooms = new Map<string, RoomTimerState>();
 
-function startRoomTimer(room: RoomTimerState) {
+function startRoomTimer(room: RoomTimerState, duration = 15) {
   if (room.intervalId) clearInterval(room.intervalId);
-  room.secondsRemaining = 15;
+  room.secondsRemaining = duration;
 
   io.to(room.roomCode).emit("timer_tick", {
     seconds: room.secondsRemaining,
@@ -191,7 +191,7 @@ io.on("connection", (socket) => {
   });
 
   // Authoritative action update from client
-  socket.on("client_action", (data: { roomCode: string; actionType: 'ROLL' | 'MOVE'; nextColor?: string; isGameOver?: boolean; diceValue?: number; tokenId?: string }) => {
+  socket.on("client_action", (data: { roomCode: string; actionType: 'ROLL' | 'MOVE' | 'UNDO'; nextColor?: string; isGameOver?: boolean; diceValue?: number; tokenId?: string; cost?: number }) => {
     const room = activeRooms.get(data.roomCode);
     if (!room) return;
 
@@ -208,13 +208,18 @@ io.on("connection", (socket) => {
 
     if (data.actionType === 'ROLL') {
       room.gameStatus = 'MOVE_WAIT';
-      // Same 15s timer continues - do NOT reset timer!
+      // Roll gives the player 5 seconds to select a pawn or use protect
+      startRoomTimer(room, 5);
     } else if (data.actionType === 'MOVE') {
       room.gameStatus = 'ROLL_WAIT';
       if (data.nextColor) {
         room.activeColor = data.nextColor;
       }
-      startRoomTimer(room);
+      startRoomTimer(room, 15);
+    } else if (data.actionType === 'UNDO') {
+      room.gameStatus = 'ROLL_WAIT';
+      // Undo resets timer back to 15s to let the player roll again
+      startRoomTimer(room, 15);
     }
   });
 

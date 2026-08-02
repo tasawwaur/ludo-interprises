@@ -7,6 +7,7 @@ import { RuleValidator } from '../game/rules/RuleValidator';
 import { ReplayRecorder } from '../game/replay/ReplayRecorder';
 import { SoundEngine } from '../game/sound/SoundEngine';
 import { useRoomStore } from '../features/matchmaking/rooms/RoomStore';
+import { useUserStore } from '../user/user.store';
 
 interface GameStoreState {
   gameState: GameState | null;
@@ -23,6 +24,7 @@ interface GameStoreState {
   // Actions
   startMatch: (mode: '2P' | '2v2' | '4P', hostName: string) => void;
   rollDice: () => void;
+  undoRoll: () => void;
   moveToken: (tokenId: string, isRemote?: boolean) => void;
   setSelectedToken: (tokenId: string | null) => void;
   setHoverToken: (tokenId: string | null) => void;
@@ -188,7 +190,7 @@ export const useGameStore = create<GameStoreState>()(
         gameState: nextState,
         selectedTokenId: null,
         _isRolling: false,
-        ...(nextState.gameStatus === 'ROLL_WAIT' ? { turnTimerSeconds: 15 } : {}),
+        turnTimerSeconds: nextState.gameStatus === 'ROLL_WAIT' ? 15 : 5,
       } as any);
 
       // Automatically release token from yard on rolling a 6
@@ -202,8 +204,8 @@ export const useGameStore = create<GameStoreState>()(
         return;
       }
 
-      // Auto movement if there is exactly 1 legal move
-      const shouldAutoMove = nextState.movableTokens.length === 1;
+      // Auto movement if there is exactly 1 legal move AND it's a 6
+      const shouldAutoMove = nextState.movableTokens.length === 1 && nextState.diceValue === 6;
       if (nextState.gameStatus === 'MOVE_WAIT' && shouldAutoMove) {
         const autoTokenId = nextState.movableTokens[0].tokenId;
         set({ selectedTokenId: autoTokenId });
@@ -303,6 +305,86 @@ export const useGameStore = create<GameStoreState>()(
     animateStep();
   },
 
+  undoRoll: () => {
+    const { gameState, gameSocket } = get();
+    if (!gameState || !gameState.isDiceRolled || gameState.gameStatus !== 'MOVE_WAIT') return;
+
+    const activePlayer = gameState.players[gameState.activePlayerIndex];
+
+    const totalUndosUsed = activePlayer.totalUndosUsed || 0;
+    const undosUsedThisTurn = activePlayer.undosUsedThisTurn || 0;
+    const protectTurnsCount = activePlayer.protectTurnsCount || 0;
+
+    if (totalUndosUsed >= 8) return; // Match limit reached
+    if (undosUsedThisTurn >= 2) return; // Turn limit reached
+
+    const nextProtectTurnsCount = undosUsedThisTurn === 0 ? protectTurnsCount + 1 : protectTurnsCount;
+
+    const getCost = (pCount: number, thisTurnCount: number) => {
+      const isSecondUndo = thisTurnCount === 1;
+      if (pCount === 1) return isSecondUndo ? 3 : 1;
+      if (pCount === 2) return isSecondUndo ? 10 : 5;
+      if (pCount === 3) return isSecondUndo ? 40 : 20;
+      return 50; // 4th turn onwards
+    };
+
+    const cost = getCost(nextProtectTurnsCount, undosUsedThisTurn);
+
+    // Verify diamond wallet in user store
+    const { user, updateUser } = useUserStore.getState();
+    const userGems = user?.gems ?? 0;
+    if (userGems < cost) {
+      alert("Insufficient Diamonds!");
+      return;
+    }
+
+    // Deduct diamonds
+    updateUser({ gems: Math.max(0, userGems - cost) });
+
+    // Update local game state player metrics
+    const updatedPlayers = gameState.players.map((p, idx) => {
+      if (idx === gameState.activePlayerIndex) {
+        return {
+          ...p,
+          gems: Math.max(0, p.gems - cost),
+          totalUndosUsed: totalUndosUsed + 1,
+          undosUsedThisTurn: undosUsedThisTurn + 1,
+          protectTurnsCount: nextProtectTurnsCount,
+        };
+      }
+      return p;
+    });
+
+    const nextState = {
+      ...gameState,
+      players: updatedPlayers,
+      isDiceRolled: false,
+      diceValue: null,
+      gameStatus: 'ROLL_WAIT' as const,
+      movableTokens: [],
+      lastActionSummary: `${activePlayer.name} used Protect (Undo) for ${cost} Diamonds!`,
+    };
+
+    set({
+      gameState: nextState,
+      turnTimerSeconds: 15,
+      selectedTokenId: null,
+      _isRolling: false,
+    });
+
+    SoundEngine.play('GAME_START');
+
+    // Emit UNDO action to server
+    const roomCode = useRoomStore.getState().roomCode;
+    if (gameSocket && roomCode) {
+      gameSocket.emit("client_action", {
+        roomCode,
+        actionType: 'UNDO',
+        cost,
+      });
+    }
+  },
+
   setHoverToken: (tokenId) => set({ activeHoverTokenId: tokenId }),
 
   resetMatch: () => {
@@ -381,7 +463,7 @@ export const useGameStore = create<GameStoreState>()(
 
     socket.on("timer_tick", (data: { seconds: number; activeColor: string }) => {
       const { turnTimerSeconds } = get();
-      if (Math.abs(turnTimerSeconds - data.seconds) > 1 || data.seconds === 15) {
+      if (Math.abs(turnTimerSeconds - data.seconds) > 1 || data.seconds === 15 || data.seconds === 5) {
         set({ turnTimerSeconds: data.seconds });
       }
     });
@@ -411,7 +493,7 @@ export const useGameStore = create<GameStoreState>()(
       }
     });
 
-    socket.on("server_action", (data: { actionType: 'ROLL' | 'MOVE'; diceValue?: number; tokenId?: string; nextColor?: string }) => {
+    socket.on("server_action", (data: { actionType: 'ROLL' | 'MOVE' | 'UNDO'; diceValue?: number; tokenId?: string; nextColor?: string; cost?: number }) => {
       const { gameState } = get();
       if (!gameState) return;
 
@@ -443,6 +525,44 @@ export const useGameStore = create<GameStoreState>()(
       } else if (data.actionType === 'MOVE' && data.tokenId) {
         // Opponent moved a token, sync token movement
         get().moveToken(data.tokenId, true);
+      } else if (data.actionType === 'UNDO') {
+        // Sync opponent's protect undo
+        const activePlayer = gameState.players[gameState.activePlayerIndex];
+        const totalUndosUsed = activePlayer.totalUndosUsed || 0;
+        const undosUsedThisTurn = activePlayer.undosUsedThisTurn || 0;
+        const protectTurnsCount = activePlayer.protectTurnsCount || 0;
+        const cost = data.cost || 0;
+
+        const nextProtectTurnsCount = undosUsedThisTurn === 0 ? protectTurnsCount + 1 : protectTurnsCount;
+
+        const updatedPlayers = gameState.players.map((p, idx) => {
+          if (idx === gameState.activePlayerIndex) {
+            return {
+              ...p,
+              gems: Math.max(0, p.gems - cost),
+              totalUndosUsed: totalUndosUsed + 1,
+              undosUsedThisTurn: undosUsedThisTurn + 1,
+              protectTurnsCount: nextProtectTurnsCount,
+            };
+          }
+          return p;
+        });
+
+        set({
+          gameState: {
+            ...gameState,
+            players: updatedPlayers,
+            isDiceRolled: false,
+            diceValue: null,
+            gameStatus: 'ROLL_WAIT' as const,
+            movableTokens: [],
+            lastActionSummary: `${activePlayer.name} used Protect (Undo) for ${cost} Diamonds!`,
+          },
+          turnTimerSeconds: 15,
+          _isRolling: false,
+        });
+
+        SoundEngine.play('GAME_START');
       }
     });
 

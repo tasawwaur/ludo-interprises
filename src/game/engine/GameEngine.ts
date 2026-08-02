@@ -86,6 +86,9 @@ export class GameEngine {
         gems: isHost ? 450 : 380,
         winRate: isHost ? 68.4 : 62.1,
         matchesPlayed: isHost ? 342 : 280,
+        totalUndosUsed: 0,
+        undosUsedThisTurn: 0,
+        protectTurnsCount: 0,
       };
     });
 
@@ -119,8 +122,13 @@ export class GameEngine {
     if (roll.isInvalidated) {
       // 3 consecutive sixes -> forfeit turn
       const nextIndex = TurnManager.getNextPlayerIndex(state);
+      const resetUndosPlayers = state.players.map((p) => ({
+        ...p,
+        undosUsedThisTurn: 0,
+      }));
       return {
         ...state,
+        players: resetUndosPlayers,
         diceValue: 6,
         isDiceRolled: false,
         consecutiveSixes: 0,
@@ -144,19 +152,12 @@ export class GameEngine {
     // Calculate legal moves
     const legalMoves = RuleValidator.getLegalMoves(newState, roll.value);
 
-    if (legalMoves.length === 0) {
-      // No legal moves -> auto advance turn after roll
-      const nextIndex = TurnManager.getNextPlayerIndex(newState);
-      return {
-        ...newState,
-        isDiceRolled: false,
-        activePlayerIndex: nextIndex,
-        currentTurnColor: TurnManager.getPlayerColorByIndex(newState, nextIndex),
-        gameStatus: 'ROLL_WAIT',
-        movableTokens: [],
-        lastActionSummary: `${activePlayer.name} rolled ${roll.value}. No legal moves available!`,
-      };
-    }
+    // Return newState with legalMoves. If empty, the user has 5s to either undo or timeout/auto-skip.
+    return {
+      ...newState,
+      movableTokens: legalMoves,
+      lastActionSummary: `${activePlayer.name} rolled ${roll.value}.${legalMoves.length === 0 ? ' No legal moves available!' : ''}`,
+    };
 
     return {
       ...newState,
@@ -283,11 +284,17 @@ export class GameEngine {
       summaryText += ` Turn passed to ${updatedPlayers[nextIndex].name}.`;
     }
 
+    // Reset undosUsedThisTurn for all players on turn transition (including extra turn rolls)
+    const finalPlayers = updatedPlayers.map((p) => ({
+      ...p,
+      undosUsedThisTurn: 0,
+    }));
+
     return {
       ...state,
-      players: updatedPlayers,
+      players: finalPlayers,
       activePlayerIndex: nextIndex,
-      currentTurnColor: TurnManager.getPlayerColorByIndex({ ...state, players: updatedPlayers }, nextIndex),
+      currentTurnColor: TurnManager.getPlayerColorByIndex({ ...state, players: finalPlayers }, nextIndex),
       diceValue: null,
       isDiceRolled: false,
       gameStatus: 'ROLL_WAIT',
@@ -304,8 +311,13 @@ export class GameEngine {
     const nextIndex = TurnManager.getNextPlayerIndex(state);
     const nextColor = TurnManager.getPlayerColorByIndex(state, nextIndex);
     const nextPlayer = state.players[nextIndex];
+    const resetUndosPlayers = state.players.map((p) => ({
+      ...p,
+      undosUsedThisTurn: 0,
+    }));
     return {
       ...state,
+      players: resetUndosPlayers,
       diceValue: null,
       isDiceRolled: false,
       consecutiveSixes: 0,

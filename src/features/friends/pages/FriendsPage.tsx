@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { LudoPageBackground } from "../../../components/effects/LudoPageBackground";
 import { useUserStore } from "../../../user/user.store";
+import { UserProfileModal } from "../../../components/modal/UserProfileModal";
 import confetti from "canvas-confetti";
 
 interface FriendsPageProps {
@@ -553,107 +554,50 @@ export const FriendsPage: React.FC<FriendsPageProps> = ({ onBack, onInviteFriend
       )}
 
       {/* ── MODAL 3: FRIEND PROFILE CARD (COINS, LEVEL, REMOVE, GIFT) ── */}
-      {selectedFriendProfile && (
-        <div className="absolute inset-0 bg-black/90 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-          <div className="w-full max-w-[290px] bg-gradient-to-b from-[#2B1440] to-[#12061F] border-2 border-amber-500/60 rounded-3xl p-5 shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            {/* Ornate banner header */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent blur-md"></div>
-            
-            {/* Header close */}
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-[10px] font-black uppercase text-amber-200 tracking-wider">Player Profile Info</span>
-              <button
-                onClick={() => setSelectedFriendProfile(null)}
-                className="w-6 h-6 flex items-center justify-center rounded-full bg-purple-950/80 border border-amber-500/30 text-amber-200 hover:bg-purple-900 transition-all font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
+      {selectedFriendProfile && (() => {
+        const friend = selectedFriendProfile;
+        const totalEarningVal = friend.coins * 1.8;
+        const totalEarning = totalEarningVal > 1000000000 
+          ? `${(totalEarningVal / 1000000000).toFixed(1)} B`
+          : totalEarningVal > 1000000 
+            ? `${(totalEarningVal / 1000000).toFixed(1)} M` 
+            : `${totalEarningVal.toLocaleString()}`;
+        const isPak = friend.name === "Ahmed Mujtaba";
 
-            {/* Profile Frame Center Graphic */}
-            <div className="flex flex-col items-center gap-3 mb-4 bg-purple-950/30 border border-purple-800/40 p-4 rounded-2xl">
-              <div className="w-[84px] h-[84px] relative">
-                <div
-                  className="absolute rounded-full overflow-hidden bg-slate-900 border border-[#1e0736] z-10"
-                  style={{ top: '16%', left: '20%', right: '20%', bottom: '28%' }}
-                >
-                  <div className="w-full h-full bg-gradient-to-br from-purple-800 to-indigo-900 flex items-center justify-center text-white text-2xl font-black">
-                    {selectedFriendProfile.name.charAt(0)}
-                  </div>
-                </div>
-                <img
-                  src="/assets/images/icons/profile_frame_v2.png"
-                  alt="Gold Profile Frame"
-                  className="w-full h-full object-fill absolute inset-0 z-20 pointer-events-none"
-                  draggable={false}
-                />
-              </div>
+        const statsObj = {
+          id: `PVZV${friend.id.replace(/[^\d]/g, '') || '7225'}`,
+          name: friend.name,
+          avatarUrl: friend.avatarUrl,
+          equippedFrame: friend.isFB ? 'frame_luxury_2' : 'frame_default',
+          level: friend.level,
+          country: isPak ? "PAKISTAN" : "INDIA",
+          countryFlag: isPak ? "🇵🇰" : "🇮🇳",
+          totalEarning: totalEarning,
+          currentGold: friend.coins,
+          currentLeague: friend.level > 12 ? "Diamond" : "Bronze",
+          gamesWon: Math.floor(friend.level * 40),
+          gamesPlayed: Math.floor(friend.level * 90),
+          teamWins: Math.floor(friend.level * 15),
+          winStreak: friend.isOnline ? 1 : 0,
+          twoPlayerWins: Math.floor(friend.level * 20),
+          titanBadgeCount: Math.floor(friend.level / 3),
+          fourPlayerWins: Math.floor(friend.level * 10),
+          killCount: Math.floor(friend.level * 180),
+        };
 
-              {/* Name Banner */}
-              <div className="relative w-[110px] h-[30px] z-30 flex items-center justify-center">
-                <img
-                  src="/assets/images/icons/name_banner_v2.png"
-                  alt="Name Banner"
-                  className="w-full h-full object-fill absolute inset-0 pointer-events-none"
-                  draggable={false}
-                />
-                <span
-                  className="z-10 text-[8.5px] font-black text-amber-200 tracking-wider uppercase translate-x-[-7px] truncate max-w-[75px]"
-                  style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}
-                >
-                  {selectedFriendProfile.name}
-                </span>
-              </div>
-            </div>
-
-            {/* Stats display */}
-            <div className="bg-[#0C0416]/80 border border-purple-900/60 p-3 rounded-2xl flex flex-col gap-2 mb-4">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-purple-300 font-bold">Gold Coins balance:</span>
-                <span className="text-amber-400 font-black font-mono">💰 {selectedFriendProfile.coins.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-purple-300 font-bold">VIP Level status:</span>
-                <span className="text-purple-200 font-black">Level {selectedFriendProfile.level}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-purple-300 font-bold">Status:</span>
-                <span className={`font-black ${selectedFriendProfile.isOnline ? "text-emerald-400" : "text-gray-400"}`}>
-                  {selectedFriendProfile.isOnline ? "Online" : "Offline"}
-                </span>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-col gap-2">
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => handleSendGift("COINS", 5000)}
-                  className="py-2.5 bg-amber-500/10 border border-amber-400 text-amber-300 font-black text-[10px] uppercase rounded-xl hover:bg-amber-500/20 active:scale-95"
-                >
-                  🎁 Send 5K Coins
-                </button>
-                <button
-                  onClick={() => handleSendGift("GEMS", 50)}
-                  className="py-2.5 bg-blue-500/10 border border-blue-400 text-blue-300 font-black text-[10px] uppercase rounded-xl hover:bg-blue-500/20 active:scale-95"
-                >
-                  🎁 Send 50 Gems
-                </button>
-              </div>
-              <button
-                onClick={() => {
-                  setFriendsList(prev => prev.filter(f => f.id !== selectedFriendProfile.id));
-                  triggerToast(`Removed ${selectedFriendProfile.name} from Friends!`);
-                  setSelectedFriendProfile(null);
-                }}
-                className="w-full py-2 bg-rose-600/10 border border-rose-500/40 text-rose-400 font-black text-[10px] uppercase rounded-xl hover:bg-rose-500/20 active:scale-95"
-              >
-                Remove Friend
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        return (
+          <UserProfileModal 
+            userStats={statsObj} 
+            onClose={() => setSelectedFriendProfile(null)}
+            onSendGift={handleSendGift}
+            onRemove={() => {
+              setFriendsList(prev => prev.filter(f => f.id !== friend.id));
+              triggerToast(`Removed ${friend.name} from Friends!`);
+              setSelectedFriendProfile(null);
+            }}
+          />
+        );
+      })()}
 
       {/* Toast Alert */}
       {toastMessage && (

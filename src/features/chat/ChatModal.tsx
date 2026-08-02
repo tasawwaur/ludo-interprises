@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useGlobalModalStore } from "../../store/global-modal.store";
 
 export interface ChatMessage {
   id: string;
@@ -18,6 +19,7 @@ interface ChatModalProps {
 export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMessage, messages = [] }) => {
   const [activeTab, setActiveTab] = useState<"QUICK_CHAT" | "EMOJI">("QUICK_CHAT");
   const [inputMsg, setInputMsg] = useState("");
+  const openProfile = useGlobalModalStore((s) => s.openProfile);
 
   if (!isOpen) return null;
 
@@ -67,7 +69,13 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
               messages.map((msg) => (
                 <div key={msg.id} className="flex flex-col text-[9.5px] leading-tight">
                   <div className="flex items-center justify-between text-[8px] opacity-75 mb-0.5">
-                    <span className={`font-extrabold ${msg.color === 'GREEN' ? 'text-emerald-400' : msg.color === 'YELLOW' ? 'text-amber-300' : 'text-cyan-400'}`}>
+                    <span 
+                      onClick={() => {
+                        openProfile(msg.sender);
+                        onClose();
+                      }}
+                      className={`font-extrabold cursor-pointer hover:underline ${msg.color === 'GREEN' ? 'text-emerald-400' : msg.color === 'YELLOW' ? 'text-amber-300' : 'text-cyan-400'}`}
+                    >
                       {msg.sender}
                     </span>
                     <span className="text-gray-400">{msg.time}</span>

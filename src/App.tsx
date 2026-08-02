@@ -22,6 +22,8 @@ import { LuckySpinModal } from "./features/events/LuckySpinModal";
 import { XPPage } from "./features/xp-level";
 import { DicePage } from "./features/dice";
 import { RewardCenterPage, AdsSettingsPage } from "./features/ads";
+import { useGlobalModalStore, getPlayerProfile } from "./store/global-modal.store";
+import { UserProfileModal } from "./components/modal/UserProfileModal";
 
 import { useUserStore } from "./user/user.store";
 import { useQueueStore } from "./features/matchmaking/queue/QueueStore";
@@ -69,6 +71,9 @@ const MainApp: React.FC = () => {
   const user = useUserStore((s) => s.user);
   const updateUser = useUserStore((s) => s.updateUser);
   const isAuthenticated = useUserStore((s) => s.isAuthenticated);
+
+  const activeProfilePlayerId = useGlobalModalStore((s) => s.activeProfilePlayerId);
+  const closeProfile = useGlobalModalStore((s) => s.closeProfile);
   const { startQueue, cancelQueue } = useQueueStore();
   const { createRoom } = useRoomStore();
 
@@ -459,6 +464,18 @@ const MainApp: React.FC = () => {
             onClose={() => setShowLuckySpin(false)}
             onSpinWin={(reward) => alert(`Congratulations! You won ${reward}`)}
           />
+
+          {/* Global User Profile Modal Overlay */}
+          {activeProfilePlayerId && (() => {
+            const profile = getPlayerProfile(activeProfilePlayerId);
+            if (!profile) return null;
+            return (
+              <UserProfileModal
+                userStats={profile}
+                onClose={closeProfile}
+              />
+            );
+          })()}
         </div>
       </div>
     </div>

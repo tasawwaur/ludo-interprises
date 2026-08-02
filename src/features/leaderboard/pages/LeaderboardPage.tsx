@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { LudoPageBackground } from "../../../components/effects/LudoPageBackground";
+import { useGlobalModalStore } from "../../../store/global-modal.store";
 
 interface LeaderboardPageProps {
   onBack?: () => void;
@@ -7,6 +8,7 @@ interface LeaderboardPageProps {
 
 export const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState<"LEAGUE" | "FRIENDS" | "ACHIEVEMENTS">("LEAGUE");
+  const openProfile = useGlobalModalStore((s) => s.openProfile);
 
   const leaders = [
     { rank: 1, name: "Govind", level: 50, score: "1.2M", isUser: true },
@@ -66,6 +68,7 @@ export const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ onBack }) => {
           {leaders.map((player) => (
             <div
               key={player.rank}
+              onClick={() => openProfile(player.isUser ? "TASAVVUR" : player.name)}
               className={`flex items-center justify-between p-3.5 rounded-3xl border-2 transition-all cursor-pointer ${
                 player.isUser
                   ? "bg-gradient-to-r from-amber-500/20 via-purple-900/60 to-amber-500/20 border-amber-400 shadow-[0_0_15px_rgba(255,193,7,0.4)]"

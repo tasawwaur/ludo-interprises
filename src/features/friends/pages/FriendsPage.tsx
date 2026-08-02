@@ -464,7 +464,13 @@ export const FriendsPage: React.FC<FriendsPageProps> = ({ onBack, onInviteFriend
 
             {/* Search results */}
             {searchResult && (
-              <div className="bg-[#0C0416]/60 border border-purple-500/20 p-3 rounded-2xl flex justify-between items-center mb-4 animate-fade-in">
+              <div 
+                onClick={() => {
+                  setSelectedFriendProfile(searchResult);
+                  setShowAddModal(false);
+                }}
+                className="bg-[#0C0416]/60 border border-purple-500/20 p-3 rounded-2xl flex justify-between items-center mb-4 animate-fade-in cursor-pointer hover:border-amber-400"
+              >
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-purple-800 flex items-center justify-center text-xs font-black uppercase text-purple-200">
                     {searchResult.name.charAt(0)}
@@ -475,7 +481,8 @@ export const FriendsPage: React.FC<FriendsPageProps> = ({ onBack, onInviteFriend
                   </div>
                 </div>
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     confetti({ particleCount: 30, spread: 40 });
                     triggerToast(`Friend Request Sent to ${searchResult.name}!`);
                     setShowAddModal(false);

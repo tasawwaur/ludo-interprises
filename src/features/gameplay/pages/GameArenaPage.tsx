@@ -11,6 +11,7 @@ import { useRoomStore } from '../../../features/matchmaking/rooms/RoomStore';
 import { Royal3DDice } from '../components/Royal3DDice';
 import { getGridPos, OUTER_TRACK_COORDS } from '../../../game/board/BoardCoordinates';
 import { ProtectButton } from '../components/ProtectButton';
+import { LuxuryLiveCamera } from '../../../components/camera/LuxuryLiveCamera';
 
 
 interface GameArenaPageProps {
@@ -749,6 +750,22 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         onSendMessage={handleSendMessage}
         messages={chatHistory}
       />
+
+      {/* Luxury 1v1 Live Camera overlay */}
+      {maxPlayers === 2 && (() => {
+        const localUser = useUserStore.getState().user;
+        const opponent = gameState?.players.find(p => p.color !== localPlayerColor);
+        
+        return (
+          <LuxuryLiveCamera
+            localPlayerName={localUser?.displayName || localUser?.username || "You"}
+            localPlayerAvatar={localUser?.avatar || "/assets/images/icons/icon_club_crown.png"}
+            opponentName={opponent?.name || "Opponent"}
+            opponentAvatar={opponent?.avatar || "/assets/images/icons/profile_frame_v3.png"}
+            isOneVsOne={maxPlayers === 2}
+          />
+        );
+      })()}
     </div>
   );
 };

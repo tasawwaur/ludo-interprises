@@ -24,19 +24,10 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
 
   // Show final dice value after server resolves it
   useEffect(() => {
-    if (value && value > 0 && !isRollingRef.current) {
-      // Quick shuffle animation then settle on real value
-      let count = 0;
-      const interval = setInterval(() => {
-        setDisplayVal(Math.floor(Math.random() * 6) + 1);
-        count++;
-        if (count >= 6) {
-          clearInterval(interval);
-          setDisplayVal(value);
-          setIsAnimating(false);
-        }
-      }, 55);
-      return () => clearInterval(interval);
+    if (value && value > 0) {
+      setDisplayVal(value);
+      setIsAnimating(false);
+      isRollingRef.current = false;
     }
   }, [value]);
 

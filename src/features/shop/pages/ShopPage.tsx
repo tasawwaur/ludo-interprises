@@ -21,18 +21,18 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
 
   // Coin packages (purchased via real INR money)
   const coinPacks = [
-    { id: "c1", label: "Pouch of Coins", amount: 10000, displayAmt: "10K", price: "₹30.00", img: "/assets/images/icons/icon_coin.png", isPopular: false },
-    { id: "c2", label: "Pile of Gold", amount: 50000, displayAmt: "50K", price: "₹150.00", img: "/assets/images/icons/icon_coin.png", isPopular: true },
-    { id: "c3", label: "Treasure Chest", amount: 250000, displayAmt: "250K", price: "₹600.00", img: "/assets/images/icons/luxury_chest.png", isPopular: false },
-    { id: "c4", label: "Pharaoh Vault", amount: 1000000, displayAmt: "1M", price: "₹2000.00", img: "/assets/images/icons/luxury_chest.png", isPopular: false, isBest: true },
+    { id: "c1", label: "Pouch of Coins", amount: 10000, displayAmt: "10K", price: "₹30.00", img: "/assets/images/icons/icon_coin.png", isPopular: false, offerText: null, multiplier: 1.0 },
+    { id: "c2", label: "Pile of Gold", amount: 50000, displayAmt: "50K", price: "₹150.00", img: "/assets/images/icons/icon_coin.png", isPopular: true, offerText: "100% OFF (DOUBLE)", multiplier: 2.0 },
+    { id: "c3", label: "Treasure Chest", amount: 250000, displayAmt: "250K", price: "₹600.00", img: "/assets/images/icons/luxury_chest.png", isPopular: false, offerText: "120% OFF (2.2x)", multiplier: 2.2 },
+    { id: "c4", label: "Pharaoh Vault", amount: 1000000, displayAmt: "1M", price: "₹2000.00", img: "/assets/images/icons/luxury_chest.png", isPopular: false, isBest: true, offerText: "150% OFF (2.5x)", multiplier: 2.5 },
   ];
 
   // Diamond packages (purchased via real INR money)
   const diamondPacks = [
-    { id: "d1", label: "Handful of Gems", amount: 100, displayAmt: "100", price: "₹30.00", img: "/assets/images/icons/icon_diamond.png", isPopular: false },
-    { id: "d2", label: "Diamond Cache", amount: 500, displayAmt: "500", price: "₹150.00", img: "/assets/images/icons/icon_diamond.png", isPopular: true },
-    { id: "d3", label: "Royal Satchel", amount: 2500, displayAmt: "2.5K", price: "₹600.00", img: "/assets/images/icons/icon_diamond.png", isPopular: false },
-    { id: "d4", label: "Emperor Vault", amount: 10000, displayAmt: "10K", price: "₹2000.00", img: "/assets/images/icons/icon_diamond.png", isPopular: false, isBest: true },
+    { id: "d1", label: "Handful of Gems", amount: 100, displayAmt: "100", price: "₹30.00", img: "/assets/images/icons/icon_diamond.png", isPopular: false, offerText: null, multiplier: 1.0 },
+    { id: "d2", label: "Diamond Cache", amount: 500, displayAmt: "500", price: "₹150.00", img: "/assets/images/icons/icon_diamond.png", isPopular: true, offerText: "100% OFF (DOUBLE)", multiplier: 2.0 },
+    { id: "d3", label: "Royal Satchel", amount: 2500, displayAmt: "2.5K", price: "₹600.00", img: "/assets/images/icons/icon_diamond.png", isPopular: false, offerText: "120% OFF (2.2x)", multiplier: 2.2 },
+    { id: "d4", label: "Emperor Vault", amount: 10000, displayAmt: "10K", price: "₹2000.00", img: "/assets/images/icons/icon_diamond.png", isPopular: false, isBest: true, offerText: "150% OFF (2.5x)", multiplier: 2.5 },
   ];
 
   // Crowns packages (purchased via Coins or Diamonds)
@@ -59,7 +59,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
     });
   };
 
-  const initiatePayment = async (pack: { label: string; amount: number; price: string }, type: "COINS" | "DIAMONDS") => {
+  const initiatePayment = async (pack: { label: string; amount: number; price: string; multiplier: number; offerText: string | null }, type: "COINS" | "DIAMONDS") => {
     if (isProcessingPayment) return;
     setIsProcessingPayment(true);
 
@@ -123,15 +123,16 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
 
             const verifyData = await verifyRes.json();
             if (verifyRes.ok && verifyData.success) {
+              const finalAmt = Math.round(pack.amount * pack.multiplier);
               // 4. Update state upon successful verification
               if (type === "COINS") {
-                updateUser({ coins: currentCoins + pack.amount });
+                updateUser({ coins: currentCoins + finalAmt });
                 confetti({ particleCount: 50, spread: 60, colors: ["#FFD700", "#FFA500"] });
-                triggerToast(`✅ ${pack.label} purchased! +${pack.amount.toLocaleString()} Coins`);
+                triggerToast(`✅ ${pack.label} purchased! +${finalAmt.toLocaleString()} Coins`);
               } else {
-                updateUser({ gems: currentGems + pack.amount });
+                updateUser({ gems: currentGems + finalAmt });
                 confetti({ particleCount: 50, spread: 60, colors: ["#818CF8", "#6366F1"] });
-                triggerToast(`✅ ${pack.label} purchased! +${pack.amount.toLocaleString()} Gems`);
+                triggerToast(`✅ ${pack.label} purchased! +${finalAmt.toLocaleString()} Gems`);
               }
             } else {
               triggerToast("❌ Payment verification failed!");
@@ -325,12 +326,17 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                 onClick={() => handleBuyCoins(p.amount, p.label)}
                 className="bg-purple-950/60 border-2 border-amber-500/30 rounded-3xl p-3 flex flex-col items-center justify-between text-center relative shadow-lg hover:border-amber-400 active:scale-95 transition-all cursor-pointer group"
               >
-                {p.isPopular && (
+                {p.offerText && (
+                  <span className="absolute -top-2 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-[7px] font-black uppercase px-2 py-0.5 rounded-full border border-orange-300 shadow animate-pulse z-30">
+                    {p.offerText}
+                  </span>
+                )}
+                {!p.offerText && p.isPopular && (
                   <span className="absolute -top-2 bg-gradient-to-r from-rose-500 to-red-600 text-white text-[7.5px] font-black uppercase px-2 py-0.5 rounded-full border border-red-300 shadow animate-pulse">
                     POPULAR
                   </span>
                 )}
-                {p.isBest && (
+                {!p.offerText && p.isBest && (
                   <span className="absolute -top-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-[7.5px] font-black uppercase px-2 py-0.5 rounded-full border border-emerald-300 shadow">
                     BEST VALUE
                   </span>
@@ -350,9 +356,14 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                 </div>
 
                 <div className="w-full flex flex-col gap-1">
-                  <span className="text-[11px] font-black text-white font-mono leading-none">
+                  <span className="text-[10px] font-black text-white font-mono leading-none">
                     +{p.amount.toLocaleString()} 🪙
                   </span>
+                  {p.multiplier > 1.0 && (
+                    <span className="text-[8.5px] font-bold text-green-400 font-mono leading-none">
+                      +{Math.round(p.amount * (p.multiplier - 1.0)).toLocaleString()} Bonus
+                    </span>
+                  )}
                   <button className="w-full py-2 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-slate-950 font-black text-[11px] rounded-2xl shadow border border-yellow-200 mt-1 uppercase">
                     {p.price}
                   </button>
@@ -368,12 +379,17 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                 onClick={() => handleBuyDiamonds(p.amount, p.label)}
                 className="bg-purple-950/60 border-2 border-blue-500/30 rounded-3xl p-3 flex flex-col items-center justify-between text-center relative shadow-lg hover:border-blue-400 active:scale-95 transition-all cursor-pointer group"
               >
-                {p.isPopular && (
+                {p.offerText && (
+                  <span className="absolute -top-2 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-[7px] font-black uppercase px-2 py-0.5 rounded-full border border-orange-300 shadow animate-pulse z-30">
+                    {p.offerText}
+                  </span>
+                )}
+                {!p.offerText && p.isPopular && (
                   <span className="absolute -top-2 bg-gradient-to-r from-rose-500 to-red-600 text-white text-[7.5px] font-black uppercase px-2 py-0.5 rounded-full border border-red-300 shadow animate-pulse">
                     POPULAR
                   </span>
                 )}
-                {p.isBest && (
+                {!p.offerText && p.isBest && (
                   <span className="absolute -top-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-[7.5px] font-black uppercase px-2 py-0.5 rounded-full border border-emerald-300 shadow">
                     BEST VALUE
                   </span>
@@ -393,9 +409,14 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                 </div>
 
                 <div className="w-full flex flex-col gap-1">
-                  <span className="text-[11px] font-black text-white font-mono leading-none">
+                  <span className="text-[10px] font-black text-white font-mono leading-none">
                     +{p.amount.toLocaleString()} 💎
                   </span>
+                  {p.multiplier > 1.0 && (
+                    <span className="text-[8.5px] font-bold text-green-400 font-mono leading-none">
+                      +{Math.round(p.amount * (p.multiplier - 1.0)).toLocaleString()} Bonus
+                    </span>
+                  )}
                   <button className="w-full py-2 bg-gradient-to-r from-blue-400 via-indigo-600 to-blue-500 text-white font-black text-[11px] rounded-2xl shadow border border-blue-300 mt-1 uppercase">
                     {p.price}
                   </button>

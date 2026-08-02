@@ -177,20 +177,23 @@ export const useGameStore = create<GameStoreState>()(
         });
 
         // Emit rolling action with the actual dice value generated
+        const hasLegalMoves = nextState.movableTokens.length > 0;
         if (gameSocket && roomCode) {
           gameSocket.emit("client_action", {
             roomCode,
             actionType: 'ROLL',
             diceValue: nextState.diceValue,
+            hasLegalMoves,
           });
         }
       }
 
+      const hasLegalMoves = nextState.movableTokens.length > 0;
       set({
         gameState: nextState,
         selectedTokenId: null,
         _isRolling: false,
-        turnTimerSeconds: nextState.gameStatus === 'ROLL_WAIT' ? 15 : 10,
+        turnTimerSeconds: nextState.gameStatus === 'ROLL_WAIT' ? 15 : (hasLegalMoves ? 10 : 5),
       } as any);
 
 
@@ -442,7 +445,7 @@ export const useGameStore = create<GameStoreState>()(
 
     socket.on("timer_tick", (data: { seconds: number; activeColor: string }) => {
       const { turnTimerSeconds } = get();
-      if (Math.abs(turnTimerSeconds - data.seconds) > 1 || data.seconds === 15 || data.seconds === 10) {
+      if (Math.abs(turnTimerSeconds - data.seconds) > 1 || data.seconds === 15 || data.seconds === 10 || data.seconds === 5) {
         set({ turnTimerSeconds: data.seconds });
       }
     });
@@ -525,6 +528,7 @@ export const useGameStore = create<GameStoreState>()(
         };
 
         const legalMoves = RuleValidator.getLegalMoves(newState, data.diceValue);
+        const hasLegalMoves = legalMoves.length > 0;
 
         set({
           gameState: {
@@ -533,6 +537,7 @@ export const useGameStore = create<GameStoreState>()(
             lastActionSummary: `${activePlayer.name} rolled ${data.diceValue}!`,
           },
           _isRolling: false,
+          turnTimerSeconds: hasLegalMoves ? 10 : 5,
         });
 
         SoundEngine.play('DICE_STOP');

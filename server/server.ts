@@ -208,8 +208,10 @@ io.on("connection", (socket) => {
 
     if (data.actionType === 'ROLL') {
       room.gameStatus = 'MOVE_WAIT';
-      // Roll gives the player 10 seconds to select a pawn or use protect
-      startRoomTimer(room, 10);
+      // If player has no legal moves, give them only 5 seconds for Protection/Undo, otherwise 10 seconds
+      const hasLegalMoves = data.hasLegalMoves !== false;
+      const duration = hasLegalMoves ? 10 : 5;
+      startRoomTimer(room, duration);
     } else if (data.actionType === 'MOVE') {
       room.gameStatus = 'ROLL_WAIT';
       if (data.nextColor) {

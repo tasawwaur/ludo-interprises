@@ -1,6 +1,11 @@
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const httpServer = createServer(app);
@@ -8,9 +13,14 @@ const io = new Server(httpServer, {
   cors: { origin: "*" }
 });
 
+// Serve static assets from the Vite frontend build folder
+const distPath = path.join(__dirname, "../dist");
+app.use(express.static(distPath));
+
 app.get("/api/status", (req, res) => {
   res.json({ status: "online", service: "LUDO-ENTERPRISE Multiplayer Server", timestamp: Date.now() });
 });
+
 
 interface RoomTimerState {
   roomCode: string;
@@ -239,9 +249,20 @@ io.on("connection", (socket) => {
       }
     }
   });
+// Fallback all non-API GET requests to index.html (SPA routing)
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api") || req.path.startsWith("/socket.io")) {
+    return next();
+  }
+  res.sendFile(path.join(distPath, "index.html"), (err) => {
+    if (err) {
+      next();
+    }
+  });
 });
 
-const PORT = 8080;
+const PORT = process.env.PORT || 8080;
 httpServer.listen(PORT, () => {
-  console.log(`Ludo Enterprise Server running on http://localhost:${PORT}`);
+  console.log(`Ludo Enterprise Server running on port ${PORT}`);
 });
+

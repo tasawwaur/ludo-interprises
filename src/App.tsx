@@ -137,11 +137,15 @@ const MainApp: React.FC = () => {
     });
   }, [currentView, user, lastRewardedMatchId, updateUser]);
 
-  // ✅ Splash ke baad: agar pehle se login hai to HOME, warna AUTH
+  // ✅ Splash ke baad: agar pehle se active match hai to auto-rejoin, warna HOME/AUTH
   const handleSplashFinish = () => {
     const activeMatch = localStorage.getItem("ludo_active_match_session");
     if (activeMatch === "GAME_ARENA") {
       setCurrentView("GAME_ARENA");
+      return;
+    }
+    if (activeMatch === "SNAKE_LADDER") {
+      setCurrentView("SNAKE_LADDER");
       return;
     }
     if (isAuthenticated) {
@@ -325,7 +329,15 @@ const MainApp: React.FC = () => {
         );
 
       case "SNAKE_LADDER":
-        return <SnakeLadderPage onLeave={() => setCurrentView("HOME")} />;
+        return (
+          <SnakeLadderPage
+            onLeave={() => {
+              localStorage.removeItem("ludo_active_match_session");
+              localStorage.removeItem("ludo_sl_engine_state");
+              setCurrentView("HOME");
+            }}
+          />
+        );
 
       case "GAME_ARENA":
         return <GameArenaPage onLeaveGame={() => setCurrentView("MATCH_RESULT")} />;

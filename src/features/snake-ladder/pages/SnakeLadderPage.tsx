@@ -174,6 +174,11 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     return engine.getGameState();
   });
 
+  // Save active match session flag on mount so refresh auto-rejoins
+  useEffect(() => {
+    localStorage.setItem("ludo_active_match_session", "SNAKE_LADDER");
+  }, []);
+
   // Turn timer countdown effect — resets to 15s on turn change
   useEffect(() => {
     setTurnTimerSeconds(15);
@@ -381,6 +386,8 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
 
   const handleConfirmExit = () => {
     setShowExitConfirm(false);
+    localStorage.removeItem("ludo_active_match_session");
+    localStorage.removeItem("ludo_sl_engine_state");
 
     if (engineRef.current && engineState.phase === "PLAYING") {
       const state = engineRef.current.getGameState();
@@ -395,10 +402,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       updateUser({
         coins: Math.max(0, currentCoins - 5000),
       });
-
-      localStorage.removeItem("ludo_sl_engine_state");
     } else {
-      localStorage.removeItem("ludo_sl_engine_state");
       onLeave();
     }
   };

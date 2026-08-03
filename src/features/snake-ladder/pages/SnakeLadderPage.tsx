@@ -169,11 +169,25 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     if (engineState.phase !== "PLAYING") return;
 
     const interval = setInterval(() => {
-      setTurnTimerSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+      setTurnTimerSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          if (engineState.currentTurnColor === "RED" && !redIsRolling && !isTokenAnimating.current) {
+            try { SoundEngine.play('TIMEOUT'); } catch (e) {}
+            if (engineState.isWaitingForTokenChoice && engineState.movableTokenIds.length > 0) {
+              handleSelectToken(engineState.movableTokenIds[0]);
+            } else {
+              handleRoll();
+            }
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [engineState.currentTurnColor, engineState.phase]);
+  }, [engineState.currentTurnColor, engineState.phase, engineState.isWaitingForTokenChoice, redIsRolling]);
 
   // Setup Event Listeners on mount
   useEffect(() => {
@@ -336,7 +350,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           }
         }
       }, 80);
-    }, 1000 + Math.random() * 14000);
+    }, 1000 + Math.random() * 1200);
 
     return () => clearTimeout(botDelay);
   }, [engineState.currentTurnColor, engineState.phase, engineState.isWaitingForTokenChoice, greenIsRolling]);

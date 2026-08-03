@@ -185,15 +185,17 @@ export class SnakeLadderEngine {
         const allMovable = [lockedTokens[0].tokenId, ...movableUnlocked.map((t) => t.tokenId)];
 
         if (activePlayer.isBot) {
+          const expectedIndex = this.state.activePlayerIndex;
           setTimeout(() => {
-            // Bot prefers moving existing token unless it's far behind
+            if (this.state.phase !== "PLAYING" || this.state.activePlayerIndex !== expectedIndex) return;
             const chosen = this.chooseSmartBotToken(activePlayer, rolled, allMovable);
-            if (!activePlayer.tokens.find((t) => t.tokenId === chosen)!.isUnlocked) {
-              this.unlockToken(activePlayer.tokens.find((t) => t.tokenId === chosen)!);
+            const targetToken = activePlayer.tokens.find((t) => t.tokenId === chosen);
+            if (targetToken && !targetToken.isUnlocked) {
+              this.unlockToken(targetToken);
             } else {
               this.moveToken(chosen, rolled);
             }
-          }, 2000);
+          }, 800);
         } else {
           this.state.isWaitingForTokenChoice = true;
           this.state.movableTokenIds = allMovable;
@@ -222,20 +224,30 @@ export class SnakeLadderEngine {
       this.state.logMessage = `🎲 ${activePlayer.name} rolled ${rolled}. No moves possible!`;
       this.state.consecutiveSixesCount = 0;
       this.emit("STATE_UPDATE", { state: this.state });
-      setTimeout(() => this.advanceTurn(), 1200);
+      const expectedIndex = this.state.activePlayerIndex;
+      setTimeout(() => {
+        if (this.state.phase !== "PLAYING" || this.state.activePlayerIndex !== expectedIndex) return;
+        this.advanceTurn();
+      }, 800);
       return;
     }
 
     if (movableIds.length === 1) {
       this.state.logMessage = `🎲 ${activePlayer.name} rolled ${rolled}. Auto-moving token ${movableIds[0] + 1}.`;
       this.emit("STATE_UPDATE", { state: this.state });
-      setTimeout(() => this.moveToken(movableIds[0], rolled), activePlayer.isBot ? 2000 : 500);
+      const expectedIndex = this.state.activePlayerIndex;
+      setTimeout(() => {
+        if (this.state.phase !== "PLAYING" || this.state.activePlayerIndex !== expectedIndex) return;
+        this.moveToken(movableIds[0], rolled);
+      }, activePlayer.isBot ? 800 : 300);
     } else {
       if (activePlayer.isBot) {
+        const expectedIndex = this.state.activePlayerIndex;
         setTimeout(() => {
+          if (this.state.phase !== "PLAYING" || this.state.activePlayerIndex !== expectedIndex) return;
           const chosenId = this.chooseSmartBotToken(activePlayer, rolled, movableIds);
           this.moveToken(chosenId, rolled);
-        }, 2000);
+        }, 800);
       } else {
         this.state.isWaitingForTokenChoice = true;
         this.state.movableTokenIds = movableIds;

@@ -76,8 +76,8 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
   const [redIsRolling, setRedIsRolling]     = useState(false);
   const [greenIsRolling, setGreenIsRolling] = useState(false);
 
-  const [showCalibrator, setShowCalibrator]   = useState(true);
-  const [showNumbers, setShowNumbers]         = useState(true);
+  const [showCalibrator, setShowCalibrator]   = useState(false);
+  const [showNumbers, setShowNumbers]         = useState(false);
   const [activeClickedCell, setActiveClickedCell] = useState<number | null>(null);
   const [turnTimerSeconds, setTurnTimerSeconds]   = useState(15);
 
@@ -594,33 +594,13 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           ←
         </button>
 
-        <div className="flex gap-1.5 items-center">
-          {/* Toggle Dot Calibration Mode */}
-          <button
-            onClick={() => setShowCalibrator((prev) => !prev)}
-            className="px-2.5 py-1.5 rounded-xl border border-rose-500/50 bg-slate-900/90 text-rose-300 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
-            title="Toggle Red Target Dots"
-          >
-            {showCalibrator ? "🎯 Dot: ON" : "🎯 Dot: OFF"}
-          </button>
-
-          {/* Toggle Cell Numbers Button */}
-          <button
-            onClick={() => setShowNumbers((prev) => !prev)}
-            className="px-2.5 py-1.5 rounded-xl border border-amber-500/40 bg-slate-900/90 text-amber-300 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
-            title="Toggle Cell Numbers (1-100)"
-          >
-            {showNumbers ? "🔢 Num: ON" : "🔢 Num: OFF"}
-          </button>
-
-          {/* Reset Game Button */}
-          <button
-            onClick={resetGame}
-            className="px-2.5 py-1.5 rounded-xl border border-slate-700/50 bg-slate-900/80 text-slate-300 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
-          >
-            🔄 Reset
-          </button>
-        </div>
+        {/* Reset Game Button */}
+        <button
+          onClick={resetGame}
+          className="px-3 py-1.5 rounded-xl border border-slate-700/50 bg-slate-900/80 text-slate-300 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
+        >
+          🔄 Reset
+        </button>
       </div>
 
       {/* Top Right Corner Player Avatar (Player 2 / Bot) */}

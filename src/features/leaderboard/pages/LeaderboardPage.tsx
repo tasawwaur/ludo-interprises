@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { LudoPageBackground } from "../../../components/effects/LudoPageBackground";
 import { useGlobalModalStore } from "../../../store/global-modal.store";
+import { useUserStore } from "../../../user/user.store";
+import { GLOBAL_PLAYER_DATABASE } from "../../../store/player-database.store";
 
 interface LeaderboardPageProps {
   onBack?: () => void;
@@ -10,15 +12,51 @@ export const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState<"LEAGUE" | "FRIENDS" | "ACHIEVEMENTS">("LEAGUE");
   const openProfile = useGlobalModalStore((s) => s.openProfile);
 
-  const leaders = [
-    { rank: 1, name: "Govind", level: 50, score: "1.2M", isUser: true },
-    { rank: 2, name: "Roxana", level: 48, score: "1.1M" },
-    { rank: 3, name: "Aman", level: 46, score: "1.0M" },
-    { rank: 4, name: "Imran", level: 47, score: "980K" },
-    { rank: 5, name: "Tasavvur", level: 45, score: "960K" },
-    { rank: 6, name: "Syed", level: 44, score: "930K" },
-    { rank: 7, name: "Priya", level: 43, score: "910K" },
-  ];
+  const { user } = useUserStore();
+
+  const leadersList = React.useMemo(() => {
+    // 1. Map all 100 bot players from local database
+    const dbLeaders = [...GLOBAL_PLAYER_DATABASE]
+      .sort((a, b) => b.level - a.level || b.matchesWon - a.matchesWon)
+      .slice(0, 100)
+      .map((p, idx) => ({
+        rank: idx + 1,
+        name: p.username,
+        level: p.level,
+        score: p.totalEarning,
+        avatarUrl: p.avatarUrl,
+        equippedFrame: p.equippedFrame,
+        isUser: false,
+      }));
+
+    // 2. Identify if real user matches any name, if so highlight them
+    const mapped = dbLeaders.map(p => {
+      if (user && p.name.toLowerCase() === user.username.toLowerCase()) {
+        return { ...p, isUser: true };
+      }
+      return p;
+    });
+
+    // 3. If real user is not in the list, inject them at their designated rank
+    const hasUser = mapped.some(p => p.isUser);
+    if (!hasUser && user) {
+      const userRank = user.rank || 42;
+      const insertIndex = Math.min(userRank - 1, 99);
+      const userLeader = {
+        rank: userRank,
+        name: user.username || "Tasavvur",
+        level: user.level || 5,
+        score: user.coins > 1000000 ? `${(user.coins / 1000000).toFixed(1)} M` : `${(user.coins / 1000).toFixed(1)} K`,
+        avatarUrl: user.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+        equippedFrame: "frame_gold",
+        isUser: true,
+      };
+      mapped.splice(insertIndex, 0, userLeader);
+    }
+
+    // 4. Re-index ranks if list size changes slightly
+    return mapped.map((p, idx) => ({ ...p, rank: idx + 1 }));
+  }, [user]);
 
   return (
     <div className="min-h-screen w-full bg-[#12061F] text-white flex flex-col items-center relative overflow-hidden select-none font-sans">
@@ -65,10 +103,10 @@ export const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ onBack }) => {
 
         {/* Leaderboard Ranks List */}
         <div className="flex-1 overflow-y-auto no-scrollbar space-y-2 pb-4">
-          {leaders.map((player) => (
+          {leadersList.map((player) => (
             <div
               key={player.rank}
-              onClick={() => openProfile(player.isUser ? "TASAVVUR" : player.name)}
+              onClick={() => openProfile(player.isUser ? (user?.username || "TASAVVUR") : player.name)}
               className={`flex items-center justify-between p-3.5 rounded-3xl border-2 transition-all cursor-pointer ${
                 player.isUser
                   ? "bg-gradient-to-r from-amber-500/20 via-purple-900/60 to-amber-500/20 border-amber-400 shadow-[0_0_15px_rgba(255,193,7,0.4)]"
@@ -91,9 +129,23 @@ export const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ onBack }) => {
                   {player.rank === 1 ? "👑" : player.rank}
                 </div>
 
-                {/* Avatar */}
-                <div className="w-10 h-10 rounded-full bg-slate-800 border-2 border-amber-400/60 flex items-center justify-center text-lg shadow-inner">
-                  👤
+                {/* Avatar with Equipped Frame filter overlay */}
+                <div className="relative w-10 h-10 flex-shrink-0 flex items-center justify-center">
+                  <div
+                    className="absolute w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-slate-900 border border-white/10"
+                    style={{
+                      backgroundImage: `url(${player.avatarUrl})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }}
+                  />
+                  {player.equippedFrame && (
+                    <img
+                      src="/assets/images/icons/profile_frame_v3.png"
+                      alt="frame"
+                      className="absolute inset-0 w-full h-full object-cover scale-[1.2] pointer-events-none"
+                    />
+                  )}
                 </div>
 
                 {/* Info */}

@@ -282,29 +282,22 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
         {/* TAB 1: #GAMEBUDDY CARD OVERVIEW */}
         {activeTab === "STATS" && (
           <div className="flex flex-col gap-4 animate-fade-in pb-4">
-            
             {/* Card Overlay mimicking reference exactly */}
-            <div className="bg-gradient-to-b from-[#8C1753] to-[#50082D] border-[3px] border-yellow-400 rounded-3xl p-4 shadow-2xl relative">
-              {/* Title label */}
-              <div className="w-full text-center -mt-2.5 mb-3 flex justify-center">
-                <span className="text-[9.5px] font-black text-pink-300 uppercase tracking-widest bg-[#50082D]/70 px-4 py-0.5 rounded-full border border-pink-500/20">
-                  #TrophyCard
-                </span>
-              </div>
-
+            <div className="bg-gradient-to-b from-[#1D0933]/90 via-[#12061F]/95 to-[#0D0A1C]/98 border-[3px] border-amber-500 rounded-3xl p-4 pt-6 shadow-2xl relative">
+              
               {/* Profile Header */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   {/* Dynamic circular avatar */}
                   <div className="w-20 h-20 relative flex-shrink-0 cursor-pointer" onClick={handleAvatarClick}>
                     <div
-                      className="absolute rounded-full overflow-hidden bg-slate-950 border border-[#400523] z-10"
+                      className="absolute rounded-full overflow-hidden bg-slate-950 border border-purple-950 z-10"
                       style={{ top: '15%', left: '15%', right: '15%', bottom: '26%' }}
                     >
                       {user?.avatar ? (
                         <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-pink-800 to-purple-900 flex items-center justify-center text-2xl font-black text-pink-200">
+                        <div className="w-full h-full bg-gradient-to-br from-purple-800 to-indigo-900 flex items-center justify-center text-2xl font-black text-purple-200">
                           {playerName.charAt(0)}
                         </div>
                       )}
@@ -323,9 +316,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
                     <h2 className="text-sm font-black text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.8)] tracking-wide">
                       {playerName}
                     </h2>
-                    <div className="flex items-center gap-1.5 bg-black/35 border border-pink-500/20 px-2 py-0.5 rounded-lg w-max shadow-inner">
+                    <div className="flex items-center gap-1.5 bg-black/35 border border-purple-500/20 px-2 py-0.5 rounded-lg w-max shadow-inner">
                       <span className="text-[10px] leading-none">{stats.countryFlag}</span>
-                      <span className="text-[7.5px] font-black text-pink-200 uppercase tracking-widest leading-none">
+                      <span className="text-[7.5px] font-black text-purple-200 uppercase tracking-widest leading-none">
                         {stats.country}
                       </span>
                     </div>
@@ -338,16 +331,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
               </div>
 
               {/* Animated XP Progress Bar (AAA quality) */}
-              <div className="mb-4 bg-black/45 border border-pink-500/25 rounded-2xl p-3 shadow-inner">
+              <div className="mb-4 bg-black/45 border border-purple-500/25 rounded-2xl p-3 shadow-inner">
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-[8.5px] font-black text-pink-300 uppercase tracking-wider">XP Level Progression</span>
+                  <span className="text-[8.5px] font-black text-purple-200 uppercase tracking-wider">XP Level Progression</span>
                   <span className="text-[8.5px] font-black text-amber-300 font-mono">
                     {stats.xp} / {stats.nextLevelXp} XP ({xpProgressPercent}%)
                   </span>
                 </div>
-                <div className="w-full h-3 bg-slate-950 rounded-full border border-pink-900/50 p-0.5 overflow-hidden">
+                <div className="w-full h-3 bg-slate-950 rounded-full border border-purple-900/50 p-0.5 overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 rounded-full shadow-[0_0_8px_rgba(244,63,94,0.8)] transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-purple-600 via-fuchsia-500 to-amber-400 shadow-[0_0_8px_rgba(168,85,247,0.8)] rounded-full transition-all duration-500"
                     style={{ width: `${xpProgressPercent}%` }}
                   ></div>
                 </div>
@@ -356,31 +349,31 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
               {/* Info Columns */}
               <div className="grid grid-cols-2 gap-2 mb-4">
                 <div className="flex flex-col gap-2">
-                  <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
-                    <span className="text-[7.5px] font-black uppercase text-pink-300 tracking-wider">Level</span>
+                  <div className="bg-black/35 border border-purple-900/40 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
+                    <span className="text-[7.5px] font-black uppercase text-purple-200 tracking-wider">Level</span>
                     <span className="text-xs font-extrabold text-white">{stats.level}</span>
                   </div>
-                  <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
-                    <span className="text-[7.5px] font-black uppercase text-pink-300 tracking-wider">Total earning</span>
+                  <div className="bg-black/35 border border-purple-900/40 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
+                    <span className="text-[7.5px] font-black uppercase text-purple-200 tracking-wider">Total earning</span>
                     <span className="text-xs font-extrabold text-amber-300">{stats.totalEarning}</span>
                   </div>
-                  <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center cursor-pointer active:scale-98 transition-transform" onClick={handleCopyUID}>
-                    <span className="text-[7.5px] font-black uppercase text-pink-300 tracking-wider">Player ID 📋</span>
+                  <div className="bg-black/35 border border-purple-900/40 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center cursor-pointer active:scale-98 transition-transform" onClick={handleCopyUID}>
+                    <span className="text-[7.5px] font-black uppercase text-purple-200 tracking-wider">Player ID 📋</span>
                     <span className="text-[9.5px] font-bold text-gray-300 font-mono truncate">{playerUID}</span>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
-                    <span className="text-[7.5px] font-black uppercase text-pink-300 tracking-wider">Signature</span>
+                  <div className="bg-black/35 border border-purple-900/40 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
+                    <span className="text-[7.5px] font-black uppercase text-purple-200 tracking-wider">Signature</span>
                     <span className="text-xs font-extrabold text-yellow-300 uppercase tracking-wide truncate">{stats.signature}</span>
                   </div>
-                  <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
-                    <span className="text-[7.5px] font-black uppercase text-pink-300 tracking-wider">Current gold</span>
+                  <div className="bg-black/35 border border-purple-900/40 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
+                    <span className="text-[7.5px] font-black uppercase text-purple-200 tracking-wider">Current gold</span>
                     <span className="text-xs font-extrabold text-amber-400 font-mono">{stats.currentCoins.toLocaleString()}</span>
                   </div>
-                  <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
-                    <span className="text-[7.5px] font-black uppercase text-pink-300 tracking-wider">Current League</span>
+                  <div className="bg-black/35 border border-purple-900/40 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
+                    <span className="text-[7.5px] font-black uppercase text-purple-200 tracking-wider">Current League</span>
                     <span className="text-[9.5px] font-extrabold text-blue-300 uppercase tracking-wider flex items-center gap-1">
                       👑 {stats.currentLeague}
                     </span>
@@ -389,47 +382,40 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
               </div>
 
               {/* Stats Section Divider */}
-              <div className="relative flex items-center justify-center my-3.5">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-pink-500/20"></div>
-                </div>
-                <span className="relative text-[9.5px] font-black text-pink-300 uppercase tracking-widest bg-[#6F1043] border border-pink-500/35 px-4 py-0.5 rounded-full z-10 shadow shadow-black/40">
-                  STATS
-                </span>
-              </div>
+              <div className="my-4 border-t border-purple-500/20 w-full" />
 
               {/* 2x4 Stats Grid */}
               <div className="grid grid-cols-2 gap-2">
-                <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
-                  <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">Games won</span>
+                <div className="bg-black/35 border border-purple-900/40 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+                  <span className="text-[7px] font-black uppercase text-purple-200/80 tracking-wider">Games won</span>
                   <span className="text-[10.5px] font-extrabold text-white truncate">{stats.matchesWon} of {stats.matchesPlayed}</span>
                 </div>
-                <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
-                  <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">Team wins</span>
+                <div className="bg-black/35 border border-purple-900/40 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+                  <span className="text-[7px] font-black uppercase text-purple-200/80 tracking-wider">Team wins</span>
                   <span className="text-[10.5px] font-extrabold text-white">{stats.teamWins}</span>
                 </div>
-                <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
-                  <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">Win Rate</span>
+                <div className="bg-black/35 border border-purple-900/40 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+                  <span className="text-[7px] font-black uppercase text-purple-200/80 tracking-wider">Win Rate</span>
                   <span className="text-[10.5px] font-extrabold text-white">{winRate} %</span>
                 </div>
-                <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
-                  <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">Win streak</span>
+                <div className="bg-black/35 border border-purple-900/40 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+                  <span className="text-[7px] font-black uppercase text-purple-200/80 tracking-wider">Win streak</span>
                   <span className="text-[10.5px] font-extrabold text-white">{stats.currentWinStreak}</span>
                 </div>
-                <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
-                  <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">2 Player wins</span>
+                <div className="bg-black/35 border border-purple-900/40 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+                  <span className="text-[7px] font-black uppercase text-purple-200/80 tracking-wider">2 Player wins</span>
                   <span className="text-[10.5px] font-extrabold text-white">{stats.twoPlayerWins}</span>
                 </div>
-                <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
-                  <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">Titan badge</span>
+                <div className="bg-black/35 border border-purple-900/40 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+                  <span className="text-[7px] font-black uppercase text-purple-200/80 tracking-wider">Titan badge</span>
                   <span className="text-[10.5px] font-extrabold text-amber-300">{stats.titanBadgeCount}</span>
                 </div>
-                <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
-                  <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">4 Player wins</span>
+                <div className="bg-black/35 border border-purple-900/40 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+                  <span className="text-[7px] font-black uppercase text-purple-200/80 tracking-wider">4 Player wins</span>
                   <span className="text-[10.5px] font-extrabold text-white">{stats.fourPlayerWins}</span>
                 </div>
-                <div className="bg-black/35 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
-                  <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">Kill Count</span>
+                <div className="bg-black/35 border border-purple-900/40 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+                  <span className="text-[7px] font-black uppercase text-purple-200/80 tracking-wider">Kill Count</span>
                   <span className="text-[10.5px] font-extrabold text-white">{stats.killCount}</span>
                 </div>
               </div>

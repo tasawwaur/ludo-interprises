@@ -2,6 +2,7 @@ import React from 'react';
 import { DiceItem } from '../types/dice.types';
 import { getRarityConfig } from '../utils/dice';
 import { formatMultiplier } from '../utils/formatter';
+import { DiceFace } from '../../gameplay/components/DiceFace';
 
 interface DiceCardProps {
   dice: DiceItem;
@@ -52,12 +53,12 @@ export const DiceCard: React.FC<DiceCardProps> = ({
 
       {/* Dice Face Preview & Name */}
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-slate-800 border border-purple-500/30 flex items-center justify-center text-3xl shadow-inner relative">
+        <div className="w-12 h-12 relative flex items-center justify-center">
+          <DiceFace value={6} size={46} diceId={dice.id} />
           {/* Animated Glow on Equip */}
           {isEquipped && (
-            <div className="absolute inset-0 rounded-2xl border-2 border-amber-400 animate-pulse opacity-60"></div>
+            <div className="absolute -inset-1 rounded-2xl border-2 border-amber-400 animate-pulse opacity-60 pointer-events-none"></div>
           )}
-          🎲
         </div>
         <div>
           <h4 className="text-xs font-black text-white">{dice.name}</h4>

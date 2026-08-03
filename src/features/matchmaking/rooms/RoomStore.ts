@@ -4,6 +4,7 @@ export interface RoomMember {
   id: string;
   name: string;
   isHost: boolean;
+  isBot: boolean;
   isReady: boolean;
   color: "RED" | "GREEN" | "YELLOW" | "BLUE";
   avatar?: string;
@@ -32,7 +33,8 @@ export interface RoomState {
     avatar?: string,
     profileFrame?: string,
     nameBanner?: string,
-    assignedColor?: "RED" | "GREEN" | "YELLOW" | "BLUE"
+    assignedColor?: "RED" | "GREEN" | "YELLOW" | "BLUE",
+    isBot?: boolean
   ) => boolean;
   leaveRoom: () => void;
   toggleReady: (memberId: string) => void;
@@ -50,7 +52,8 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     const host: RoomMember = { 
       id: "m_1", 
       name: hostName, 
-      isHost: true, 
+      isHost: true,
+      isBot: false,
       isReady: true, 
       color: assignedColor || (Math.random() < 0.5 ? "BLUE" : "RED"),
       avatar,
@@ -60,7 +63,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     set({ roomCode: code, mode, maxPlayers, members: [host], isGameStarting: false });
     return code;
   },
-  joinRoom: (code, userName, avatar, profileFrame, nameBanner, assignedColor) => {
+  joinRoom: (code, userName, avatar, profileFrame, nameBanner, assignedColor, isBot = true) => {
     const { members, maxPlayers } = get();
     if (members.length >= maxPlayers) return false;
     
@@ -76,7 +79,8 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     const member: RoomMember = { 
       id: "m_" + (members.length + 1), 
       name: userName, 
-      isHost: false, 
+      isHost: false,
+      isBot,
       isReady: false, 
       color: guestColor as "RED" | "GREEN" | "YELLOW" | "BLUE",
       avatar,

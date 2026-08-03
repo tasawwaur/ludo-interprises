@@ -9,6 +9,7 @@ import {
   getCoordinateColor,
   getQuadrantPlayerColor,
 } from '../board/BoardCoordinates';
+import { getBoardTheme, getTokenStyle } from '../../utils/cosmeticStyles';
 
 export class BoardCanvasRenderer {
   private ctx: CanvasRenderingContext2D;
@@ -16,6 +17,7 @@ export class BoardCanvasRenderer {
   private height: number;
   private cellSize: number;
   private animPulseAngle = 0;
+  private currentTheme!: any;
 
   constructor(ctx: CanvasRenderingContext2D, width: number, height: number) {
     this.ctx = ctx;
@@ -32,6 +34,10 @@ export class BoardCanvasRenderer {
   ) {
     const { ctx, width, height } = this;
     this.animPulseAngle = (this.animPulseAngle + 0.08) % (Math.PI * 2);
+    
+    // Load equipped board theme
+    const theme = getBoardTheme(state.equippedBoardId || 'board_default');
+    this.currentTheme = theme;
 
     ctx.clearRect(0, 0, width, height);
 
@@ -40,9 +46,9 @@ export class BoardCanvasRenderer {
     ctx.beginPath();
     ctx.roundRect(0, 0, width, height, 32);
     const outerGradient = ctx.createLinearGradient(0, 0, width, height);
-    outerGradient.addColorStop(0, '#9d174d'); // Bright Magenta
-    outerGradient.addColorStop(0.5, '#701a75'); // Deep Purple
-    outerGradient.addColorStop(1, '#4c0519'); // Dark Wine
+    outerGradient.addColorStop(0, theme.frameOuter);
+    outerGradient.addColorStop(0.5, theme.frameInner);
+    outerGradient.addColorStop(1, theme.frameOuter);
     ctx.fillStyle = outerGradient;
     ctx.fill();
     ctx.lineWidth = 4;
@@ -57,7 +63,7 @@ export class BoardCanvasRenderer {
     this.cellSize = innerCellSize;
 
     // White Board Canvas (Subtle off-white marble look)
-    ctx.fillStyle = '#fafaf9';
+    ctx.fillStyle = theme.boardBg;
     ctx.fillRect(0, 0, innerSize, innerSize);
 
     // Inner gold beveled board border
@@ -93,12 +99,12 @@ export class BoardCanvasRenderer {
       const y = pos.row * innerCellSize;
 
       const cellGrad = ctx.createLinearGradient(x, y, x + innerCellSize, y + innerCellSize);
-      cellGrad.addColorStop(0, '#ffffff');
-      cellGrad.addColorStop(1, '#f8fafc'); // Light slate
+      cellGrad.addColorStop(0, theme.boardBg === '#fafaf9' ? '#ffffff' : theme.boardBg);
+      cellGrad.addColorStop(1, theme.boardBg === '#fafaf9' ? '#f8fafc' : theme.boardBg); // Light slate matching theme
       ctx.fillStyle = cellGrad;
       ctx.fillRect(x, y, innerCellSize, innerCellSize);
 
-      ctx.strokeStyle = '#cbd5e1';
+      ctx.strokeStyle = theme.gridBorder;
       ctx.lineWidth = 1.5;
       ctx.strokeRect(x, y, innerCellSize, innerCellSize);
 
@@ -165,6 +171,7 @@ export class BoardCanvasRenderer {
     hasDiamondCrown: boolean
   ) {
     const { ctx, cellSize } = this;
+    const theme = this.currentTheme;
     const x = col * cellSize;
     const y = row * cellSize;
     const w = cols * cellSize;
@@ -172,23 +179,15 @@ export class BoardCanvasRenderer {
 
     // Rich gradient for Yard Box
     const yardGrad = ctx.createLinearGradient(x, y, x + w, y + h);
-    if (color === 'GREEN') {
-      yardGrad.addColorStop(0, '#064e3b'); // Dark Emerald
-      yardGrad.addColorStop(0.5, '#047857'); // Medium Emerald
-      yardGrad.addColorStop(1, '#022c22'); // Deep Emerald
-    } else if (color === 'YELLOW') {
-      yardGrad.addColorStop(0, '#78350f'); // Dark Amber
-      yardGrad.addColorStop(0.5, '#d97706'); // Medium Amber
-      yardGrad.addColorStop(1, '#451a03'); // Deep Amber
-    } else if (color === 'BLUE') {
-      yardGrad.addColorStop(0, '#1e3a8a'); // Dark Royal Blue
-      yardGrad.addColorStop(0.5, '#1d4ed8'); // Medium Blue
-      yardGrad.addColorStop(1, '#172554'); // Deep Blue
-    } else { // RED
-      yardGrad.addColorStop(0, '#881337'); // Dark Crimson
-      yardGrad.addColorStop(0.5, '#be123c'); // Medium Crimson
-      yardGrad.addColorStop(1, '#4c0519'); // Deep Crimson
-    }
+    let fillGrad: [string, string];
+    if (color === 'GREEN') fillGrad = theme.greenFill;
+    else if (color === 'YELLOW') fillGrad = theme.yellowFill;
+    else if (color === 'BLUE') fillGrad = theme.blueFill;
+    else fillGrad = theme.redFill;
+
+    yardGrad.addColorStop(0, fillGrad[0]);
+    yardGrad.addColorStop(0.5, fillGrad[1]);
+    yardGrad.addColorStop(1, '#020617'); // Dark tint
 
     ctx.fillStyle = yardGrad;
     ctx.fillRect(x, y, w, h);
@@ -261,10 +260,10 @@ export class BoardCanvasRenderer {
       ];
 
       const dotColorMap: Record<PlayerColor, string> = {
-        GREEN: '#047857',
-        YELLOW: '#d97706',
-        BLUE: '#1d4ed8',
-        RED: '#be123c',
+        GREEN: theme.greenFill[1],
+        YELLOW: theme.yellowFill[1],
+        BLUE: theme.blueFill[1],
+        RED: theme.redFill[1],
       };
 
       dotOffsets.forEach((off) => {
@@ -295,13 +294,14 @@ export class BoardCanvasRenderer {
 
   private drawCorridor(corridor: { col: number; row: number }[], colorHex: string, color: PlayerColor) {
     const { ctx, cellSize } = this;
+    const theme = this.currentTheme;
     
     // Choose premium gradients for corridor cells
     const gradMap: Record<PlayerColor, [string, string]> = {
-      GREEN: ['#10b981', '#064e3b'],
-      YELLOW: ['#fbbf24', '#78350f'],
-      BLUE: ['#3b82f6', '#1e3a8a'],
-      RED: ['#f43f5e', '#881337'],
+      GREEN: theme.greenFill,
+      YELLOW: theme.yellowFill,
+      BLUE: theme.blueFill,
+      RED: theme.redFill,
     };
 
     const colors = gradMap[color] || [colorHex, '#000000'];
@@ -336,17 +336,18 @@ export class BoardCanvasRenderer {
     bluePlayer: PlayerColor
   ) {
     const { ctx } = this;
+    const theme = this.currentTheme;
     const cx = 7.5 * cellSize;
     const cy = 7.5 * cellSize;
 
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = theme.boardBg;
     ctx.fillRect(6 * cellSize, 6 * cellSize, 3 * cellSize, 3 * cellSize);
 
     const gradMap: Record<PlayerColor, [string, string]> = {
-      GREEN: ['#064e3b', '#10b981'],
-      YELLOW: ['#78350f', '#fbbf24'],
-      BLUE: ['#1e3a8a', '#3b82f6'],
-      RED: ['#881337', '#f43f5e'],
+      GREEN: theme.greenFill,
+      YELLOW: theme.yellowFill,
+      BLUE: theme.blueFill,
+      RED: theme.redFill,
     };
 
     // Left RED Arrow (pointing right)
@@ -627,34 +628,45 @@ export class BoardCanvasRenderer {
         ctx.fill();
 
         // 3D Pawn Asset Image
-        const pawnImg = this.getPawnImage(token.color);
-        if (pawnImg && pawnImg.complete && pawnImg.naturalWidth > 0) {
-          const pawnW = cellSize * 0.88;
-          const pawnH = pawnW * (pawnImg.naturalHeight / pawnImg.naturalWidth);
-          
+        const tokenStyle = player.equippedTokenId ? getTokenStyle(player.equippedTokenId) : null;
+        const hasCustomToken = tokenStyle && player.equippedTokenId !== 'token_default';
+
+        if (hasCustomToken) {
           if (isMoveable || isSelected) {
             ctx.shadowColor = isSelected ? '#38bdf8' : isHovered ? '#fbbf24' : '#60a5fa';
             ctx.shadowBlur = 12 + Math.sin(this.animPulseAngle * 3) * 6;
           }
-
-          ctx.drawImage(pawnImg, -pawnW / 2, -pawnH * 0.75, pawnW, pawnH);
+          this.drawPremiumTokenCanvas(ctx, cellSize, tokenStyle);
         } else {
-          // Fallback Glossy 2D Token Body with Gold Crown
-          ctx.beginPath();
-          ctx.arc(0, 0, radius, 0, Math.PI * 2);
-          ctx.fillStyle = colorMap[token.color];
-          ctx.fill();
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = '#ffffff';
-          ctx.stroke();
+          const pawnImg = this.getPawnImage(token.color);
+          if (pawnImg && pawnImg.complete && pawnImg.naturalWidth > 0) {
+            const pawnW = cellSize * 0.88;
+            const pawnH = pawnW * (pawnImg.naturalHeight / pawnImg.naturalWidth);
+            
+            if (isMoveable || isSelected) {
+              ctx.shadowColor = isSelected ? '#38bdf8' : isHovered ? '#fbbf24' : '#60a5fa';
+              ctx.shadowBlur = 12 + Math.sin(this.animPulseAngle * 3) * 6;
+            }
 
-          ctx.beginPath();
-          ctx.arc(0, 0, radius * 0.45, 0, Math.PI * 2);
-          ctx.fillStyle = '#fef08a';
-          ctx.fill();
-          ctx.lineWidth = 1.5;
-          ctx.strokeStyle = '#ca8a04';
-          ctx.stroke();
+            ctx.drawImage(pawnImg, -pawnW / 2, -pawnH * 0.75, pawnW, pawnH);
+          } else {
+            // Fallback Glossy 2D Token Body with Gold Crown
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.fillStyle = colorMap[token.color];
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#ffffff';
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(0, 0, radius * 0.45, 0, Math.PI * 2);
+            ctx.fillStyle = '#fef08a';
+            ctx.fill();
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#ca8a04';
+            ctx.stroke();
+          }
         }
 
         // Selection / Movable Glow Ring around base
@@ -670,5 +682,88 @@ export class BoardCanvasRenderer {
         ctx.restore();
       });
     });
+  }
+
+  private drawPremiumTokenCanvas(
+    ctx: CanvasRenderingContext2D,
+    cellSize: number,
+    style: any
+  ) {
+    const radius = cellSize * 0.42;
+
+    // Apply glowing effect for Neon / Glow styles
+    if (style.isNeon) {
+      ctx.shadowColor = style.glowColor;
+      ctx.shadowBlur = 12 + Math.sin(this.animPulseAngle * 3) * 6;
+    }
+
+    // Dynamic gradient
+    const grad = ctx.createRadialGradient(
+      -radius * 0.3,
+      -radius * 0.3,
+      2,
+      0,
+      0,
+      radius
+    );
+
+    if (style.isGlass) {
+      grad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+      grad.addColorStop(0.4, `${style.primaryColor}aa`);
+      grad.addColorStop(1, `${style.secondaryColor}44`);
+    } else if (style.isMetallic) {
+      const linGrad = ctx.createLinearGradient(-radius, -radius, radius, radius);
+      linGrad.addColorStop(0, '#ffffff');
+      linGrad.addColorStop(0.3, style.primaryColor);
+      linGrad.addColorStop(0.7, style.secondaryColor);
+      linGrad.addColorStop(1, '#0f172a');
+      ctx.fillStyle = linGrad;
+    } else if (style.isMarble) {
+      grad.addColorStop(0, style.primaryColor);
+      grad.addColorStop(0.3, '#cbd5e1');
+      grad.addColorStop(0.7, style.secondaryColor);
+      grad.addColorStop(1, '#334155');
+    } else {
+      // Glossy / Shiny
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.2, style.primaryColor);
+      grad.addColorStop(1, style.secondaryColor);
+    }
+
+    if (!style.isMetallic) {
+      ctx.fillStyle = grad;
+    }
+
+    // Draw pawn shape paths on canvas:
+    // Base oval
+    ctx.beginPath();
+    ctx.ellipse(0, cellSize * 0.22, radius * 0.9, radius * 0.25, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Body flare
+    ctx.beginPath();
+    ctx.moveTo(-radius * 0.6, cellSize * 0.2);
+    ctx.quadraticCurveTo(-radius * 0.4, -radius * 0.2, -radius * 0.35, -radius * 0.6);
+    ctx.lineTo(radius * 0.35, -radius * 0.6);
+    ctx.quadraticCurveTo(radius * 0.4, -radius * 0.2, radius * 0.6, cellSize * 0.2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Collar
+    ctx.beginPath();
+    ctx.ellipse(0, -radius * 0.6, radius * 0.5, radius * 0.15, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Head ball
+    ctx.beginPath();
+    ctx.arc(0, -radius * 1.1, radius * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // High brightness glossy reflection spots (white overlay shine)
+    ctx.shadowBlur = 0; // reset shadow for gloss
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.beginPath();
+    ctx.arc(-radius * 0.2, -radius * 1.3, radius * 0.2, 0, Math.PI * 2);
+    ctx.fill();
   }
 }

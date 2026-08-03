@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { getDiceStyle } from '../../../utils/cosmeticStyles';
 
 interface Royal3DDiceProps {
   value: number | null;
@@ -8,6 +9,7 @@ interface Royal3DDiceProps {
   size?: number;
   playerColor?: string;
   badgePosition?: 'left' | 'right';
+  diceId?: string;
 }
 
 export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
@@ -18,11 +20,14 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
   size = 46,
   playerColor,
   badgePosition = 'right',
+  diceId = 'dice_classic'
 }) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [displayVal, setDisplayVal] = useState<number>(value || 1);
   const [showBadge, setShowBadge] = useState(false);
   const lastValueRef = useRef<number | null>(null);
+
+  const styleInfo = getDiceStyle(diceId);
 
   // Trigger roll animation when value changes
   useEffect(() => {
@@ -64,75 +69,75 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
     onRoll?.();
   };
 
-  // Render 3D Ivory White Royal Cube with Pips
+  // Render 3D Royal Cube with Dynamic Pips
   const renderPips = (val: number) => {
     const isSix = val === 6;
-    const dotBg = isSix ? 'bg-red-600 shadow-[0_0_8px_rgba(220,38,38,0.9)]' : 'bg-slate-900 shadow-inner';
+    const dotColor = isSix ? '#ef4444' : styleInfo.dotColor;
+    const dotShadow = isSix ? '0 0 8px rgba(220,38,38,0.9)' : 'inset 0 1px 2px rgba(0,0,0,0.5)';
+
+    const dotStyle = {
+      backgroundColor: dotColor,
+      boxShadow: dotShadow
+    };
 
     switch (val) {
       case 1:
         return (
           <div className="w-full h-full flex items-center justify-center">
-            <span className={`w-3.5 h-3.5 rounded-full ${dotBg}`}></span>
+            <span className="w-3.5 h-3.5 rounded-full" style={dotStyle}></span>
           </div>
         );
       case 2:
         return (
           <div className="w-full h-full flex justify-between p-1.5">
-            <span className={`w-2.5 h-2.5 rounded-full self-start ${dotBg}`}></span>
-            <span className={`w-2.5 h-2.5 rounded-full self-end ${dotBg}`}></span>
+            <span className="w-2.5 h-2.5 rounded-full self-start" style={dotStyle}></span>
+            <span className="w-2.5 h-2.5 rounded-full self-end" style={dotStyle}></span>
           </div>
         );
       case 3:
         return (
           <div className="w-full h-full flex justify-between p-1.5">
-            <span className={`w-2.5 h-2.5 rounded-full self-start ${dotBg}`}></span>
-            <span className={`w-2.5 h-2.5 rounded-full self-center ${dotBg}`}></span>
-            <span className={`w-2.5 h-2.5 rounded-full self-end ${dotBg}`}></span>
+            <span className="w-2.5 h-2.5 rounded-full self-start" style={dotStyle}></span>
+            <span className="w-2.5 h-2.5 rounded-full self-center" style={dotStyle}></span>
+            <span className="w-2.5 h-2.5 rounded-full self-end" style={dotStyle}></span>
           </div>
         );
       case 4:
         return (
           <div className="w-full h-full grid grid-cols-2 p-1.5 gap-1.5 items-center justify-items-center">
-            <span className={`w-2.5 h-2.5 rounded-full ${dotBg}`}></span>
-            <span className={`w-2.5 h-2.5 rounded-full ${dotBg}`}></span>
-            <span className={`w-2.5 h-2.5 rounded-full ${dotBg}`}></span>
-            <span className={`w-2.5 h-2.5 rounded-full ${dotBg}`}></span>
+            <span className="w-2.5 h-2.5 rounded-full" style={dotStyle}></span>
+            <span className="w-2.5 h-2.5 rounded-full" style={dotStyle}></span>
+            <span className="w-2.5 h-2.5 rounded-full" style={dotStyle}></span>
+            <span className="w-2.5 h-2.5 rounded-full" style={dotStyle}></span>
           </div>
         );
       case 5:
         return (
           <div className="w-full h-full relative p-1.5">
             <div className="w-full h-full grid grid-cols-2 gap-2 items-center justify-items-center">
-              <span className={`w-2.5 h-2.5 rounded-full ${dotBg}`}></span>
-              <span className={`w-2.5 h-2.5 rounded-full ${dotBg}`}></span>
-              <span className={`w-2.5 h-2.5 rounded-full ${dotBg}`}></span>
-              <span className={`w-2.5 h-2.5 rounded-full ${dotBg}`}></span>
+              <span className="w-2.5 h-2.5 rounded-full" style={dotStyle}></span>
+              <span className="w-2.5 h-2.5 rounded-full" style={dotStyle}></span>
+              <span className="w-2.5 h-2.5 rounded-full" style={dotStyle}></span>
+              <span className="w-2.5 h-2.5 rounded-full" style={dotStyle}></span>
             </div>
-            <span className={`w-2.5 h-2.5 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${dotBg}`}></span>
+            <span className="w-2.5 h-2.5 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style={dotStyle}></span>
           </div>
         );
       case 6:
         return (
           <div className="w-full h-full grid grid-cols-2 grid-rows-3 p-1.5 gap-1 items-center justify-items-center">
-            <span className={`w-2 h-2 rounded-full ${dotBg}`}></span>
-            <span className={`w-2 h-2 rounded-full ${dotBg}`}></span>
-            <span className={`w-2 h-2 rounded-full ${dotBg}`}></span>
-            <span className={`w-2 h-2 rounded-full ${dotBg}`}></span>
-            <span className={`w-2 h-2 rounded-full ${dotBg}`}></span>
-            <span className={`w-2 h-2 rounded-full ${dotBg}`}></span>
+            <span className="w-2 h-2 rounded-full" style={dotStyle}></span>
+            <span className="w-2 h-2 rounded-full" style={dotStyle}></span>
+            <span className="w-2 h-2 rounded-full" style={dotStyle}></span>
+            <span className="w-2 h-2 rounded-full" style={dotStyle}></span>
+            <span className="w-2 h-2 rounded-full" style={dotStyle}></span>
+            <span className="w-2 h-2 rounded-full" style={dotStyle}></span>
           </div>
         );
       default:
         return null;
     }
   };
-
-  let glowBg = "bg-amber-400/50";
-  if (playerColor === "RED") glowBg = "bg-red-500/60 shadow-[0_0_15px_rgba(239,68,68,0.7)]";
-  else if (playerColor === "BLUE") glowBg = "bg-blue-500/60 shadow-[0_0_15px_rgba(59,130,246,0.7)]";
-  else if (playerColor === "GREEN") glowBg = "bg-emerald-500/60 shadow-[0_0_15px_rgba(16,185,129,0.7)]";
-  else if (playerColor === "YELLOW") glowBg = "bg-amber-400/60 shadow-[0_0_15px_rgba(251,191,36,0.7)]";
 
   const badgePositionClass = badgePosition === 'left'
     ? 'right-[88px]'
@@ -159,22 +164,40 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
 
       {/* 3D Glowing Active Aura when turn is active */}
       {isActiveTurn && (
-        <div className={`absolute -inset-2 rounded-2xl ${glowBg} blur-md animate-pulse pointer-events-none`}></div>
+        <div
+          className="absolute -inset-2 rounded-2xl blur-md animate-pulse pointer-events-none"
+          style={{
+            backgroundColor: styleInfo.shadowColor !== 'rgba(0,0,0,0.5)' ? styleInfo.shadowColor : '#fbbf24',
+            boxShadow: `0 0 20px 4px ${styleInfo.shadowColor}`
+          }}
+        />
       )}
 
-      {/* 3D Ivory Royal Dice Box */}
+      {/* 3D Royal Dice Box */}
       <div
-        className={`w-full h-full rounded-2xl bg-gradient-to-br from-amber-50 via-amber-100 to-amber-200 border-2 border-amber-300/90 shadow-[0_8px_20px_rgba(0,0,0,0.9),inset_0_2px_4px_rgba(255,255,255,0.9),inset_0_-2px_4px_rgba(0,0,0,0.2)] flex items-center justify-center relative overflow-hidden transition-all ${
+        className={`w-full h-full rounded-2xl bg-gradient-to-br ${styleInfo.bgGradient} border-2 ${styleInfo.borderColor} flex items-center justify-center relative overflow-hidden transition-all ${
           isAnimating ? 'animate-dice-rolling' : ''
         }`}
+        style={{
+          boxShadow: `0 8px 20px ${styleInfo.shadowColor !== 'rgba(0,0,0,0.5)' ? styleInfo.shadowColor : 'rgba(0,0,0,0.85)'}, inset 0 2px 4px rgba(255,255,255,0.7), inset 0 -2px 4px rgba(0,0,0,0.2)`
+        }}
       >
         {/* Shiny Gloss Highlight */}
-        <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/60 to-transparent pointer-events-none"></div>
+        <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/45 to-transparent pointer-events-none"></div>
 
         {/* Dice Face Pips */}
         <div className="relative z-10 w-full h-full">
           {renderPips(displayVal)}
         </div>
+
+        {/* Dynamic visual effect overlay (sparks/fire) */}
+        {styleInfo.particles !== 'none' && (
+          <div
+            className={`absolute inset-0 opacity-40 pointer-events-none mix-blend-overlay ${
+              styleInfo.particles === 'fire' ? 'bg-orange-500' : styleInfo.particles === 'sparks' ? 'bg-cyan-400' : 'bg-yellow-300'
+            }`}
+          />
+        )}
       </div>
 
       {/* Dice Value Badge next to Dice Frame */}
@@ -188,3 +211,4 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
     </div>
   );
 };
+export default Royal3DDice;

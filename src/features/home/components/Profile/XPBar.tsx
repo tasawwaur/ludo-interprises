@@ -1,12 +1,21 @@
 import React from 'react';
-import { LevelBadge } from '../../../../components/badges/LevelBadge';
 
 interface XPBarProps {
   progressPercent?: number;
   level?: number;
+  currentXp?: number;
+  requiredXp?: number;
 }
 
-export const XPBar: React.FC<XPBarProps> = ({ progressPercent = 75, level = 85 }) => {
+export const XPBar: React.FC<XPBarProps> = ({ progressPercent, level = 85, currentXp, requiredXp }) => {
+  const hasXpProps = currentXp !== undefined && requiredXp !== undefined;
+  const activePercent = hasXpProps 
+    ? (requiredXp > 0 ? Math.min(1, currentXp / requiredXp) : 0) 
+    : (progressPercent !== undefined ? progressPercent : 0.75);
+
+  const displayCurrent = hasXpProps ? currentXp : Math.round(activePercent * 100);
+  const displayRequired = hasXpProps ? requiredXp : 100;
+
   return (
     <div className="relative w-full aspect-[4.54/1] select-none my-0.5">
       {/* 1. Progress Bar Fill (behind the frame, showing through the transparent cut-out) */}
@@ -14,7 +23,7 @@ export const XPBar: React.FC<XPBarProps> = ({ progressPercent = 75, level = 85 }
         className="absolute left-[23.2%] right-[18.9%] top-[38%] bottom-[42%] bg-purple-950/80 rounded-full overflow-hidden z-0 flex p-[0.5px]"
       >
         <div
-          style={{ width: `${progressPercent}%` }}
+          style={{ width: `${activePercent * 100}%` }}
           className="h-full bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-500 rounded-full shadow-[0_0_4px_rgba(245,158,11,0.8)] transition-all duration-500"
         />
       </div>
@@ -27,15 +36,17 @@ export const XPBar: React.FC<XPBarProps> = ({ progressPercent = 75, level = 85 }
         draggable={false}
       />
 
-      {/* 3. Premium Dynamic Level Badge Frame */}
-      <div className="absolute left-[16.6%] top-[50%] -translate-x-1/2 -translate-y-1/2 z-20 flex items-center justify-center">
-        <LevelBadge level={level} size={35} />
+      {/* 3. Level Text (centered in the left circular shield, italic) */}
+      <div className="absolute left-[16.6%] top-[58%] -translate-x-1/2 -translate-y-1/2 z-20 flex items-center justify-center pointer-events-none">
+        <span className="text-[13px] font-black text-amber-200 italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+          {level}
+        </span>
       </div>
 
       {/* 4. Progress Text (centered on the progress bar, italic) */}
       <div className="absolute left-[52.15%] top-[58%] -translate-x-1/2 -translate-y-1/2 z-20 flex items-center justify-center pointer-events-none">
         <span className="text-[9.5px] font-black text-white italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] tracking-wider">
-          {Math.round(progressPercent * 100)} / 100 XP
+          {displayCurrent} / {displayRequired} XP
         </span>
       </div>
     </div>

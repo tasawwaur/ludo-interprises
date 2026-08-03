@@ -2,6 +2,7 @@ import React from 'react';
 import { DiceItem } from '../types/dice.types';
 import { getRarityConfig } from '../utils/dice';
 import { useSkins } from '../hooks/useSkins';
+import { DiceFace } from '../../gameplay/components/DiceFace';
 import FireEffect from './Effects/FireEffect';
 import LightningEffect from './Effects/LightningEffect';
 import GoldenEffect from './Effects/GoldenEffect';
@@ -49,12 +50,10 @@ export const DicePreview: React.FC<DicePreviewProps> = ({ dice, isRolling = fals
 
         {/* Large 3D Dice */}
         <div
-          className={`w-24 h-24 bg-gradient-to-br rounded-3xl border-4 flex items-center justify-center text-5xl shadow-2xl relative select-none ${
-            currentStyle
-          } ${isRolling ? 'animate-spin' : 'animate-bounce'}`}
+          className={`flex items-center justify-center select-none ${isRolling ? 'animate-spin' : 'animate-bounce'}`}
           style={{ animationDuration: isRolling ? '0.4s' : '3.5s' }}
         >
-          🎲
+          <DiceFace value={6} size={90} diceId={dice.id} />
         </div>
       </div>
 

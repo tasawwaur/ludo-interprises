@@ -3,12 +3,13 @@ import { RuleValidator } from '../rules/RuleValidator';
 import { DiceEngine } from '../dice/DiceEngine';
 import { TurnManager } from '../rules/TurnManager';
 import { COLOR_START_INDEX } from '../board/BoardCoordinates';
+import { GLOBAL_PLAYER_DATABASE } from '../../store/player-database.store';
 
 export class GameEngine {
   /**
    * Initializes a fresh Duel (1v1), Team (2v2), or 4-Player Ludo Match state.
    */
-  static createInitialState(mode: '2P' | '2v2' | '4P', hostName: string, roomMembers?: any[]): GameState {
+  static createInitialState(mode: '2P' | '2v2' | '4P', hostName: string, roomMembers?: any[], roomMode?: string): GameState {
     // Valid 2P Duel pairs (opposite seating): BLUE↔GREEN, RED↔YELLOW
     const VALID_2P_PAIRS: Record<PlayerColor, PlayerColor> = {
       BLUE: 'GREEN', GREEN: 'BLUE', RED: 'YELLOW', YELLOW: 'RED',
@@ -33,26 +34,70 @@ export class GameEngine {
       colors = ['GREEN', 'YELLOW', 'BLUE', 'RED'];
     }
 
+    // Generate unique random bot indexes for the match
+    const usedBotIndices = new Set<number>();
+    const getRandomBot = () => {
+      let tries = 0;
+      let idx = Math.floor(Math.random() * GLOBAL_PLAYER_DATABASE.length);
+      while (usedBotIndices.has(idx) && tries < 50) {
+        idx = Math.floor(Math.random() * GLOBAL_PLAYER_DATABASE.length);
+        tries++;
+      }
+      usedBotIndices.add(idx);
+      return GLOBAL_PLAYER_DATABASE[idx];
+    };
+
     const players: Player[] = colors.map((color, index) => {
       const isHost = index === 0;
-
-      // Map member by index to guarantee both real players are loaded into the match
       const member = roomMembers?.[index];
 
       let name = member?.name;
-      if (!name) {
-        name = isHost ? hostName : `Rahul Sharma`;
-        if (mode === '2v2') {
-          if (color === 'GREEN') name = isHost ? hostName : 'Priya Verma';
-          if (color === 'BLUE') name = 'Vikram Singh';
-          if (color === 'YELLOW') name = 'Rahul Sharma';
-          if (color === 'RED') name = 'Ananya Roy';
+      let avatar = member?.avatar;
+      let profileFrame = member?.profileFrame;
+      let nameBanner = member?.nameBanner;
+      let isAi = member ? member.isBot : !isHost;
+
+      // Stats fallback defaults
+      let level = isHost ? 24 : 22;
+      let coins = isHost ? 150000 : 120000;
+      let gems = isHost ? 450 : 380;
+      let winRate = isHost ? 68.4 : 62.1;
+      let matchesPlayed = isHost ? 342 : 280;
+
+      if (member) {
+        // Enriched by room member
+        name = member.name;
+        avatar = member.avatar;
+        profileFrame = member.profileFrame || "/assets/images/icons/profile_frame_v3.png";
+        nameBanner = member.nameBanner || "/assets/images/icons/name_banner_v2.png";
+        isAi = member.isBot;
+        
+        // If it's a bot member, we can lookup details from database by name
+        const dbEntry = GLOBAL_PLAYER_DATABASE.find(p => p.username === member.name);
+        if (dbEntry) {
+          level = dbEntry.level;
+          coins = dbEntry.currentCoins;
+          gems = dbEntry.currentDiamonds;
+          winRate = Math.round((dbEntry.matchesWon / (dbEntry.matchesPlayed || 1)) * 1000) / 10;
+          matchesPlayed = dbEntry.matchesPlayed;
+          avatar = dbEntry.avatarUrl;
+        }
+      } else if (!isHost) {
+        // No room member, auto-spawn AI
+        const bot = getRandomBot();
+        if (bot) {
+          name = bot.username;
+          avatar = bot.avatarUrl;
+          profileFrame = "/assets/images/icons/profile_frame_v3.png";
+          nameBanner = "/assets/images/icons/name_banner_v2.png";
+          isAi = true;
+          level = bot.level;
+          coins = bot.currentCoins;
+          gems = bot.currentDiamonds;
+          winRate = Math.round((bot.matchesWon / (bot.matchesPlayed || 1)) * 1000) / 10;
+          matchesPlayed = bot.matchesPlayed;
         }
       }
-
-      const avatar = member?.avatar;
-      const profileFrame = member?.profileFrame;
-      const nameBanner = member?.nameBanner;
 
       // Team Assignment: Red vs Yellow & Blue vs Green
       let team: TeamName | undefined = undefined;
@@ -60,7 +105,8 @@ export class GameEngine {
         team = color === 'RED' || color === 'YELLOW' ? 'TEAM_A' : 'TEAM_B';
       }
 
-      const tokens: Token[] = [0, 1, 2, 3].map((tokenIdx) => ({
+      const tokenIndices = roomMode === 'Quick Classic' ? [0] : [0, 1, 2, 3];
+      const tokens: Token[] = tokenIndices.map((tokenIdx) => ({
         id: `${color}_${tokenIdx}`,
         color,
         index: tokenIdx,
@@ -77,15 +123,15 @@ export class GameEngine {
         avatar,
         profileFrame,
         nameBanner,
-        isAi: !isHost,
+        isAi,
         isHost,
         isReady: true,
         tokens,
-        level: isHost ? 24 : 22,
-        coins: isHost ? 150000 : 120000,
-        gems: isHost ? 450 : 380,
-        winRate: isHost ? 68.4 : 62.1,
-        matchesPlayed: isHost ? 342 : 280,
+        level,
+        coins,
+        gems,
+        winRate,
+        matchesPlayed,
         totalUndosUsed: 0,
         undosUsedThisTurn: 0,
         protectTurnsCount: 0,

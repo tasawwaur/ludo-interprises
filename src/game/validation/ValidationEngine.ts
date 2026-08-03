@@ -18,6 +18,11 @@ export class ValidationEngine {
    * Evaluates environment integrity, speed indicators, memory edits, and returns report.
    */
   public static performFullSecurityCheck(playerId: string): { isSafe: boolean; bansRequired: boolean; alerts: string[] } {
+    // Local development bypass (allows debugging, devtools, and emulators during local testing)
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      return { isSafe: true, bansRequired: false, alerts: [] };
+    }
+
     if (this.systemBanned) {
       return { isSafe: false, bansRequired: true, alerts: ["ACCOUNT_PERMANENTLY_SUSPENDED"] };
     }
@@ -138,6 +143,9 @@ export class ValidationEngine {
   }
 
   public static isBanned(): boolean {
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      return false;
+    }
     return this.systemBanned;
   }
 

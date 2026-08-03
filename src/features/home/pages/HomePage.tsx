@@ -8,6 +8,8 @@ import { BottomNavigation } from "../components/BottomNavigation";
 import { LuckySpinModal } from "../../events/LuckySpinModal";
 import { XPBar } from "../components/Profile/XPBar";
 import { useUserStore } from "../../../user/user.store";
+import { usePlayerStatsStore } from "../../../store/player-stats.store";
+
 import { getFrameFilter } from "../../../store/cosmetics.store";
 import { getDefaultAvatar } from "../../../utils/avatar";
 import confetti from 'canvas-confetti';
@@ -77,13 +79,20 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
   const justClaimedWelcome = useUserStore((s) => s.justClaimedWelcome);
   const setJustClaimedWelcome = useUserStore((s) => s.setJustClaimedWelcome);
 
-  const level = user?.level || 25;
+  const { stats, syncWithUserStore } = usePlayerStatsStore();
+
+  useEffect(() => {
+    syncWithUserStore();
+  }, [user?.coins, user?.gems, user?.level]);
+
+  const level = stats.level;
   const [showLuckySpin, setShowLuckySpin] = useState(false);
   const [showXPDetails, setShowXPDetails] = useState(false);
   const [showNameEdit, setShowNameEdit] = useState(false);
   const [tempName, setTempName] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [activeNav, setActiveNav] = useState("home");
+  const [showModeSelection, setShowModeSelection] = useState(false);
 
   const [animCrowns, setAnimCrowns] = useState<number | null>(null);
   const [animCoins, setAnimCoins] = useState<number | null>(null);
@@ -209,8 +218,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
       ticks: 60,
     });
 
-    triggerToast("Joining 2 Player Mode...");
-    onSelectMode?.("2P Classic");
+    setShowModeSelection(true);
   };
 
   const handleNameClick = () => {
@@ -367,7 +375,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
         style={{ WebkitTapHighlightColor: "transparent" }}
         aria-label="View XP Details"
       >
-        <XPBar progressPercent={0.75} level={level} />
+        <XPBar currentXp={stats.xp} requiredXp={stats.nextLevelXp} level={stats.level} />
       </button>
 
       {/* ── LUXURY LEFT SIDE ICON BAR (Video Ads, VIP Club, & Golden Dice) ── */}
@@ -647,6 +655,83 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
           draggable={false}
         />
 
+        {/* ── LUXURY RANK BADGE PNG — left bottom (replaces Shop) ── */}
+        {(() => {
+          const rank = user?.rank ?? 0;
+
+          type TierCfg = { tier: string; emoji: string; glow: string; bg: string; rankColor: string; tierColor: string; border: string; };
+          let cfg: TierCfg = {
+            tier: "Rookie", emoji: "⚔️",
+            glow: "rgba(180,110,60,0.95)",
+            bg: "radial-gradient(circle at 40% 35%, #7c3400, #3b0f00)",
+            rankColor: "#FCD3A0", tierColor: "#E0935A",
+            border: "rgba(180,110,60,0.8)",
+          };
+          if (rank >= 1 && rank <= 500) {
+            cfg = { tier: "Bronze", emoji: "🥉", glow: "rgba(205,127,50,1)", bg: "radial-gradient(circle at 40% 35%, #92400e, #451a03)", rankColor: "#FFB87A", tierColor: "#CD7F32", border: "rgba(205,127,50,0.9)" };
+          } else if (rank >= 501 && rank <= 1000) {
+            cfg = { tier: "Silver", emoji: "🥈", glow: "rgba(190,210,230,1)", bg: "radial-gradient(circle at 40% 35%, #374151, #111827)", rankColor: "#E8F0F8", tierColor: "#CBD5E1", border: "rgba(200,210,220,0.8)" };
+          } else if (rank >= 1001 && rank <= 2000) {
+            cfg = { tier: "Gold", emoji: "🥇", glow: "rgba(255,195,0,1)", bg: "radial-gradient(circle at 40% 35%, #78350f, #292100)", rankColor: "#FEF08A", tierColor: "#FFD700", border: "rgba(255,195,0,0.9)" };
+          } else if (rank >= 2001 && rank <= 5000) {
+            cfg = { tier: "Platinum", emoji: "💎", glow: "rgba(99,220,255,1)", bg: "radial-gradient(circle at 40% 35%, #0e4a5a, #041520)", rankColor: "#B2F5FF", tierColor: "#67E8F9", border: "rgba(99,220,255,0.8)" };
+          } else if (rank >= 5001 && rank <= 10000) {
+            cfg = { tier: "Diamond", emoji: "💠", glow: "rgba(100,160,255,1)", bg: "radial-gradient(circle at 40% 35%, #1e3a8a, #0a0f2e)", rankColor: "#BAD4FF", tierColor: "#93C5FD", border: "rgba(100,160,255,0.8)" };
+          } else if (rank > 10000) {
+            cfg = { tier: "Legendary", emoji: "👑", glow: "rgba(255,215,0,1)", bg: "radial-gradient(circle at 40% 35%, #713f12, #1c0a00)", rankColor: "#FFF8D0", tierColor: "#FFD700", border: "rgba(255,215,0,1)" };
+          }
+
+          return (
+            <button
+              onClick={() => onOpenView?.("LEADERBOARD")}
+              className="absolute left-1/2 -translate-x-1/2 -top-[36px] z-40 cursor-pointer border-0 outline-none p-0 bg-transparent hover:scale-110 active:scale-95 transition-all duration-200"
+              style={{ WebkitTapHighlightColor: "transparent" }}
+              aria-label="View Leaderboard Rank"
+            >
+              {/* Outer glow halo */}
+              <div
+                style={{ filter: `drop-shadow(0 0 6px ${cfg.glow}) drop-shadow(0 0 12px ${cfg.glow})` }}
+              >
+                {/* Circular container — dark gradient base */}
+                <div
+                  className="relative w-[54px] h-[54px] rounded-full overflow-hidden flex items-center justify-center"
+                  style={{
+                    background: cfg.bg,
+                    border: `1.5px solid ${cfg.border}`,
+                    boxShadow: `inset 0 0 8px rgba(0,0,0,0.8), inset 0 1px 2px rgba(255,255,255,0.1)`,
+                  }}
+                >
+                  {/* PNG crest — blended so dark bg dissolves, only bright crest shows */}
+                  <img
+                    src="/assets/images/icons/rank_badge_frame.jpg"
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ mixBlendMode: "screen", opacity: 0.65 }}
+                    draggable={false}
+                  />
+
+                  {/* Text overlay */}
+                  <div className="relative z-10 flex flex-col items-center justify-center gap-[0.5px]">
+                    <span className="text-[13px] leading-none drop-shadow-[0_1px_3px_rgba(0,0,0,1)]">{cfg.emoji}</span>
+                    <span
+                      className="text-[8px] font-black leading-none tracking-tight"
+                      style={{ color: cfg.rankColor, textShadow: `0 0 4px ${cfg.glow}, 0 1px 2px rgba(0,0,0,1)` }}
+                    >
+                      {rank > 0 ? `#${rank}` : "–"}
+                    </span>
+                    <span
+                      className="text-[5px] font-black uppercase tracking-[0.05em] leading-none"
+                      style={{ color: cfg.tierColor, textShadow: `0 1px 2px rgba(0,0,0,1)` }}
+                    >
+                      {cfg.tier}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </button>
+          );
+        })()}
+
         {/* Clickable overlay zones (invisible buttons matching image layout) */}
         <div className="absolute bottom-0 left-0 right-0 h-[58px] flex items-center justify-around px-2">
           {/* SHOP */}
@@ -842,14 +927,14 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
                 onClick={() => {
                   const cleaned = tempName.trim();
                   if (cleaned.length > 0) {
-                    const formatted = cleaned.toUpperCase();
-                    setPlayerName(formatted);
-                    localStorage.setItem("ludo_player_name", formatted);
-                    updateUser({ username: formatted, displayName: formatted });
-                    triggerToast(`Name updated to ${formatted}`);
-                    setShowNameEdit(false);
+                     const formatted = cleaned.toUpperCase();
+                     setPlayerName(formatted);
+                     localStorage.setItem("ludo_player_name", formatted);
+                     updateUser({ username: formatted, displayName: formatted });
+                     triggerToast(`Name updated to ${formatted}`);
+                     setShowNameEdit(false);
                   } else {
-                    triggerToast("Name cannot be empty!");
+                     triggerToast("Name cannot be empty!");
                   }
                 }}
                 className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 text-purple-950 font-black text-xs tracking-widest uppercase transition-all duration-200 active:scale-95 shadow-[0_4px_12px_rgba(245,158,11,0.25)] cursor-pointer border-0 outline-none"
@@ -865,6 +950,164 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── LUXURY GAME MODE SELECTION MODAL ── */}
+      {showModeSelection && (
+        <div className="absolute inset-0 bg-[#090214]/95 z-[90] flex flex-col items-center justify-start p-6 overflow-y-auto animate-[fadeIn_0.25s_ease-out]">
+          {/* Luxury background image fit */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center opacity-45 pointer-events-none mix-blend-screen"
+            style={{ backgroundImage: `url('/assets/images/backgrounds/luxury_ludo_bg.jpg')` }}
+          />
+
+          {/* Glowing auroras */}
+          <div className="absolute w-[280px] h-[280px] rounded-full bg-purple-600/20 blur-[100px] top-10 pointer-events-none animate-pulse-soft"></div>
+          <div className="absolute w-[240px] h-[240px] rounded-full bg-amber-500/10 blur-[80px] bottom-10 pointer-events-none animate-pulse-soft"></div>
+
+          {/* Modal Header */}
+          <div className="w-full max-w-[390px] relative z-10 flex items-center justify-between mt-4 mb-6">
+            <h2 className="text-xl font-black bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 bg-clip-text text-transparent tracking-widest uppercase glow-gold-text">
+              SELECT LUDO MODE
+            </h2>
+            <button
+              onClick={() => setShowModeSelection(false)}
+              className="w-9 h-9 rounded-full bg-slate-900/80 border border-amber-500/30 flex items-center justify-center text-amber-200 text-lg hover:scale-105 active:scale-95 transition-transform cursor-pointer shadow-[0_4px_10px_rgba(0,0,0,0.5)]"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Modes List */}
+          <div className="w-full max-w-[390px] relative z-10 flex flex-col gap-4">
+            {/* Mode 1: Quick Classic */}
+            <button
+              onClick={() => {
+                setShowModeSelection(false);
+                triggerToast("Joining Quick Classic...");
+                onSelectMode?.("Quick Classic");
+              }}
+              className="w-full rounded-[24px] border border-amber-500/20 bg-gradient-to-r from-slate-950/80 to-purple-950/40 p-3.5 flex items-center gap-4 text-left shadow-[0_8px_20px_rgba(0,0,0,0.65)] hover:border-amber-400/50 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer"
+            >
+              <img 
+                src="/assets/images/icons/quick_classic_icon.jpg" 
+                alt="Quick Classic" 
+                className="w-16 h-16 rounded-[16px] object-cover border border-amber-400/30 shadow-inner" 
+              />
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-black text-white tracking-wide flex items-center gap-1.5">
+                  QUICK CLASSIC <span className="text-[9px] bg-sky-500/20 border border-sky-400/30 text-sky-300 px-2 py-0.5 rounded-full font-black uppercase">1 TOKEN</span>
+                </h3>
+                <p className="text-[10px] text-purple-300 mt-1 leading-snug">
+                  1-Token combat. Reach center to win instantly. Fast-paced & action-packed!
+                </p>
+                <div className="flex items-center gap-1 mt-2.5">
+                  <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-500/20 uppercase">
+                    ENTRY: 5K COINS
+                  </span>
+                </div>
+              </div>
+            </button>
+
+            {/* Mode 2: Unique Classic */}
+            <button
+              onClick={() => {
+                setShowModeSelection(false);
+                triggerToast("Joining Unique Classic...");
+                onSelectMode?.("Unique Classic");
+              }}
+              className="w-full rounded-[24px] border border-amber-500/20 bg-gradient-to-r from-slate-950/80 to-purple-950/40 p-3.5 flex items-center gap-4 text-left shadow-[0_8px_20px_rgba(0,0,0,0.65)] hover:border-amber-400/50 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer"
+            >
+              <img 
+                src="/assets/images/icons/unique_classic_icon.jpg" 
+                alt="Unique Classic" 
+                className="w-16 h-16 rounded-[16px] object-cover border border-amber-400/30 shadow-inner" 
+              />
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-black text-white tracking-wide flex items-center gap-1.5">
+                  UNIQUE CLASSIC <span className="text-[9px] bg-purple-500/20 border border-purple-400/30 text-purple-300 px-2 py-0.5 rounded-full font-black uppercase">COSMETICS</span>
+                </h3>
+                <p className="text-[10px] text-purple-300 mt-1 leading-snug">
+                  Show off equipped luxury dice, profile frames, board themes, and custom pawns!
+                </p>
+                <div className="flex items-center gap-1 mt-2.5">
+                  <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-500/20 uppercase">
+                    ENTRY: 5K COINS
+                  </span>
+                </div>
+              </div>
+            </button>
+
+            {/* Mode 3: Normal Classic */}
+            <button
+              onClick={() => {
+                setShowModeSelection(false);
+                triggerToast("Joining Normal Classic...");
+                onSelectMode?.("Normal Classic");
+              }}
+              className="w-full rounded-[24px] border border-amber-500/20 bg-gradient-to-r from-slate-950/80 to-purple-950/40 p-3.5 flex items-center gap-4 text-left shadow-[0_8px_20px_rgba(0,0,0,0.65)] hover:border-amber-400/50 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer"
+            >
+              <img 
+                src="/assets/images/icons/normal_classic_icon.jpg" 
+                alt="Normal Classic" 
+                className="w-16 h-16 rounded-[16px] object-cover border border-amber-400/30 shadow-inner" 
+              />
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-black text-white tracking-wide flex items-center gap-1.5">
+                  NORMAL CLASSIC <span className="text-[9px] bg-amber-500/20 border border-amber-400/30 text-amber-300 px-2 py-0.5 rounded-full font-black uppercase">STANDARD</span>
+                </h3>
+                <p className="text-[10px] text-purple-300 mt-1 leading-snug">
+                  Play standard classic rules. Enforces default styles (standard dice, pawns & classic board).
+                </p>
+                <div className="flex items-center gap-1 mt-2.5">
+                  <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-500/20 uppercase">
+                    ENTRY: 5K COINS
+                  </span>
+                </div>
+              </div>
+            </button>
+
+            {/* Divider */}
+            <div className="flex items-center gap-2 my-1">
+              <div className="flex-1 h-px bg-emerald-500/20" />
+              <span className="text-[8px] font-black text-emerald-400/60 tracking-widest uppercase">Other Games</span>
+              <div className="flex-1 h-px bg-emerald-500/20" />
+            </div>
+
+            {/* Mode 4: Snake & Ladders */}
+            <button
+              onClick={() => {
+                setShowModeSelection(false);
+                triggerToast("Loading Snakes & Ladders...");
+                onSelectMode?.("Snake & Ladders");
+              }}
+              className="w-full rounded-[24px] border border-emerald-500/30 bg-gradient-to-r from-slate-950/80 to-emerald-950/30 p-3.5 flex items-center gap-4 text-left shadow-[0_8px_20px_rgba(0,0,0,0.65)] hover:border-emerald-400/60 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer"
+            >
+              <img 
+                src="/assets/images/icons/snake_ladder_icon.jpg" 
+                alt="Snakes & Ladders" 
+                className="w-16 h-16 rounded-[16px] object-cover border border-emerald-400/40 shadow-inner shadow-emerald-900/50" 
+              />
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-black text-white tracking-wide flex items-center gap-1.5">
+                  🐍 SNAKES &amp; LADDERS
+                  <span className="text-[9px] bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 px-2 py-0.5 rounded-full font-black uppercase">1 VS 1</span>
+                </h3>
+                <p className="text-[10px] text-emerald-300/80 mt-1 leading-snug">
+                  Roll dice, climb golden ladders &amp; dodge deadly snakes. First to reach 100 wins!
+                </p>
+                <div className="flex items-center gap-1 mt-2.5">
+                  <span className="text-[9px] font-black tracking-wider text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-500/20 uppercase">
+                    FREE TO PLAY
+                  </span>
+                  <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-500/20 uppercase">
+                    VS BOT
+                  </span>
+                </div>
+              </div>
+            </button>
           </div>
         </div>
       )}

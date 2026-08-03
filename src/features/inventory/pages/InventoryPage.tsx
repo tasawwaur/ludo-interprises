@@ -4,6 +4,10 @@ import { useCosmeticsStore, CosmeticItem } from "../../../store/cosmetics.store"
 import { useDiceStore } from "../../dice/store/dice.store";
 import { useUserStore } from "../../../user/user.store";
 import confetti from "canvas-confetti";
+import { PremiumTokenSvg } from "../../../components/ui/PremiumTokenSvg";
+import { PremiumProfileFrame } from "../../../components/ui/PremiumProfileFrame";
+import { DiceFace } from "../../gameplay/components/DiceFace";
+import { getBoardTheme } from "../../../utils/cosmeticStyles";
 
 interface InventoryPageProps {
   onBack?: () => void;
@@ -90,8 +94,8 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ onBack, onOpenDice
                     {t.rarity}
                   </span>
 
-                  <div className={`w-11 h-11 rounded-full border-2 border-white/20 flex items-center justify-center text-xl shadow-inner mt-2.5 mb-2 animate-float-mid ${t.colorBg || "bg-green-600"}`}>
-                    🔵
+                  <div className="w-12 h-12 flex items-center justify-center mt-2.5 mb-2 animate-float-mid">
+                    <PremiumTokenSvg tokenId={t.id} size={44} />
                   </div>
                   <span className="text-[10px] font-black text-white mb-2 leading-tight line-clamp-2 h-7 flex items-center justify-center">
                     {t.name}
@@ -151,13 +155,10 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ onBack, onOpenDice
                     {f.rarity}
                   </span>
 
-                  <div className="w-16 h-16 rounded-full relative my-3 flex items-center justify-center bg-black/30 border border-purple-500/20">
-                    <span className="text-xl">👤</span>
-                    <img
-                      src={f.imgUrl || "/assets/images/icons/profile_frame_v3.png"}
-                      className={`absolute inset-0 w-full h-full object-contain pointer-events-none ${isEquipped ? "animate-pulse" : ""}`}
-                      alt="Frame"
-                    />
+                  <div className="w-16 h-16 relative my-3 flex items-center justify-center">
+                    <PremiumProfileFrame frameId={f.id} className="w-full h-full">
+                      <span className="text-xl">👤</span>
+                    </PremiumProfileFrame>
                   </div>
 
                   <span className="text-[10px] font-black text-white mb-2 leading-tight line-clamp-1 h-4">
@@ -218,13 +219,24 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ onBack, onOpenDice
                     {b.rarity}
                   </span>
 
-                  <div className="w-24 h-16 rounded-xl border border-white/10 overflow-hidden mt-3 mb-2 shadow-inner relative flex items-center justify-center bg-black/40">
-                    <img src={b.imgUrl} className="w-full h-full object-cover opacity-80" alt="Board" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-                    <span className="absolute bottom-1 text-[8.5px] font-black text-amber-400 uppercase tracking-widest">
-                      LUDO
-                    </span>
-                  </div>
+                  {(() => {
+                    const theme = getBoardTheme(b.id);
+                    return (
+                      <div className="w-24 h-16 rounded-xl border border-white/20 overflow-hidden mt-3 mb-2 shadow-2xl relative grid grid-cols-3 grid-rows-3 p-1 gap-1" style={{ backgroundColor: theme.boardBg }}>
+                        <div className="rounded" style={{ background: `linear-gradient(135deg, ${theme.redFill[0]}, ${theme.redFill[1]})` }}></div>
+                        <div className="rounded" style={{ background: `linear-gradient(135deg, ${theme.greenFill[0]}, ${theme.greenFill[1]})` }}></div>
+                        <div className="rounded flex items-center justify-center bg-white/20 border border-white/10">
+                          <span className="text-[6px] font-black text-amber-400">👑</span>
+                        </div>
+                        <div className="rounded" style={{ background: `linear-gradient(135deg, ${theme.blueFill[0]}, ${theme.blueFill[1]})` }}></div>
+                        <div className="rounded" style={{ background: `linear-gradient(135deg, ${theme.yellowFill[0]}, ${theme.yellowFill[1]})` }}></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none"></div>
+                        <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[6.5px] font-black text-amber-400 uppercase tracking-wider whitespace-nowrap">
+                          {theme.themeName} BOARD
+                        </span>
+                      </div>
+                    );
+                  })()}
 
                   <span className="text-[10px] font-black text-white mb-2 leading-tight line-clamp-1 h-4">
                     {b.name}
@@ -294,7 +306,9 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ onBack, onOpenDice
                     isEquipped ? "border-amber-400 glow-gold-border" : "border-purple-500/35"
                   }`}
                 >
-                  <span className="text-[24px] my-2">🎲</span>
+                  <div className="my-2.5">
+                    <DiceFace value={6} size={48} diceId={d.id} />
+                  </div>
                   <span className="text-[10px] font-black text-white mb-2 truncate w-full">{d.name}</span>
                   <span className="text-[8px] font-black text-purple-300 uppercase bg-purple-900/50 px-2 py-0.5 rounded-full border border-purple-500/20 mb-2">
                     {d.rarity}

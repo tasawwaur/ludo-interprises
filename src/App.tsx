@@ -8,6 +8,7 @@ import { RoomPage } from "./features/matchmaking/pages/RoomPage";
 import { ReadyCheck } from "./features/matchmaking/party/ReadyCheck";
 import { GameArenaPage } from "./features/gameplay/pages/GameArenaPage";
 import { MatchResultScreen } from "./features/gameplay/pages/MatchResultScreen";
+import { SnakeLadderPage } from "./features/snake-ladder/pages/SnakeLadderPage";
 import { TournamentPage } from "./features/tournament/pages/TournamentPage";
 import { LeaderboardPage } from "./features/leaderboard/pages/LeaderboardPage";
 import { ProfilePage } from "./features/profile/pages/ProfilePage";
@@ -55,7 +56,8 @@ export type AppView =
   | "XP_MAIN"
   | "DICE_MAIN"
   | "REWARD_CENTER"
-  | "ADS_SETTINGS";
+  | "ADS_SETTINGS"
+  | "SNAKE_LADDER";
 
 const MainApp: React.FC = () => {
   // Load persisted view if game in progress
@@ -181,6 +183,10 @@ const MainApp: React.FC = () => {
       setCurrentView("SHOP");
       return;
     }
+    if (selectedMode === "Snake & Ladders") {
+      setCurrentView("SNAKE_LADDER");
+      return;
+    }
 
     // Check entry fee (5,000 Coins)
     const userCoins = user?.coins ?? 0;
@@ -276,8 +282,9 @@ const MainApp: React.FC = () => {
               const hostName = user?.displayName || user?.username || "Govind";
               const hostAvatar = user?.avatar || "/assets/images/icons/icon_club_crown.png";
               
+              const activeQueueMode = useQueueStore.getState().mode || "2P Classic";
               const code = createRoom(
-                "2P Classic",
+                activeQueueMode,
                 2,
                 hostName,
                 hostAvatar,
@@ -293,7 +300,8 @@ const MainApp: React.FC = () => {
                   opponent.avatar,
                   opponent.profileFrame,
                   opponent.nameBanner,
-                  opponent.color as "RED" | "GREEN" | "YELLOW" | "BLUE"
+                  opponent.color as "RED" | "GREEN" | "YELLOW" | "BLUE",
+                  opponent.isBot ?? true // true = bot (auto-play), false = real player
                 );
               }
               // Clear any stale persisted game state so fresh colors from matchmaking are used
@@ -310,6 +318,9 @@ const MainApp: React.FC = () => {
             onLeave={() => setCurrentView("HOME")}
           />
         );
+
+      case "SNAKE_LADDER":
+        return <SnakeLadderPage onLeave={() => setCurrentView("HOME")} />;
 
       case "GAME_ARENA":
         return <GameArenaPage onLeaveGame={() => setCurrentView("MATCH_RESULT")} />;

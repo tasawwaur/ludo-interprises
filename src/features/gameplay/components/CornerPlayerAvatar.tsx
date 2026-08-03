@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Player } from '../../../game/engine/Engine.types';
 import { VoiceChatService } from '../../../game/sound/VoiceChatService';
+import { PremiumProfileFrame } from '../../../components/ui/PremiumProfileFrame';
 
 interface CornerPlayerAvatarProps {
   player?: Player;
@@ -117,29 +118,23 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
         })()}
 
 
-        {/* Avatar Image cutout */}
+        {/* Premium CSS Frame wrapper around Avatar */}
         <div
-          className="absolute rounded-full overflow-hidden z-10 bg-slate-900"
-          style={{ top: '16%', left: '20%', right: '20%', bottom: '28%' }}
+          className="absolute z-10"
+          style={{ top: '14%', left: '18%', right: '18%', bottom: '22%' }}
         >
-          {player.avatar ? (
-            <img
-              src={player.avatar}
-              alt="Player"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <span className="w-full h-full flex items-center justify-center text-2xl bg-slate-900">👤</span>
-          )}
+          <PremiumProfileFrame frameId={player.equippedFrameId || 'frame_default'} className="w-full h-full">
+            {player.avatar ? (
+              <img
+                src={player.avatar}
+                alt="Player"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="w-full h-full flex items-center justify-center text-xl bg-slate-900">👤</span>
+            )}
+          </PremiumProfileFrame>
         </div>
-
-        {/* Golden Profile Frame overlay */}
-        <img
-          src={player.profileFrame || "/assets/images/icons/profile_frame_v3.png"}
-          alt="Profile Frame"
-          className="absolute inset-0 w-full h-full object-contain z-20 pointer-events-none"
-          draggable={false}
-        />
 
         {/* Voice Chat Mic Button (Local Player: Clickable Control | Opponent: Read-Only Status Indicator) */}
         {isLocalPlayer ? (

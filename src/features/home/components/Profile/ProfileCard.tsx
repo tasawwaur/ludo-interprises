@@ -1,5 +1,6 @@
 import React from 'react';
 import { useUserStore } from '../../../../user/user.store';
+import { usePlayerStatsStore } from '../../../../store/player-stats.store';
 import { Avatar } from './Avatar';
 import { UserInfo } from './UserInfo';
 import { LevelBadge } from './LevelBadge';
@@ -11,9 +12,10 @@ interface ProfileCardProps {
 
 export const ProfileCard: React.FC<ProfileCardProps> = ({ onOpenSettings }) => {
   const user = useUserStore((s) => s.user);
+  const { stats } = usePlayerStatsStore();
 
   const displayName = user?.displayName || user?.username || 'TASAVVUR MALIK';
-  const level = user?.level || 25;
+  const level = stats.level;
   const avatar = user?.avatar;
   const country = user?.country || '🇮🇳';
 
@@ -38,7 +40,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ onOpenSettings }) => {
       </div>
 
       {/* XP Progress Bar Row */}
-      <XPBar progressPercent={75} level={level} />
+      <XPBar currentXp={stats.xp} requiredXp={stats.nextLevelXp} level={stats.level} />
 
       {/* Bottom Action Row: Edit Profile Button */}
       <div className="flex items-center justify-end border-t border-purple-500/20 pt-2 mt-1">

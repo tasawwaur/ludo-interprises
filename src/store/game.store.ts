@@ -8,6 +8,8 @@ import { ReplayRecorder } from '../game/replay/ReplayRecorder';
 import { SoundEngine } from '../game/sound/SoundEngine';
 import { useRoomStore } from '../features/matchmaking/rooms/RoomStore';
 import { useUserStore } from '../user/user.store';
+import { useCosmeticsStore } from './cosmetics.store';
+import { useDiceStore } from '../features/dice/store/dice.store';
 
 interface GameStoreState {
   gameState: GameState | null;
@@ -47,39 +49,58 @@ export const useGameStore = create<GameStoreState>()(
       replayRecorder: new ReplayRecorder(),
       activeHoverTokenId: null,
       selectedTokenId: null,
-  isMuted: true,
-  turnTimerSeconds: 15,
-  isAutoMode: false,
-  gameSocket: null,
-  _isRolling: false,
-  cheatNextRollValue: null,
-
-  startMatch: (mode, hostName) => {
-    // Force-clear any stale persisted game state FIRST
-    set({ gameState: null });
-
-    const members = useRoomStore.getState().members;
-    const localColor = members[0]?.color || "BLUE";
-    const initialState = GameEngine.createInitialState(mode, hostName, members);
-    const recorder = new ReplayRecorder();
-    recorder.recordEvent('TURN_CHANGE', initialState.currentTurnColor, { mode, hostName });
-
-    SoundEngine.play('GAME_START');
-
-    set({
-      gameState: initialState,
-      localPlayerColor: localColor as PlayerColor,
-      replayRecorder: recorder,
-      activeHoverTokenId: null,
-      selectedTokenId: null,
+      isMuted: true,
       turnTimerSeconds: 15,
       isAutoMode: false,
-    });
+      gameSocket: null,
+      _isRolling: false,
+      cheatNextRollValue: null,
 
-    setTimeout(() => {
-      get().triggerAiMoveIfNeeded();
-    }, 800);
-  },
+      startMatch: (mode, hostName) => {
+        set({ gameState: null });
+
+        const members = useRoomStore.getState().members;
+        const localColor = members[0]?.color || "BLUE";
+        const roomMode = useRoomStore.getState().mode || "2P Classic";
+        const initialState = GameEngine.createInitialState(mode, hostName, members, roomMode);
+        
+        const cosmetics = useCosmeticsStore.getState();
+        const dice = useDiceStore.getState();
+
+        const isNormalClassic = roomMode === "Normal Classic";
+
+        // Enrich host player with their equipped frame, token, and dice
+        initialState.players = initialState.players.map((p) => {
+          return {
+            ...p,
+            equippedFrameId: isNormalClassic ? 'frame_default' : (p.isHost ? (cosmetics.equippedFrameId || 'frame_default') : (p.equippedFrameId || 'frame_default')),
+            equippedTokenId: isNormalClassic ? 'token_default' : (p.isHost ? (cosmetics.equippedTokenId || 'token_default') : (p.equippedTokenId || 'token_default')),
+            equippedDiceId: isNormalClassic ? 'dice_classic' : (p.isHost ? (dice.equippedDiceId || 'dice_classic') : (p.equippedDiceId || 'dice_classic')),
+            profileFrame: isNormalClassic ? "/assets/images/icons/profile_frame_v3.png" : (p.isHost ? (cosmetics.frames.find((f) => f.id === cosmetics.equippedFrameId)?.imgUrl || p.profileFrame) : p.profileFrame),
+          };
+        });
+
+        initialState.equippedBoardId = isNormalClassic ? 'board_default' : (cosmetics.equippedBoardId || 'board_default');
+
+        const recorder = new ReplayRecorder();
+        recorder.recordEvent('TURN_CHANGE', initialState.currentTurnColor, { mode, hostName });
+
+        SoundEngine.play('GAME_START');
+
+        set({
+          gameState: initialState,
+          localPlayerColor: localColor as PlayerColor,
+          replayRecorder: recorder,
+          activeHoverTokenId: null,
+          selectedTokenId: null,
+          turnTimerSeconds: 15,
+          isAutoMode: false,
+        });
+
+        setTimeout(() => {
+          get().triggerAiMoveIfNeeded();
+        }, 800);
+      },
 
   toggleMute: () => {
     const isMuted = SoundEngine.toggleMute();
@@ -418,14 +439,131 @@ export const useGameStore = create<GameStoreState>()(
 
     if (gameState.gameStatus === 'MOVE_WAIT' && gameState.movableTokens.length > 0) {
       const moves = [...gameState.movableTokens];
-      moves.sort((a, b) => {
-        if (a.isCapture !== b.isCapture) return a.isCapture ? -1 : 1;
-        if (a.isHome !== b.isHome) return a.isHome ? -1 : 1;
-        if (a.fromStep === 0 !== (b.fromStep === 0)) return a.fromStep === 0 ? -1 : 1;
-        return b.toStep - a.toStep;
+      const startIndices: Record<string, number> = { RED: 0, GREEN: 13, YELLOW: 26, BLUE: 39 };
+      const safeIndices = [0, 8, 13, 21, 26, 34, 39, 47];
+
+      const scoredMoves = moves.map((m) => {
+        const token = activePlayer.tokens.find((t) => t.id === m.tokenId);
+        if (!token) return { move: m, score: -9999 };
+
+        let score = 0;
+
+        // 1. Capture
+        if (m.isCapture) score += 1200;
+
+        // 2. Reaching Home
+        if (m.isHome) score += 800;
+
+        // 3. Releasing from Yard (start cell stepCount = 0 or fromStep === -1)
+        if (m.fromStep === -1) score += 200;
+
+        // 4. Safe track index computations
+        const activeStartIdx = startIndices[activePlayer.color] ?? 0;
+        
+        // Compute safety/threat logic
+        const opponents = gameState.players.filter((p) => p.color !== activePlayer.color);
+
+        if (token.stepCount >= 1 && token.stepCount <= 51) {
+          const currentTrackIndex = (activeStartIdx + (token.stepCount - 1)) % 52;
+          const isCurrentlySafe = safeIndices.includes(currentTrackIndex);
+
+          if (!isCurrentlySafe) {
+            // Check if we are currently in danger
+            let inDanger = false;
+            let threateningOppTrack = -1;
+
+            for (const opp of opponents) {
+              const oppStartIdx = startIndices[opp.color] ?? 0;
+              for (const oppToken of opp.tokens) {
+                if (oppToken.stepCount >= 1 && oppToken.stepCount <= 51) {
+                  const oppTrackIndex = (oppStartIdx + (oppToken.stepCount - 1)) % 52;
+                  const distBehind = (currentTrackIndex - oppTrackIndex + 52) % 52;
+                  if (distBehind > 0 && distBehind <= 6) {
+                    inDanger = true;
+                    threateningOppTrack = oppTrackIndex;
+                    break;
+                  }
+                }
+              }
+              if (inDanger) break;
+            }
+
+            if (inDanger) {
+              // Does moving take us to safety?
+              const newTrackIndex = (activeStartIdx + (m.toStep - 1)) % 52;
+              const isNewSpotSafe = m.toStep >= 52 || safeIndices.includes(newTrackIndex);
+              if (isNewSpotSafe) {
+                score += 400; // Escape to safety!
+              } else {
+                const newDistBehind = (newTrackIndex - threateningOppTrack + 52) % 52;
+                if (newDistBehind > 6) {
+                  score += 250; // Run out of range!
+                }
+              }
+            }
+          }
+        }
+
+        // 5. Avoid landing in danger
+        if (m.toStep <= 51) {
+          const newTrackIndex = (activeStartIdx + (m.toStep - 1)) % 52;
+          const isNewSpotSafe = safeIndices.includes(newTrackIndex);
+          if (!isNewSpotSafe) {
+            let landingDanger = false;
+            for (const opp of opponents) {
+              const oppStartIdx = startIndices[opp.color] ?? 0;
+              for (const oppToken of opp.tokens) {
+                if (oppToken.stepCount >= 1 && oppToken.stepCount <= 51) {
+                  const oppTrackIndex = (oppStartIdx + (oppToken.stepCount - 1)) % 52;
+                  const distBehind = (newTrackIndex - oppTrackIndex + 52) % 52;
+                  if (distBehind > 0 && distBehind <= 6) {
+                    landingDanger = true;
+                    break;
+                  }
+                }
+              }
+              if (landingDanger) break;
+            }
+            if (landingDanger) {
+              score -= 300; // Penalty for moving to vulnerable cell
+            }
+          }
+
+          // 6. Threatening / Chasing Opponent
+          for (const opp of opponents) {
+            const oppStartIdx = startIndices[opp.color] ?? 0;
+            for (const oppToken of opp.tokens) {
+              if (oppToken.stepCount >= 1 && oppToken.stepCount <= 51) {
+                const oppTrackIndex = (oppStartIdx + (oppToken.stepCount - 1)) % 52;
+                const oppSafe = safeIndices.includes(oppTrackIndex);
+                if (!oppSafe) {
+                  const distBehindOpp = (oppTrackIndex - newTrackIndex + 52) % 52;
+                  if (distBehindOpp > 0 && distBehindOpp <= 6) {
+                    score += 80; // Nice setup to chase them!
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // 7. Creating a block/pair with our own tokens
+        const hasOwnTokenAtTarget = activePlayer.tokens.some(
+          (t) => t.id !== m.tokenId && t.stepCount === m.toStep && t.stepCount >= 1 && t.stepCount <= 51
+        );
+        if (hasOwnTokenAtTarget) {
+          score += 120;
+        }
+
+        // 8. Progress bonus
+        score += token.stepCount * 0.4;
+
+        return { move: m, score };
       });
 
-      const selectedTokenId = moves[0].tokenId;
+      // Sort by score descending
+      scoredMoves.sort((a, b) => b.score - a.score);
+      const selectedTokenId = scoredMoves[0].move.tokenId;
       get().moveToken(selectedTokenId);
     }
   },

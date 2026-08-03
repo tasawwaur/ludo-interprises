@@ -36,6 +36,10 @@ export interface Player {
   totalUndosUsed: number;
   undosUsedThisTurn: number;
   protectTurnsCount: number;
+  // Equipped cosmetics
+  equippedFrameId?: string;
+  equippedTokenId?: string;
+  equippedDiceId?: string;
 }
 
 export type GameStatus = 
@@ -79,6 +83,7 @@ export interface GameState {
   turnTimeRemaining: number;
   lastActionSummary: string;
   animatingToken?: AnimatingTokenState | null;
+  equippedBoardId?: string;
 }
 
 export interface MoveAction {

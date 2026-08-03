@@ -63,7 +63,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         className="w-full max-w-[340px] bg-cover bg-center rounded-[36px] shadow-[0_25px_60px_rgba(0,0,0,0.95)] text-white relative animate-in fade-in zoom-in-95 duration-200 p-6 pt-8 pb-6 border border-yellow-500/20"
       >
         {/* Dark semi-transparent overlay to ensure extreme text readability */}
-        <div className="absolute inset-0 bg-[#0c0316]/30 backdrop-blur-[0.5px] rounded-[36px] pointer-events-none z-0"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#1D0933]/90 via-[#12061F]/95 to-[#0D0A1C]/98 backdrop-blur-[0.5px] rounded-[36px] pointer-events-none z-0"></div>
         
         {/* Close Button: Red-orange square box with dynamic glow */}
         <button
@@ -73,12 +73,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           ✕
         </button>
 
-        {/* Title: #GameBuddy */}
-        <div className="w-full text-center -mt-4 mb-3 flex justify-center relative z-10">
-          <span className="text-[9.5px] font-black text-pink-300 uppercase tracking-widest bg-black/60 px-4 py-0.5 rounded-full border border-pink-500/20">
-            {isMe ? "#MyProfile" : "#GameBuddy"}
-          </span>
-        </div>
 
         {/* PROFILE HEADER SECTION */}
         <div className="flex items-center justify-between mb-4 relative z-10">
@@ -86,13 +80,13 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             {/* Circular Avatar with equipped Frame */}
             <div className="w-20 h-20 relative flex-shrink-0">
               <div
-                className="absolute rounded-full overflow-hidden bg-slate-950 border border-[#400523] z-10"
+                className="absolute rounded-full overflow-hidden bg-slate-950 border border-purple-950 z-10"
                 style={{ top: '15%', left: '15%', right: '15%', bottom: '26%' }}
               >
                 {userStats.avatarUrl ? (
                   <img src={userStats.avatarUrl} alt={userStats.name} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-pink-800 to-purple-900 flex items-center justify-center text-2xl font-black text-pink-200">
+                  <div className="w-full h-full bg-gradient-to-br from-purple-800 to-indigo-900 flex items-center justify-center text-2xl font-black text-purple-200">
                     {userStats.name.charAt(0)}
                   </div>
                 )}
@@ -111,9 +105,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               <h2 className="text-sm font-black text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.8)] tracking-wide">
                 {userStats.name}
               </h2>
-              <div className="flex items-center gap-1.5 bg-black/35 border border-pink-500/20 px-2 py-0.5 rounded-lg w-max shadow-inner">
+              <div className="flex items-center gap-1.5 bg-black/35 border border-purple-500/20 px-2 py-0.5 rounded-lg w-max shadow-inner">
                 <span className="text-[10px] leading-none">{userStats.countryFlag}</span>
-                <span className="text-[7.5px] font-black text-pink-200 uppercase tracking-widest leading-none font-sans">
+                <span className="text-[7.5px] font-black text-purple-200 uppercase tracking-widest leading-none font-sans">
                   {userStats.country}
                 </span>
               </div>
@@ -122,7 +116,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
           {/* Action icon next to name */}
           {!isMe && (
-            <button className="w-8 h-8 rounded-xl bg-purple-950/70 border border-pink-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform">
+            <button className="w-8 h-8 rounded-xl bg-purple-950/70 border border-purple-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform">
               👤➕
             </button>
           )}
@@ -133,18 +127,18 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           {/* Column 1 */}
           <div className="flex flex-col gap-2">
             {/* Level Box */}
-            <div className="bg-black/30 border border-pink-900/30 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
-              <span className="text-[7.5px] font-black uppercase text-pink-300 tracking-wider">Level</span>
+            <div className="bg-black/30 border border-purple-900/35 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
+              <span className="text-[7.5px] font-black uppercase text-purple-200 tracking-wider">Level</span>
               <span className="text-xs font-extrabold text-white">{userStats.level}</span>
             </div>
             {/* Total Earning Box */}
-            <div className="bg-black/30 border border-pink-900/30 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
-              <span className="text-[7.5px] font-black uppercase text-pink-300 tracking-wider">Total earning</span>
+            <div className="bg-black/30 border border-purple-900/35 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
+              <span className="text-[7.5px] font-black uppercase text-purple-200 tracking-wider">Total earning</span>
               <span className="text-xs font-extrabold text-amber-300">{userStats.totalEarning}</span>
             </div>
             {/* Player ID Box */}
-            <div className="bg-black/30 border border-pink-900/30 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
-              <span className="text-[7.5px] font-black uppercase text-pink-300 tracking-wider">Player ID</span>
+            <div className="bg-black/30 border border-purple-900/35 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
+              <span className="text-[7.5px] font-black uppercase text-purple-200 tracking-wider">Player ID</span>
               <span className="text-[9.5px] font-bold text-gray-200 select-all font-mono">{userStats.id}</span>
             </div>
           </div>
@@ -152,22 +146,22 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           {/* Column 2 */}
           <div className="flex flex-col gap-2">
             {/* Signature Box */}
-            <div className="bg-black/30 border border-pink-900/30 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
-              <span className="text-[7.5px] font-black uppercase text-pink-300 tracking-wider">Signature</span>
+            <div className="bg-black/30 border border-purple-900/35 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
+              <span className="text-[7.5px] font-black uppercase text-purple-200 tracking-wider">Signature</span>
               <span className="text-xs font-extrabold text-yellow-300 tracking-wide uppercase truncate">
                 {getSignature(userStats.level)}
               </span>
             </div>
             {/* Current Gold Box */}
-            <div className="bg-black/30 border border-pink-900/30 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
-              <span className="text-[7.5px] font-black uppercase text-pink-300 tracking-wider">Current gold</span>
+            <div className="bg-black/30 border border-purple-900/35 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
+              <span className="text-[7.5px] font-black uppercase text-purple-200 tracking-wider">Current gold</span>
               <span className="text-xs font-extrabold text-amber-400 font-mono">
                 {userStats.currentGold.toLocaleString()}
               </span>
             </div>
             {/* Current League Box */}
-            <div className="bg-black/30 border border-pink-900/30 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
-              <span className="text-[7.5px] font-black uppercase text-pink-300 tracking-wider">Current League</span>
+            <div className="bg-black/30 border border-purple-900/35 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
+              <span className="text-[7.5px] font-black uppercase text-purple-200 tracking-wider">Current League</span>
               <span className="text-[10px] font-extrabold text-blue-300 flex items-center gap-1 uppercase tracking-wide">
                 👑 {userStats.currentLeague}
               </span>
@@ -176,60 +170,53 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         </div>
 
         {/* STATS SECTION DIVIDER */}
-        <div className="relative flex items-center justify-center my-3.5 z-10">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-pink-500/20"></div>
-          </div>
-          <span className="relative text-[9.5px] font-black text-pink-300 uppercase tracking-widest bg-[#6F1043] border border-pink-500/35 px-4 py-0.5 rounded-full z-10 shadow shadow-black/40">
-            STATS
-          </span>
-        </div>
+        <div className="my-4 border-t border-purple-500/20 w-full relative z-10" />
 
         {/* 2x4 STATS GRID */}
         <div className="grid grid-cols-2 gap-2 mb-2 relative z-10">
           {/* Games Won */}
-          <div className="bg-black/30 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
-            <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">Games won</span>
+          <div className="bg-black/30 border border-purple-900/35 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+            <span className="text-[7px] font-black uppercase text-purple-200/80 tracking-wider">Games won</span>
             <span className="text-[10.5px] font-extrabold text-white truncate">
               {userStats.gamesWon} of {userStats.gamesPlayed}
             </span>
           </div>
           {/* Team Wins */}
-          <div className="bg-black/30 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
-            <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">Team wins</span>
+          <div className="bg-black/30 border border-purple-900/35 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+            <span className="text-[7px] font-black uppercase text-purple-200/80 tracking-wider">Team wins</span>
             <span className="text-[10.5px] font-extrabold text-white">{userStats.teamWins}</span>
           </div>
 
           {/* Win Rate */}
-          <div className="bg-black/30 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
-            <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">Win Rate</span>
+          <div className="bg-black/30 border border-purple-900/35 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+            <span className="text-[7px] font-black uppercase text-purple-200/80 tracking-wider">Win Rate</span>
             <span className="text-[10.5px] font-extrabold text-white">{winRate} %</span>
           </div>
           {/* Win Streak */}
-          <div className="bg-black/30 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
-            <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">Win streak</span>
+          <div className="bg-black/30 border border-purple-900/35 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+            <span className="text-[7px] font-black uppercase text-purple-200/80 tracking-wider">Win streak</span>
             <span className="text-[10.5px] font-extrabold text-white">{userStats.winStreak}</span>
           </div>
 
           {/* 2 Player Wins */}
-          <div className="bg-black/30 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
-            <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">2 Player wins</span>
+          <div className="bg-black/30 border border-purple-900/35 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+            <span className="text-[7px] font-black uppercase text-purple-200/80 tracking-wider">2 Player wins</span>
             <span className="text-[10.5px] font-extrabold text-white">{userStats.twoPlayerWins}</span>
           </div>
           {/* Titan Badge */}
-          <div className="bg-black/30 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
-            <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">Titan badge</span>
+          <div className="bg-black/30 border border-purple-900/35 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+            <span className="text-[7px] font-black uppercase text-purple-200/80 tracking-wider">Titan badge</span>
             <span className="text-[10.5px] font-extrabold text-amber-300">{userStats.titanBadgeCount}</span>
           </div>
 
           {/* 4 Player Wins */}
-          <div className="bg-black/30 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
-            <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">4 Player wins</span>
+          <div className="bg-black/30 border border-purple-900/35 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center">
+            <span className="text-[7px] font-black uppercase text-purple-200/80 tracking-wider">4 Player wins</span>
             <span className="text-[10.5px] font-extrabold text-white">{userStats.fourPlayerWins}</span>
           </div>
           {/* Kill Count */}
-          <div className="bg-black/30 border border-pink-900/30 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center relative group">
-            <span className="text-[7px] font-black uppercase text-pink-300/80 tracking-wider">Kill Count</span>
+          <div className="bg-black/30 border border-purple-900/35 rounded-xl px-2.5 py-1 h-9 flex flex-col justify-center relative group">
+            <span className="text-[7px] font-black uppercase text-purple-200/80 tracking-wider">Kill Count</span>
             <span className="text-[10.5px] font-extrabold text-white">{userStats.killCount}</span>
           </div>
         </div>

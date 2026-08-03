@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Player } from '../../../game/engine/Engine.types';
 import { VoiceChatService } from '../../../game/sound/VoiceChatService';
-import { PremiumProfileFrame } from '../../../components/ui/PremiumProfileFrame';
+import { getFrameFilter } from '../../../store/cosmetics.store';
 
 interface CornerPlayerAvatarProps {
   player?: Player;
@@ -118,22 +118,36 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
         })()}
 
 
-        {/* Premium CSS Frame wrapper around Avatar */}
+        {/* Golden frame image with getFrameFilter applied */}
         <div
-          className="absolute z-10"
-          style={{ top: '14%', left: '18%', right: '18%', bottom: '22%' }}
+          className="absolute inset-0 z-10"
         >
-          <PremiumProfileFrame frameId={player.equippedFrameId || 'frame_default'} className="w-full h-full">
+          {/* Avatar image cutout inside the frame */}
+          <div
+            className="absolute rounded-full overflow-hidden bg-slate-950 border border-purple-950/20"
+            style={{ top: '15%', left: '15%', right: '15%', bottom: '26%' }}
+          >
             {player.avatar ? (
               <img
                 src={player.avatar}
-                alt="Player"
+                alt={player.name}
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="w-full h-full flex items-center justify-center text-xl bg-slate-900">👤</span>
+              <span className="w-full h-full flex items-center justify-center text-xl bg-slate-900 font-black text-purple-200">
+                {player.name.charAt(0)}
+              </span>
             )}
-          </PremiumProfileFrame>
+          </div>
+          
+          {/* The visual profile frame overlay */}
+          <img
+            src="/assets/images/icons/profile_frame_v3.png"
+            alt="Profile Frame"
+            className="w-full h-full object-contain absolute inset-0 z-20 pointer-events-none"
+            style={{ filter: getFrameFilter(player.equippedFrameId) }}
+            draggable={false}
+          />
         </div>
 
         {/* Voice Chat Mic Button (Local Player: Clickable Control | Opponent: Read-Only Status Indicator) */}

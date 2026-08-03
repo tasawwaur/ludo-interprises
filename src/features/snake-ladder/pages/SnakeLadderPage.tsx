@@ -1,62 +1,53 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useUserStore } from "../../../user/user.store";
 import { GLOBAL_PLAYER_DATABASE } from "../../../store/player-database.store";
+import { useCosmeticsStore } from "../../../store/cosmetics.store";
 import { DiceFace } from "../../gameplay/components/DiceFace";
 import { LudoPageBackground } from "../../../components/effects/LudoPageBackground";
+import { CornerPlayerAvatar } from "../../gameplay/components/CornerPlayerAvatar";
+import { UserProfileModal, UserStats } from "../../../components/modal/UserProfileModal";
+import { SoundEngine } from "../../../game/sound/SoundEngine";
 
-// ─── Game Constants ───────────────────────────────────────────────────────────
-const BOARD_SIZE = 100;
+// ─── Import Authoritative Rule Engine ────────────────────────────────────────
+import { SnakeLadderEngine } from "../engine/SnakeLadderEngine";
+import { GameState, PlayerColor } from "../engine/SnakeLadderEngine.types";
 
-// Standard snake and ladder positions
-const SNAKES: Record<number, number> = {
-  99: 21,
-  94: 37,
-  87: 24,
-  76: 14,
-  66: 45,
-  54: 19,
-  43: 18,
-  40: 3,
-  27: 5,
+const ASSET_VERSION = Date.now();
+
+// ─── Grid Calibration Configuration ─────────────────────────────────────────
+// Adjust padding to shrink the 10x10 CSS Grid inside the board's golden border frame
+const BOARD_GRID_PADDING = {
+  top: "5.8%",
+  bottom: "5.8%",
+  left: "5.2%",
+  right: "5.2%",
 };
 
-const LADDERS: Record<number, number> = {
-  2: 23,
-  8: 34,
-  20: 58,
-  32: 62,
-  41: 79,
-  56: 96,
-  65: 93,
-  68: 89,
-  77: 98,
+const ROW_VERTICAL_OFFSETS: Record<number, number> = {
+  0:  0,  // Row 1  (cells 91-100) — confirmed OK
+  1: -3,  // Row 2  (cells 81-90)  — confirmed OK
+  2: -3,  // Row 3  (cells 71-80)  — interpolated (same as row 1)
+  3: -3,  // Row 4  (cells 61-70)  — interpolated
+  4: -4,  // Row 5  (cells 51-60)  — interpolated
+  5: -5,  // Row 6  (cells 41-50)  — interpolated
+  6: -6,  // Row 7  (cells 31-40)  — interpolated
+  7: -7,  // Row 8  (cells 21-30)  — interpolated
+  8: -9,  // Row 9  (cells 11-20)  — confirmed OK
+  9: -8,  // Row 10 (cells 1-10)   — confirmed OK
 };
 
-type PlayerColor = "RED" | "GREEN";
-type GamePhase = "WAITING" | "PLAYING" | "FINISHED";
-
-interface Player {
-  id: PlayerColor;
-  name: string;
-  position: number; // 0 = start (not on board), 1-100
-  color: string;
-  emoji: string;
-}
+const CUSTOM_CELL_OFFSETS: Record<number, { x?: number; y?: number }> = {};
 
 // ─── Board Layout Helper ─────────────────────────────────────────────────────
-// Board is 10x10. Row 10 (top) = cells 91-100 (left to right)
-// Row 9 = cells 81-90 (right to left), etc. (boustrophedon / snake pattern)
 function cellToRowCol(cell: number): { row: number; col: number } {
-  // cell: 1-100
-  const zeroIdx = cell - 1; // 0-99
-  const rowFromBottom = Math.floor(zeroIdx / 10); // 0 = bottom row
+  const zeroIdx = cell - 1;
+  const rowFromBottom = Math.floor(zeroIdx / 10);
   const rowFromTop = 9 - rowFromBottom;
   const colInRow = zeroIdx % 10;
   const col = rowFromBottom % 2 === 0 ? colInRow : 9 - colInRow;
   return { row: rowFromTop, col };
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
 interface SnakeLadderPageProps {
   onLeave: () => void;
 }
@@ -64,380 +55,676 @@ interface SnakeLadderPageProps {
 export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => {
   const user = useUserStore((s) => s.user);
   const updateUser = useUserStore((s) => s.updateUser);
-
-  const playerName = user?.displayName || user?.username || "You";
+  const playerName = user?.displayName || user?.username || "Tasavvur";
 
   const [botName, setBotName] = useState(() => {
+    const saved = localStorage.getItem("ludo_sl_botName");
+    if (saved) return saved;
     const botProfile = GLOBAL_PLAYER_DATABASE[Math.floor(Math.random() * GLOBAL_PLAYER_DATABASE.length)];
-    return botProfile ? botProfile.username : "Rahul Sharma";
+    const name = botProfile ? botProfile.username : "Rahul Sharma";
+    localStorage.setItem("ludo_sl_botName", name);
+    return name;
   });
 
-  const [players, setPlayers] = useState<Player[]>([
-    { id: "RED", name: playerName, position: 0, color: "#EF4444", emoji: "🔴" },
-    { id: "GREEN", name: botName, position: 0, color: "#22C55E", emoji: "🟢" },
-  ]);
+  const engineRef = useRef<SnakeLadderEngine | null>(null);
 
-  const [currentTurn, setCurrentTurn] = useState<PlayerColor>("RED");
-  const [diceValue, setDiceValue] = useState<number | null>(null);
-  const [phase, setPhase] = useState<GamePhase>("PLAYING");
-  const [message, setMessage] = useState("🎲 Your turn! Roll the dice.");
-  const [isRolling, setIsRolling] = useState(false);
-  const [highlightCell, setHighlightCell] = useState<number | null>(null);
-  const [snakeAnimation, setSnakeAnimation] = useState<number | null>(null);
-  const [ladderAnimation, setLadderAnimation] = useState<number | null>(null);
-  const [moveLog, setMoveLog] = useState<string[]>([]);
-  const botTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Per-player dice state — completely independent
+  const [redDiceValue, setRedDiceValue]     = useState<number | null>(null);
+  const [greenDiceValue, setGreenDiceValue] = useState<number | null>(null);
+  const [redIsRolling, setRedIsRolling]     = useState(false);
+  const [greenIsRolling, setGreenIsRolling] = useState(false);
 
-  const addLog = useCallback((entry: string) => {
-    setMoveLog((prev) => [entry, ...prev].slice(0, 20));
+  const [showCalibrator, setShowCalibrator] = useState(false);
+
+  // Ladder animation state
+  const [ladderAnim, setLadderAnim] = useState<{ from: number; to: number; active: boolean } | null>(null);
+
+  // BUG 7 FIX: Ref flag — true while a token is animating step-by-step.
+  // Using a ref (not state) so it doesn't cause re-renders or reset bot timers.
+  const isTokenAnimating = useRef(false);
+
+  // Profile Modal State
+  const [selectedProfile, setSelectedProfile] = useState<UserStats | null>(null);
+  const [sentFriendRequests, setSentFriendRequests] = useState<string[]>(() => {
+    const saved = localStorage.getItem("ludo_sent_friend_requests");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Initialize or restore the authoritative rule engine
+  const [engineState, setEngineState] = useState<GameState>(() => {
+    const userAvatar = user?.avatar || "/assets/images/icons/icon_club_crown.png";
+    let userFrame = "frame_default";
+    try {
+      const cosmetics = useCosmeticsStore.getState();
+      userFrame = cosmetics.equippedFrameId || "frame_default";
+    } catch (e) {}
+
+    const botProfile = GLOBAL_PLAYER_DATABASE.find((p) => p.username === botName);
+    const bAvatar = botProfile ? botProfile.avatarUrl : "/assets/images/icons/icon_club_crown.png";
+    const bFrame = botProfile ? botProfile.equippedFrame || "frame_default" : "frame_default";
+
+    const playersConfig = [
+      { id: "RED", name: playerName, color: "RED" as PlayerColor, isBot: false, avatar: userAvatar, equippedFrameId: userFrame },
+      { id: "GREEN", name: botName, color: "GREEN" as PlayerColor, isBot: true, avatar: bAvatar, equippedFrameId: bFrame },
+    ];
+
+    const engine = new SnakeLadderEngine(playersConfig, {
+      tokensPerPlayer: 2, // 2 tokens per player
+      animationDelayMs: 300, // step animation speed - clearly visible per cell
+    });
+
+    let savedData = localStorage.getItem("ludo_sl_engine_state");
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        // Reset if saved state has tokens at position 0 (old start yard rules) or missing isUnlocked property
+        const hasOldState = parsed.players.some((p: any) =>
+          p.tokens.some((t: any) => t.currentPosition === 0 || t.isUnlocked === undefined)
+        );
+        if (hasOldState) {
+          localStorage.removeItem("ludo_sl_engine_state");
+          savedData = null;
+        } else {
+          engine.setGameState(parsed);
+        }
+      } catch (e) {
+        savedData = null;
+      }
+    }
+
+    engineRef.current = engine;
+    return engine.getGameState();
+  });
+
+  // Setup Event Listeners on mount
+  useEffect(() => {
+    if (!engineRef.current) return;
+    const engine = engineRef.current;
+
+    // BUG 5 FIX: STATE_UPDATE is the ONLY place we persist to localStorage.
+    // TOKEN_MOVE_STEP does NOT save — prevents O(N) localStorage writes per move.
+    engine.addEventListener("STATE_UPDATE", (payload) => {
+      isTokenAnimating.current = false; // animation done when engine emits STATE_UPDATE
+      setEngineState({ ...payload.state });
+      localStorage.setItem("ludo_sl_engine_state", JSON.stringify(payload.state));
+    });
+
+    // GREEN bot dice flash animation on roll start
+    engine.addEventListener("DICE_ROLL_START", (payload) => {
+      if (payload.activePlayerColor === "GREEN") {
+        let count = 0;
+        const interval = setInterval(() => {
+          setGreenDiceValue(Math.ceil(Math.random() * 6));
+          count++;
+          if (count >= 10) clearInterval(interval);
+        }, 80);
+      }
+    });
+
+    engine.addEventListener("DICE_ROLL_COMPLETE", (payload) => {
+      if (payload.activePlayerColor === "RED") {
+        setRedIsRolling(false);
+        if (payload.diceValue !== undefined) setRedDiceValue(payload.diceValue);
+      } else {
+        setGreenIsRolling(false);
+        if (payload.diceValue !== undefined) setGreenDiceValue(payload.diceValue);
+      }
+    });
+
+    // BUG 7 FIX: Set isTokenAnimating=true on first step so bot won't re-trigger.
+    engine.addEventListener("TOKEN_MOVE_STEP", (payload) => {
+      isTokenAnimating.current = true;
+      SoundEngine.play('TOKEN_STEP');
+      // Live board update — no localStorage write here
+      setEngineState({ ...payload.state });
+    });
+
+    // Ladder Climb — golden glow + sparkle + sound
+    engine.addEventListener("LADDER_CLIMB", (payload) => {
+      isTokenAnimating.current = true;
+      SoundEngine.play('HOME_ENTRY');
+      const from = payload.ladderStart!;
+      const to   = payload.ladderEnd!;
+      setLadderAnim({ from, to, active: true });
+      const steps = to - from;
+      setTimeout(() => setLadderAnim(null), steps * 300 + 1000);
+    });
+
+    // Win event — reward coins + sound
+    engine.addEventListener("GAME_OVER", (payload) => {
+      const winner = payload.state.players.find((p) => p.winnerRank === 1);
+      if (winner && winner.id === "RED") {
+        const coins = user?.coins || 0;
+        updateUser({ coins: coins + 5000 });
+      }
+      SoundEngine.play('WIN');
+    });
+
+  }, [user, updateUser]);
+
+  // Unmute SoundEngine on first user interaction
+  useEffect(() => {
+    const unlock = () => {
+      if (SoundEngine.getMuteState()) {
+        SoundEngine.toggleMute(); // unmute
+      }
+      window.removeEventListener('pointerdown', unlock);
+    };
+    window.addEventListener('pointerdown', unlock);
+    return () => window.removeEventListener('pointerdown', unlock);
   }, []);
 
-  const movePiece = useCallback(
-    (playerColor: PlayerColor, rolled: number) => {
-      setPlayers((prev) => {
-        const updated = prev.map((p) => {
-          if (p.id !== playerColor) return p;
-
-          const newPos = p.position + rolled;
-
-          // Overshoot: can't go past 100
-          if (newPos > 100) {
-            setMessage(`${p.name} rolled ${rolled} — overshoots! Stay at ${p.position}.`);
-            addLog(`${p.emoji} ${p.name}: rolled ${rolled} → stayed at ${p.position} (overshoot)`);
-            return p;
-          }
-
-          let finalPos = newPos;
-
-          // Check snake
-          if (SNAKES[finalPos]) {
-            const snakeDest = SNAKES[finalPos];
-            setSnakeAnimation(finalPos);
-            setTimeout(() => setSnakeAnimation(null), 1200);
-            setMessage(`🐍 SNAKE! ${p.name} slips from ${finalPos} → ${snakeDest}!`);
-            addLog(`🐍 ${p.emoji} ${p.name}: rolled ${rolled} → ${finalPos} → SNAKE → ${snakeDest}`);
-            finalPos = snakeDest;
-            return { ...p, position: finalPos };
-          }
-
-          // Check ladder
-          if (LADDERS[finalPos]) {
-            const ladderDest = LADDERS[finalPos];
-            setLadderAnimation(finalPos);
-            setTimeout(() => setLadderAnimation(null), 1200);
-            setMessage(`🪜 LADDER! ${p.name} climbs from ${finalPos} → ${ladderDest}!`);
-            addLog(`🪜 ${p.emoji} ${p.name}: rolled ${rolled} → ${finalPos} → LADDER → ${ladderDest}`);
-            finalPos = ladderDest;
-            return { ...p, position: finalPos };
-          }
-
-          setMessage(`${p.emoji} ${p.name} moved to ${finalPos}.`);
-          addLog(`${p.emoji} ${p.name}: rolled ${rolled} → ${finalPos}`);
-          return { ...p, position: finalPos };
-        });
-
-        return updated;
-      });
-    },
-    [addLog]
-  );
-
-  const checkWin = useCallback(
-    (updatedPlayers: Player[]) => {
-      const winner = updatedPlayers.find((p) => p.position === 100);
-      if (winner) {
-        setPhase("FINISHED");
-        setMessage(`🏆 ${winner.name} wins the match!`);
-        addLog(`🏆 ${winner.emoji} ${winner.name} WON!`);
-        if (winner.id === "RED") {
-          const coins = user?.coins || 0;
-          updateUser({ coins: coins + 5000 });
-        }
-      }
-    },
-    [addLog, user, updateUser]
-  );
-
-  // Watch position changes to detect win
-  useEffect(() => {
-    checkWin(players);
-  }, [players, checkWin]);
-
-  // Bot turn logic
-  useEffect(() => {
-    if (currentTurn !== "GREEN" || phase !== "PLAYING") return;
-
-    botTimerRef.current = setTimeout(() => {
-      const botRoll = Math.ceil(Math.random() * 6);
-      setDiceValue(botRoll);
-      setIsRolling(true);
-      setTimeout(() => {
-        setIsRolling(false);
-        movePiece("GREEN", botRoll);
-        setCurrentTurn("RED");
-        setMessage("🎲 Your turn! Roll the dice.");
-      }, 800);
-    }, 1200);
-
-    return () => {
-      if (botTimerRef.current) clearTimeout(botTimerRef.current);
-    };
-  }, [currentTurn, phase, movePiece]);
-
   const handleRoll = () => {
-    if (currentTurn !== "RED" || isRolling || phase !== "PLAYING") return;
+    if (
+      !engineRef.current ||
+      engineState.currentTurnColor !== "RED" ||
+      redIsRolling ||
+      isTokenAnimating.current ||
+      engineState.phase !== "PLAYING" ||
+      engineState.isWaitingForTokenChoice
+    ) return;
 
-    setIsRolling(true);
-    const rolled = Math.ceil(Math.random() * 6);
-
-    // Animate dice roll
+    setRedIsRolling(true);
     let flashCount = 0;
     const flashInterval = setInterval(() => {
-      setDiceValue(Math.ceil(Math.random() * 6));
+      setRedDiceValue(Math.ceil(Math.random() * 6));
       flashCount++;
-      if (flashCount >= 8) {
+      if (flashCount >= 10) {
         clearInterval(flashInterval);
-        setDiceValue(rolled);
-        setIsRolling(false);
-        movePiece("RED", rolled);
-        setCurrentTurn("GREEN");
+        setRedIsRolling(false);
+        const rolled = engineRef.current!.roll();
+        setRedDiceValue(rolled);
       }
     }, 80);
   };
 
+  // Bot Auto-Play: GREEN's turn — roll after random 1-15 sec human-feel delay
+  useEffect(() => {
+    if (
+      engineState.currentTurnColor !== "GREEN" ||
+      engineState.phase !== "PLAYING" ||
+      greenIsRolling ||
+      engineState.isWaitingForTokenChoice
+    ) return;
+
+    const botDelay = setTimeout(() => {
+      if (!engineRef.current || isTokenAnimating.current) return;
+      setGreenIsRolling(true);
+      let flashCount = 0;
+      const flashInterval = setInterval(() => {
+        setGreenDiceValue(Math.ceil(Math.random() * 6));
+        flashCount++;
+        if (flashCount >= 8) {
+          clearInterval(flashInterval);
+          setGreenIsRolling(false);
+          if (!isTokenAnimating.current) {
+            const rolled = engineRef.current!.roll();
+            setGreenDiceValue(rolled);
+          }
+        }
+      }, 80);
+    }, 1000 + Math.random() * 14000);
+
+    return () => clearTimeout(botDelay);
+  }, [engineState.currentTurnColor, engineState.phase, engineState.isWaitingForTokenChoice, greenIsRolling]);
+
+  const handleSelectToken = (tokenId: number) => {
+    if (!engineRef.current || engineState.currentTurnColor !== "RED" || !engineState.isWaitingForTokenChoice) return;
+    engineRef.current.moveToken(tokenId, engineState.diceValue || 0);
+  };
+
   const resetGame = () => {
+    localStorage.removeItem("ludo_sl_engine_state");
     const newBotProfile = GLOBAL_PLAYER_DATABASE[Math.floor(Math.random() * GLOBAL_PLAYER_DATABASE.length)];
     const nameToUse = newBotProfile ? newBotProfile.username : "Rahul Sharma";
     setBotName(nameToUse);
-    setPlayers([
-      { id: "RED", name: playerName, position: 0, color: "#EF4444", emoji: "🔴" },
-      { id: "GREEN", name: nameToUse, position: 0, color: "#22C55E", emoji: "🟢" },
-    ]);
-    setCurrentTurn("RED");
+    localStorage.setItem("ludo_sl_botName", nameToUse);
+
+    // Refresh state using new engine
+    const userAvatar = user?.avatar || "/assets/images/icons/icon_club_crown.png";
+    let userFrame = "frame_default";
+    try {
+      const cosmetics = useCosmeticsStore.getState();
+      userFrame = cosmetics.equippedFrameId || "frame_default";
+    } catch (e) {}
+
+    const bAvatar = newBotProfile ? newBotProfile.avatarUrl : "/assets/images/icons/icon_club_crown.png";
+    const bFrame = newBotProfile ? newBotProfile.equippedFrame || "frame_default" : "frame_default";
+
+    const playersConfig = [
+      { id: "RED", name: playerName, color: "RED" as PlayerColor, isBot: false, avatar: userAvatar, equippedFrameId: userFrame },
+      { id: "GREEN", name: nameToUse, color: "GREEN" as PlayerColor, isBot: true, avatar: bAvatar, equippedFrameId: bFrame },
+    ];
+
+    const engine = new SnakeLadderEngine(playersConfig, {
+      tokensPerPlayer: 2,
+      animationDelayMs: 250,
+    });
+
+    engineRef.current = engine;
+    setEngineState(engine.getGameState());
     setDiceValue(null);
-    setPhase("PLAYING");
-    setMessage("🎲 Your turn! Roll the dice.");
-    setMoveLog([]);
+    setIsRolling(false);
+
+    // Bind state updater listener
+    engine.addEventListener("STATE_UPDATE", (payload) => {
+      setEngineState(payload.state);
+      localStorage.setItem("ludo_sl_engine_state", JSON.stringify(payload.state));
+    });
   };
 
-  // ─── Render board ───────────────────────────────────────────────────────────
+  const handleProfileClick = (playerColor: PlayerColor) => {
+    const p = engineState.players.find((x) => x.color === playerColor);
+    if (!p) return;
+
+    if (playerColor === "RED") {
+      const stats: UserStats = {
+        id: user?.id || "guest_123",
+        name: p.name,
+        avatarUrl: p.avatar,
+        equippedFrame: p.equippedFrameId || "frame_default",
+        level: user?.level || 1,
+        country: user?.country || "INDIA",
+        countryFlag: user?.country === "PAKISTAN" ? "🇵🇰" : "🇮🇳",
+        totalEarning: "12 K",
+        currentGold: user?.coins || 20000,
+        currentLeague: "Bronze",
+        gamesWon: 12,
+        gamesPlayed: 20,
+        teamWins: 2,
+        winStreak: 2,
+        twoPlayerWins: 6,
+        titanBadgeCount: 0,
+        fourPlayerWins: 4,
+        killCount: 15,
+      };
+      setSelectedProfile(stats);
+    } else {
+      const botProfile = GLOBAL_PLAYER_DATABASE.find((x) => x.username === p.name);
+      const isRequested = sentFriendRequests.includes(botProfile?.playerId || "bot_456");
+
+      const stats: UserStats = {
+        id: botProfile?.playerId || "bot_456",
+        name: p.name,
+        avatarUrl: p.avatar,
+        equippedFrame: p.equippedFrameId || "frame_default",
+        level: botProfile?.level || 12,
+        country: botProfile?.country || "INDIA",
+        countryFlag: botProfile?.countryFlag || "🇮🇳",
+        totalEarning: botProfile?.totalEarning || "1.2 M",
+        currentGold: botProfile?.currentCoins || 50000,
+        currentLeague: botProfile?.currentLeague || "Bronze",
+        gamesWon: botProfile?.matchesWon || 15,
+        gamesPlayed: botProfile?.matchesPlayed || 30,
+        teamWins: botProfile?.teamWins || 4,
+        winStreak: botProfile?.currentWinStreak || 1,
+        twoPlayerWins: botProfile?.twoPlayerWins || 6,
+        titanBadgeCount: botProfile?.titanBadgeCount || 0,
+        fourPlayerWins: botProfile?.fourPlayerWins || 5,
+        killCount: botProfile?.killCount || 22,
+      };
+
+      (stats as any).isFriendRequested = isRequested;
+      setSelectedProfile(stats);
+    }
+  };
+
+  const handleAddFriend = (friendId: string) => {
+    setSentFriendRequests((prev) => {
+      if (prev.includes(friendId)) return prev;
+      const updated = [...prev, friendId];
+      localStorage.setItem("ludo_sent_friend_requests", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const renderBoard = () => {
     const cells: React.ReactNode[] = [];
 
     for (let cell = 100; cell >= 1; cell--) {
       const { row, col } = cellToRowCol(cell);
 
-      const redHere = players[0].position === cell;
-      const greenHere = players[1].position === cell;
-      const isSnakeHead = Object.keys(SNAKES).includes(String(cell));
-      const isSnakeTail = Object.values(SNAKES).includes(cell);
-      const isLadderBase = Object.keys(LADDERS).includes(String(cell));
-      const isLadderTop = Object.values(LADDERS).includes(cell);
-      const isHighlighted = highlightCell === cell;
-      const isSnakeAnim = snakeAnimation === cell;
-      const isLadderAnim = ladderAnimation === cell;
-      const isCentenary = cell === 100;
+      const redTokensHere = engineState.players[0].tokens.filter((t) => t.currentPosition === cell && !t.isFinished);
+      const greenTokensHere = engineState.players[1].tokens.filter((t) => t.currentPosition === cell && !t.isFinished);
 
-      let cellBg = "bg-slate-900/60";
-      let border = "border-slate-700/30";
-      if (isSnakeHead) { cellBg = "bg-red-950/80"; border = "border-red-500/50"; }
-      if (isSnakeTail) { cellBg = "bg-red-900/30"; border = "border-red-400/20"; }
-      if (isLadderBase) { cellBg = "bg-yellow-950/80"; border = "border-yellow-400/50"; }
-      if (isLadderTop) { cellBg = "bg-yellow-900/30"; border = "border-yellow-300/20"; }
-      if (isCentenary) { cellBg = "bg-gradient-to-br from-amber-500/30 to-yellow-600/20"; border = "border-amber-400/60"; }
-      if (isSnakeAnim) { cellBg = "bg-red-500/50 animate-pulse"; }
-      if (isLadderAnim) { cellBg = "bg-yellow-400/50 animate-pulse"; }
+      const verticalOffset = ROW_VERTICAL_OFFSETS[row] || 0;
+
+      const totalHere = redTokensHere.length + greenTokensHere.length;
+
+      // Determine visual size and grid container based on token count to prevent overflow
+      let sizePx = 24; // Default single token size (24px)
+      let containerClass = "flex justify-center items-center";
+      let animationClass = "animate-bounce";
+
+      if (totalHere === 2) {
+        sizePx = 16; // Shrink to 16px
+        containerClass = "grid grid-cols-2 gap-[2px] justify-center items-center";
+        animationClass = "animate-pulse shadow-[0_0_8px_rgba(251,191,36,0.95)]"; // Pulse prevents bounce overlaps
+      } else if (totalHere > 2) {
+        sizePx = 12; // Shrink to 12px for 3 or 4 tokens to fit perfectly inside the cell boundary
+        containerClass = "grid grid-cols-2 gap-[1.5px] justify-center items-center";
+        animationClass = "animate-pulse shadow-[0_0_6px_rgba(251,191,36,0.95)]";
+      }
+
+      // Column-based perspective correction to align columns vertically across all rows
+      let translateX = 0;
+      if (col === 0) translateX = 3;
+      else if (col === 1) translateX = 2;
+      else if (col === 2) translateX = 1;
+      else if (col === 5) translateX = -1;
+      else if (col === 6) translateX = -1;
+      else if (col === 7) translateX = -2;
+      else if (col === 8) translateX = -2;
+      else if (col === 9) translateX = -3;
+
+      const customOffset = CUSTOM_CELL_OFFSETS[cell];
+      if (customOffset && customOffset.x !== undefined) {
+        translateX = customOffset.x;
+      }
+      const translateY = verticalOffset + (customOffset?.y || 0);
+
+      const transformStr = [
+        translateX ? `translateX(${translateX}px)` : "",
+        translateY ? `translateY(${translateY}px)` : "",
+      ].filter(Boolean).join(" ");
 
       cells.push(
         <div
           key={cell}
           data-cell={cell}
-          style={{ gridRow: row + 1, gridColumn: col + 1 }}
-          className={`relative flex flex-col items-center justify-center ${cellBg} border ${border} rounded-[4px] transition-all duration-200 ${isHighlighted ? "ring-2 ring-amber-400 scale-105" : ""}`}
+          style={{
+            gridRow: row + 1,
+            gridColumn: col + 1,
+            transform: transformStr || undefined,
+          }}
+          className="relative flex flex-col items-center justify-center bg-transparent border-0 select-none"
         >
-          {/* Cell number */}
-          <span className={`text-[7px] font-black leading-none ${isCentenary ? "text-amber-300" : "text-slate-500"} select-none`}>
-            {isCentenary ? "🏆" : cell}
-          </span>
-
-          {/* Snake/Ladder indicator */}
-          {isSnakeHead && <span className="text-[8px] leading-none select-none">🐍</span>}
-          {isLadderBase && <span className="text-[8px] leading-none select-none">🪜</span>}
-
           {/* Player tokens */}
-          <div className="flex gap-[2px] justify-center items-center">
-            {redHere && (
-              <img
-                src="/assets/images/icons/token_red_3d.png"
-                alt="RED"
-                className="w-4 h-4 object-contain drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] animate-bounce"
-                draggable={false}
-              />
-            )}
-            {greenHere && (
-              <img
-                src="/assets/images/icons/token_green_3d.png"
-                alt="GREEN"
-                className="w-4 h-4 object-contain drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] animate-bounce"
-                draggable={false}
-              />
-            )}
+          <div className={`${containerClass} max-w-full max-h-full p-[1px]`}>
+            {redTokensHere.map((t) => {
+              const isMovable = engineState.currentTurnColor === "RED" && engineState.isWaitingForTokenChoice && engineState.movableTokenIds.includes(t.tokenId);
+              return (
+                <button
+                  key={`red-${t.tokenId}-${t.currentPosition}`}
+                  disabled={!isMovable}
+                  onClick={() => handleSelectToken(t.tokenId)}
+                  style={{ width: `${sizePx}px`, height: `${sizePx}px` }}
+                  className={`p-0 bg-transparent border-0 outline-none relative ${
+                    t.isMoving
+                      ? "token-hop z-30"
+                      : isMovable
+                      ? `cursor-pointer scale-110 drop-shadow-[0_0_6px_rgba(251,191,36,0.95)] ${animationClass} z-30`
+                      : "z-10 transition-transform"
+                  }`}
+                  title={isMovable ? "Click to move this Red Token" : `Red Token ${t.tokenId + 1}`}
+                >
+                  <img
+                    src={`/assets/images/icons/luxury_token_red.png?v=${ASSET_VERSION}`}
+                    alt="RED"
+                    className="w-full h-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]"
+                    draggable={false}
+                  />
+                  {isMovable && (
+                    <div className="absolute inset-0 border-[1px] border-yellow-400 rounded-full animate-ping" />
+                  )}
+                </button>
+              );
+            })}
+
+            {greenTokensHere.map((t) => (
+              <div
+                key={`green-${t.tokenId}-${t.currentPosition}`}
+                style={{ width: `${sizePx}px`, height: `${sizePx}px` }}
+                className={`relative z-10 ${t.isMoving ? "token-hop" : ""}`}
+                title={`Green Token ${t.tokenId + 1}`}
+              >
+                <img
+                  src={`/assets/images/icons/luxury_token_green.png?v=${ASSET_VERSION}`}
+                  alt="GREEN"
+                  className="w-full h-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]"
+                  draggable={false}
+                />
+              </div>
+            ))}
           </div>
+
+          {/* Grid Calibration Dots */}
+          {showCalibrator && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+              <div className="w-[15px] h-[15px] rounded-full bg-amber-500/80 border border-yellow-400/40 flex items-center justify-center text-[7.5px] font-black text-slate-950 shadow-[0_0_5px_rgba(245,158,11,0.5)]">
+                {cell}
+              </div>
+            </div>
+          )}
+
+          {/* Ladder Bottom — pulse glow when token is about to climb */}
+          {ladderAnim?.active && cell === ladderAnim.from && (
+            <div className="absolute inset-0 ladder-bottom-pulse rounded pointer-events-none" />
+          )}
+
+          {/* Ladder Destination — golden glow + sparkles */}
+          {ladderAnim?.active && cell === ladderAnim.to && (
+            <div className="absolute inset-0 ladder-dest-glow rounded pointer-events-none">
+              {/* Sparkle particles scattered around */}
+              {[...Array(6)].map((_, i) => (
+                <div
+                  key={i}
+                  className="sparkle-particle"
+                  style={{
+                    top: `${10 + Math.sin(i * 60 * Math.PI / 180) * 35}%`,
+                    left: `${10 + Math.cos(i * 60 * Math.PI / 180) * 35}%`,
+                    animationDelay: `${i * 0.1}s`,
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
       );
     }
     return cells;
   };
 
-  const diceFaces = ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
-
   return (
     <div className="absolute inset-0 flex flex-col overflow-hidden">
       {/* Universal Luxury Background */}
       <LudoPageBackground variant="gameplay" />
 
-      {/* Snake & Ladders Custom Board Card overlay */}
+      {/* Snake & Ladders Custom Screen Background */}
       <div
-        className="absolute inset-0 bg-cover bg-center opacity-25 pointer-events-none z-0"
-        style={{ backgroundImage: "url('/assets/images/backgrounds/luxury_snake_board.jpg')" }}
+        className="absolute inset-0 bg-cover bg-center pointer-events-none z-0"
+        style={{ backgroundImage: "url('/assets/images/backgrounds/luxury_snake_bg.jpg')" }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-[#07010f]/40 via-transparent to-[#07010f]/80 pointer-events-none z-0" />
-
       {/* Header */}
       <div className="relative z-10 flex items-center justify-between px-4 pt-4 pb-2">
         <button
           onClick={onLeave}
-          className="w-9 h-9 rounded-full bg-slate-900/80 border border-amber-500/30 flex items-center justify-center text-amber-200 text-sm hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+          className="w-10 h-10 rounded-full bg-slate-900/80 border border-amber-500/30 flex items-center justify-center text-amber-200 text-lg hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-lg"
         >
           ←
         </button>
-        <h1 className="text-base font-black bg-gradient-to-r from-emerald-300 via-yellow-300 to-amber-400 bg-clip-text text-transparent tracking-widest uppercase">
-          🐍 Snakes & Ladders
-        </h1>
+
+        {/* Reset Game Button */}
         <button
           onClick={resetGame}
-          className="w-9 h-9 rounded-full bg-slate-900/80 border border-emerald-500/30 flex items-center justify-center text-emerald-300 text-sm hover:scale-105 active:scale-95 transition-transform cursor-pointer"
-          title="Restart"
+          className="px-3 py-1.5 rounded-xl border border-slate-700/50 bg-slate-900/80 text-slate-300 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
         >
-          ↺
+          🔄 Reset
         </button>
       </div>
 
-      {/* Player score bar */}
-      <div className="relative z-10 flex items-center justify-between px-4 mb-2 gap-3">
-        {players.map((p) => (
-          <div
-            key={p.id}
-            className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-xl border transition-all duration-300 ${
-              currentTurn === p.id && phase === "PLAYING"
-                ? "border-amber-400/70 bg-amber-400/10 shadow-[0_0_10px_rgba(251,191,36,0.3)]"
-                : "border-slate-700/40 bg-slate-900/40"
-            }`}
-          >
-            <div
-              className="w-4 h-4 rounded-full border-2 border-white/30 shadow-lg flex-shrink-0"
-              style={{ backgroundColor: p.color }}
-            />
-            <div className="min-w-0">
-              <div className="text-[9px] font-black text-white truncate">{p.name}</div>
-              <div className="text-[8px] text-slate-400">
-                {p.position === 0 ? "Start" : p.position === 100 ? "🏆 Winner!" : `Cell ${p.position}`}
-              </div>
-            </div>
-            {currentTurn === p.id && phase === "PLAYING" && (
-              <div className="ml-auto text-amber-300 text-[10px] animate-pulse font-black">▶</div>
-            )}
-          </div>
-        ))}
+      {/* Top Right Corner Player Avatar (Player 2 / Bot) */}
+      <div
+        className="absolute top-10 right-4 z-20 cursor-pointer transition-transform hover:scale-105 active:scale-95"
+        onClick={() => handleProfileClick("GREEN")}
+      >
+        <CornerPlayerAvatar
+          player={engineState.players[1] as any}
+          isActive={engineState.currentTurnColor === "GREEN" && engineState.phase === "PLAYING"}
+          diceValue={diceValue}
+          isDiceRolled={false}
+          canRoll={false}
+          turnTimerSeconds={15}
+          isAutoMode={false}
+          position="top-right"
+          isLocalPlayer={false}
+        />
       </div>
 
-      {/* Game Board */}
+      {/* GREEN Start Yard (Tokens at position 0) */}
+      <div className="absolute top-[64px] right-[105px] z-20 flex gap-1.5">
+        {engineState.players[1].tokens.map((t) => {
+          if (t.currentPosition > 0) return null;
+          return (
+            <div key={t.tokenId} className="w-6 h-6 opacity-75">
+              <img
+                src={`/assets/images/icons/luxury_token_green.png?v=${ASSET_VERSION}`}
+                alt={`T${t.tokenId}`}
+                className="w-full h-full object-contain"
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Bottom Left Corner Player Avatar (Player 1 / You) */}
+      <div
+        className="absolute bottom-10 left-4 z-20 cursor-pointer transition-transform hover:scale-105 active:scale-95"
+        onClick={() => handleProfileClick("RED")}
+      >
+        <CornerPlayerAvatar
+          player={engineState.players[0] as any}
+          isActive={engineState.currentTurnColor === "RED" && engineState.phase === "PLAYING"}
+          diceValue={redDiceValue}
+          isDiceRolled={false}
+          canRoll={engineState.currentTurnColor === "RED" && !redIsRolling && engineState.phase === "PLAYING" && !engineState.isWaitingForTokenChoice}
+          turnTimerSeconds={15}
+          isAutoMode={false}
+          onRollDice={handleRoll}
+          position="bottom-left"
+          isLocalPlayer={true}
+        />
+      </div>
+
+      {/* RED Start Yard (Tokens at position 0) */}
+      <div className="absolute bottom-[77px] left-[180px] z-20 flex gap-1.5 items-center">
+        {engineState.players[0].tokens.map((t) => {
+          if (t.currentPosition > 0) return null;
+          const isMovable = engineState.currentTurnColor === "RED" && engineState.isWaitingForTokenChoice && engineState.movableTokenIds.includes(t.tokenId);
+          return (
+            <button
+              key={t.tokenId}
+              disabled={!isMovable}
+              onClick={() => handleSelectToken(t.tokenId)}
+              className={`w-6 h-6 p-0 bg-transparent border-0 outline-none relative transition-all ${
+                isMovable
+                  ? "cursor-pointer scale-115 drop-shadow-[0_0_8px_rgba(251,191,36,0.95)] animate-pulse"
+                  : "opacity-60 pointer-events-none"
+              }`}
+              title={isMovable ? "Click to move this token onto the board" : `Red Token ${t.tokenId + 1} at Start`}
+            >
+              <img
+                src={`/assets/images/icons/luxury_token_red.png?v=${ASSET_VERSION}`}
+                alt={`T${t.tokenId}`}
+                className="w-full h-full object-contain"
+              />
+              {isMovable && (
+                <div className="absolute inset-0 border border-yellow-400 rounded-full animate-ping" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* RED Player Interactive Dice - bottom-left */}
+      {engineState.phase !== "FINISHED" && (
+        <div className="absolute bottom-[60px] left-[118px] z-20">
+          <button
+            onClick={handleRoll}
+            disabled={redIsRolling || engineState.currentTurnColor !== "RED" || engineState.isWaitingForTokenChoice}
+            className={`relative bg-transparent border-0 outline-none p-1 rounded-2xl transition-all active:scale-90 hover:scale-105 ${
+              redIsRolling || engineState.currentTurnColor !== "RED" || engineState.isWaitingForTokenChoice
+                ? "pointer-events-none opacity-80"
+                : "cursor-pointer"
+            }`}
+            title="Click to Roll"
+          >
+            <DiceFace
+              value={redDiceValue}
+              isRolling={redIsRolling}
+              diceId="dice_red"
+              size={58}
+            />
+          </button>
+        </div>
+      )}
+
+      {/* GREEN Player Dice Display - top-right */}
+      {engineState.phase !== "FINISHED" && (
+        <div className="absolute top-[60px] right-[118px] z-20">
+          <div
+            className={`relative p-1 rounded-2xl transition-all ${
+              engineState.currentTurnColor === "GREEN" ? "opacity-100" : "opacity-40"
+            }`}
+            title="Green Player Dice"
+          >
+            <DiceFace
+              value={greenDiceValue}
+              isRolling={greenIsRolling}
+              diceId="dice_green"
+              size={58}
+            />
+            {engineState.currentTurnColor === "GREEN" && greenIsRolling && (
+              <div className="absolute inset-0 rounded-2xl border border-emerald-400/50 animate-pulse pointer-events-none" />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Board Design in the Center */}
       <div className="relative z-10 flex-1 flex items-center justify-center px-3">
         <div
-          className="grid w-full border border-amber-500/20 rounded-xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.8)]"
+          className="grid w-full border border-amber-500/30 rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.9)] bg-cover bg-center"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(10, 1fr)",
             gridTemplateRows: "repeat(10, 1fr)",
             aspectRatio: "1 / 1",
-            maxWidth: "360px",
-            backgroundColor: "rgba(10,2,25,0.9)",
+            maxWidth: "350px",
+            backgroundImage: "url('/assets/images/backgrounds/luxury_snake_board_design.jpg')",
+            paddingTop: BOARD_GRID_PADDING.top,
+            paddingBottom: BOARD_GRID_PADDING.bottom,
+            paddingLeft: BOARD_GRID_PADDING.left,
+            paddingRight: BOARD_GRID_PADDING.right,
           }}
         >
           {renderBoard()}
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="relative z-10 flex items-center justify-center gap-4 px-4 py-1">
-        <div className="flex items-center gap-1">
-          <span className="text-xs">🐍</span>
-          <span className="text-[9px] text-red-400 font-black">= Snake (go down)</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="text-xs">🪜</span>
-          <span className="text-[9px] text-yellow-400 font-black">= Ladder (go up)</span>
-        </div>
-      </div>
-
-      {/* Status message */}
-      <div className="relative z-10 px-4 py-1">
-        <div className="bg-slate-900/70 border border-amber-500/20 rounded-xl px-3 py-2 text-center">
-          <p className="text-[10px] font-black text-amber-200 leading-snug">{message}</p>
+      {/* Bottom Panel - Fixed Height to prevent Board shifting */}
+      <div className="relative z-10 flex flex-col items-center justify-center h-[80px] pb-3 select-none">
+        {/* Play Again button */}
+        <div className="h-[64px] flex items-center justify-center">
+          {engineState.phase === "FINISHED" && (
+            <button
+              onClick={resetGame}
+              className="px-6 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-[11px] uppercase tracking-widest shadow-lg hover:scale-102 active:scale-97 cursor-pointer border-0 outline-none transition-transform"
+            >
+              🔄 Play Again
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Dice + Roll Button */}
-      <div className="relative z-10 flex items-center justify-center gap-6 px-4 py-3">
-        {/* Dice face display */}
-        <div className="flex-shrink-0">
-          <DiceFace
-            value={diceValue}
-            isRolling={isRolling}
-            diceId="dice_emperor"
-            size={56}
-          />
-        </div>
-
-        {/* Roll button or waiting indicator */}
-        {phase === "FINISHED" ? (
-          <button
-            onClick={resetGame}
-            className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm uppercase tracking-widest shadow-[0_4px_16px_rgba(16,185,129,0.4)] hover:scale-[1.02] active:scale-[0.97] transition-all cursor-pointer border-0 outline-none"
-          >
-            🔄 Play Again
-          </button>
-        ) : currentTurn === "RED" ? (
-          <button
-            onClick={handleRoll}
-            disabled={isRolling}
-            className={`flex-1 py-3.5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all border-0 outline-none ${
-              isRolling
-                ? "bg-slate-700 text-slate-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-500 text-slate-950 shadow-[0_4px_16px_rgba(245,158,11,0.5)] hover:scale-[1.02] active:scale-[0.97] cursor-pointer"
-            }`}
-          >
-            {isRolling ? "Rolling..." : "🎲 Roll Dice"}
-          </button>
-        ) : (
-          <div className="flex-1 py-3.5 rounded-2xl bg-slate-800/60 border border-emerald-500/20 flex items-center justify-center gap-2">
-            <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-            <span className="text-[10px] font-black text-emerald-300 uppercase tracking-widest">Bot is thinking...</span>
-          </div>
-        )}
-      </div>
-
-      {/* Move log */}
-      {moveLog.length > 0 && (
-        <div className="relative z-10 px-4 pb-4">
-          <div className="bg-slate-900/60 border border-slate-700/30 rounded-xl p-2 max-h-[72px] overflow-y-auto no-scrollbar">
-            {moveLog.map((log, i) => (
-              <div key={i} className={`text-[8px] text-slate-400 leading-relaxed ${i === 0 ? "text-amber-300 font-black" : ""}`}>
-                {log}
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* Profile Details Modal */}
+      {selectedProfile && (
+        <UserProfileModal
+          userStats={selectedProfile}
+          isMe={selectedProfile.id === (user?.id || "guest_123")}
+          onClose={() => setSelectedProfile(null)}
+          onAddFriend={() => handleAddFriend(selectedProfile.id)}
+        />
       )}
     </div>
   );

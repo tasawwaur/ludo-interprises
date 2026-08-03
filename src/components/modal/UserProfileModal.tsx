@@ -28,6 +28,7 @@ interface UserProfileModalProps {
   isMe?: boolean;
   onSendGift?: (type: "COINS" | "GEMS", amount: number) => void;
   onRemove?: () => void;
+  onAddFriend?: () => void;
 }
 
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({ 
@@ -35,9 +36,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   onClose, 
   isMe = false,
   onSendGift,
-  onRemove
+  onRemove,
+  onAddFriend
 }) => {
   const [isMuted, setIsMuted] = useState(false);
+  const [hasSentRequest, setHasSentRequest] = useState((userStats as any).isFriendRequested || false);
 
   // Derive signature based on level
   const getSignature = (lvl: number) => {
@@ -116,8 +119,22 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
           {/* Action icon next to name */}
           {!isMe && (
-            <button className="w-8 h-8 rounded-xl bg-purple-950/70 border border-purple-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform">
-              👤➕
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!hasSentRequest) {
+                  setHasSentRequest(true);
+                  onAddFriend?.();
+                }
+              }}
+              className={`w-8 h-8 rounded-xl border flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer ${
+                hasSentRequest
+                  ? "bg-emerald-950/80 border-emerald-500/50 text-emerald-400 font-bold"
+                  : "bg-purple-950/70 border-purple-500/30 text-amber-200"
+              }`}
+              title={hasSentRequest ? "Friend Request Sent" : "Add Friend"}
+            >
+              {hasSentRequest ? "✔️" : "👤➕"}
             </button>
           )}
         </div>

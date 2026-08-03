@@ -191,7 +191,7 @@ export class SnakeLadderEngine {
             } else {
               this.moveToken(chosen, rolled);
             }
-          }, 800);
+          }, 2000);
         } else {
           this.state.isWaitingForTokenChoice = true;
           this.state.movableTokenIds = allMovable;
@@ -227,13 +227,13 @@ export class SnakeLadderEngine {
     if (movableIds.length === 1) {
       this.state.logMessage = `🎲 ${activePlayer.name} rolled ${rolled}. Auto-moving token ${movableIds[0] + 1}.`;
       this.emit("STATE_UPDATE", { state: this.state });
-      setTimeout(() => this.moveToken(movableIds[0], rolled), 500);
+      setTimeout(() => this.moveToken(movableIds[0], rolled), activePlayer.isBot ? 2000 : 500);
     } else {
       if (activePlayer.isBot) {
         setTimeout(() => {
           const chosenId = this.chooseSmartBotToken(activePlayer, rolled, movableIds);
           this.moveToken(chosenId, rolled);
-        }, 800);
+        }, 2000);
       } else {
         this.state.isWaitingForTokenChoice = true;
         this.state.movableTokenIds = movableIds;

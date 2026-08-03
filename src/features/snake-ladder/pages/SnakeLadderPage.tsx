@@ -75,12 +75,12 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
   const [greenIsRolling, setGreenIsRolling] = useState(false);
 
   const [showCalibrator, setShowCalibrator] = useState(false);
+  const [turnTimerSeconds, setTurnTimerSeconds] = useState(15);
 
   // Ladder animation state
   const [ladderAnim, setLadderAnim] = useState<{ from: number; to: number; active: boolean } | null>(null);
 
-  // BUG 7 FIX: Ref flag — true while a token is animating step-by-step.
-  // Using a ref (not state) so it doesn't cause re-renders or reset bot timers.
+  // Ref flag — true while a token is animating step-by-step
   const isTokenAnimating = useRef(false);
 
   // Profile Modal State
@@ -135,6 +135,18 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     engineRef.current = engine;
     return engine.getGameState();
   });
+
+  // Turn timer countdown effect — resets to 15s on turn change
+  useEffect(() => {
+    setTurnTimerSeconds(15);
+    if (engineState.phase !== "PLAYING") return;
+
+    const interval = setInterval(() => {
+      setTurnTimerSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [engineState.currentTurnColor, engineState.phase]);
 
   // Setup Event Listeners on mount
   useEffect(() => {
@@ -302,9 +314,10 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     });
 
     engineRef.current = engine;
-    setEngineState(engine.getGameState());
-    setDiceValue(null);
-    setIsRolling(false);
+    setRedDiceValue(null);
+    setGreenDiceValue(null);
+    setRedIsRolling(false);
+    setGreenIsRolling(false);
 
     // Bind state updater listener
     engine.addEventListener("STATE_UPDATE", (payload) => {
@@ -561,10 +574,10 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         <CornerPlayerAvatar
           player={engineState.players[1] as any}
           isActive={engineState.currentTurnColor === "GREEN" && engineState.phase === "PLAYING"}
-          diceValue={diceValue}
+          diceValue={greenDiceValue}
           isDiceRolled={false}
           canRoll={false}
-          turnTimerSeconds={15}
+          turnTimerSeconds={turnTimerSeconds}
           isAutoMode={false}
           position="top-right"
           isLocalPlayer={false}
@@ -598,7 +611,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           diceValue={redDiceValue}
           isDiceRolled={false}
           canRoll={engineState.currentTurnColor === "RED" && !redIsRolling && engineState.phase === "PLAYING" && !engineState.isWaitingForTokenChoice}
-          turnTimerSeconds={15}
+          turnTimerSeconds={turnTimerSeconds}
           isAutoMode={false}
           onRollDice={handleRoll}
           position="bottom-left"

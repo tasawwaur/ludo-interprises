@@ -65,7 +65,9 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
   const micPositionClass = isRightSide ? 'top-[6px] -right-2' : 'top-[6px] -left-2';
 
   return (
-    <div className="relative flex flex-col items-center select-none min-w-[98px]">
+    <div className={`relative flex flex-col items-center select-none min-w-[98px] transition-all duration-300 ${
+      isActive ? 'scale-105 filter drop-shadow-[0_0_15px_rgba(34,197,94,0.95)] drop-shadow-[0_0_30px_rgba(16,185,129,0.8)]' : ''
+    }`}>
       {/* Speech Emoji / Message Popup */}
       {chatBubbleMessage && (
         <div className={`absolute ${isBottom ? '-top-10' : '-bottom-10'} z-40 animate-bounce whitespace-nowrap drop-shadow-[0_6px_14px_rgba(0,0,0,0.9)] select-none`}>
@@ -77,6 +79,11 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
 
       {/* 1. Profile Photo Frame */}
       <div className="relative w-[84px] h-[84px] flex items-center justify-center p-1">
+        {/* Glowing Green Patti Border on Active Turn */}
+        {isActive && (
+          <div className="absolute -inset-1 rounded-full border-[3px] border-emerald-400 shadow-[0_0_18px_#22c55e,0_0_36px_#10b981] animate-pulse z-30 pointer-events-none" />
+        )}
+
         {/* Circular SVG Timer Ring — smooth green→yellow→red melt */}
         {isActive && (() => {
           const t = turnTimerSeconds / 15; // 1.0 = full, 0.0 = empty

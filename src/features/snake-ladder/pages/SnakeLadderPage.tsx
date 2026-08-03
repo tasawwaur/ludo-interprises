@@ -37,8 +37,8 @@ const ROW_VERTICAL_OFFSETS: Record<number, number> = {
 };
 
 const CUSTOM_CELL_OFFSETS: Record<number, { x?: number; y?: number }> = {};
-const LADDER_STARTS = [2, 8, 20, 32, 41, 56, 65, 68, 77];
-const SNAKE_HEADS  = [99, 94, 87, 76, 66, 54, 43, 40, 27];
+const LADDER_STARTS = [2, 15, 9, 39, 48, 56, 71, 78];
+const SNAKE_HEADS  = [17, 21, 28, 36, 66, 82, 69, 97, 94];
 
 // ─── Board Layout Helper ─────────────────────────────────────────────────────
 function cellToRowCol(cell: number): { row: number; col: number } {

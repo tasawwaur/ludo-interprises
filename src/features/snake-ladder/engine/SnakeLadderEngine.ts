@@ -10,27 +10,26 @@ import {
 
 // ─── Board Data ───────────────────────────────────────────────────────────────
 const SNAKES: Record<number, number> = {
-  99: 21,
-  94: 37,
-  87: 24,
-  76: 14,
-  66: 45,
-  54: 19,
-  43: 18,
-  40: 3,
-  27: 5,
+  17: 5,
+  21: 3,
+  28: 8,
+  36: 16,
+  66: 36,
+  82: 59,
+  69: 50,
+  97: 63,
+  94: 69,
 };
 
 const LADDERS: Record<number, number> = {
   2: 23,
-  8: 34,
-  20: 58,
-  32: 62,
-  41: 79,
-  56: 96,
-  65: 93,
-  68: 89,
-  77: 98,
+  15: 34,
+  9: 31,
+  39: 58,
+  48: 67,
+  56: 86,
+  71: 92,
+  78: 98,
 };
 
 export class SnakeLadderEngine {
@@ -377,7 +376,7 @@ export class SnakeLadderEngine {
           token.currentPosition = snakeTail;
           token.previousPosition = snakeHead;
           this.emit("STATE_UPDATE", { state: this.state });
-          this.handlePostLanding(token, tokenId, snakeTail, rolled);
+          this.handleLanding(token, tokenId, snakeTail, rolled);
         }
       };
       setTimeout(slideStep, 350); // brief pause at head before sliding
@@ -421,7 +420,7 @@ export class SnakeLadderEngine {
           token.currentPosition = ladderDest;
           token.previousPosition = ladderStart;
           this.emit("STATE_UPDATE", { state: this.state });
-          this.handlePostLanding(token, tokenId, ladderDest, rolled);
+          this.handleLanding(token, tokenId, ladderDest, rolled);
         }
       };
       setTimeout(climbStep, 400); // brief pause at bottom before climbing

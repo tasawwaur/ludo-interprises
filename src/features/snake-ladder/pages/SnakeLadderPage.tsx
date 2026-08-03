@@ -191,6 +191,12 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       setEngineState({ ...payload.state });
     });
 
+    // Snake Slide — play snake bite / capture sound effect
+    engine.addEventListener("SNAKE_SLIDE", (payload) => {
+      isTokenAnimating.current = true;
+      SoundEngine.play('CAPTURE');
+    });
+
     // Ladder Climb — golden glow + sparkle + sound
     engine.addEventListener("LADDER_CLIMB", (payload) => {
       isTokenAnimating.current = true;

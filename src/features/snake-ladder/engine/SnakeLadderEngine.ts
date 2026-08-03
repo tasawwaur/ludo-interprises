@@ -340,23 +340,48 @@ export class SnakeLadderEngine {
         activePlayer.winnerRank = this.state.winnerCount;
       }
     }
-    // BUG 4 FIX: Use !== undefined for falsy-safe checks on SNAKES/LADDERS
+    // Snake Head Landing — Slide down to tail (punch)
     else if (SNAKES[finalPos] !== undefined) {
-      const snakeDest = SNAKES[finalPos];
-      token.previousPosition = finalPos;
-      token.currentPosition = snakeDest;
-      finalPos = snakeDest;
+      const snakeHead = finalPos;
+      const snakeTail = SNAKES[finalPos];
 
-      this.state.logMessage = `🐍 SNAKE! ${activePlayer.name}'s token ${tokenId + 1} slips from ${landingPos} → ${snakeDest}!`;
+      this.state.logMessage = `🐍 SNAKE! ${activePlayer.name}'s token ${tokenId + 1} bitten at ${snakeHead} → sliding to tail ${snakeTail}!`;
+
       this.emit("SNAKE_SLIDE", {
         state: this.state,
         activePlayerColor: activePlayer.color,
         tokenId,
-        snakeStart: landingPos,
-        snakeEnd: snakeDest,
+        snakeStart: snakeHead,
+        snakeEnd: snakeTail,
       });
-      // Emit state so UI immediately shows snake-slid position
-      this.emit("STATE_UPDATE", { state: this.state });
+
+      // Step-by-step downward slide animation from head to tail
+      const slidePath: number[] = [];
+      for (let p = snakeHead - 1; p >= snakeTail; p--) slidePath.push(p);
+
+      let slideIndex = 0;
+      const slideStep = () => {
+        if (slideIndex < slidePath.length) {
+          token.previousPosition = token.currentPosition;
+          token.currentPosition = slidePath[slideIndex];
+          this.emit("TOKEN_MOVE_STEP", {
+            state: this.state,
+            activePlayerColor: activePlayer.color,
+            tokenId,
+            stepCell: slidePath[slideIndex],
+          });
+          slideIndex++;
+          setTimeout(slideStep, Math.max(80, this.config.animationDelayMs * 0.6));
+        } else {
+          // Slide complete — commit final position at tail
+          token.currentPosition = snakeTail;
+          token.previousPosition = snakeHead;
+          this.emit("STATE_UPDATE", { state: this.state });
+          this.handlePostLanding(token, tokenId, snakeTail, rolled);
+        }
+      };
+      setTimeout(slideStep, 350); // brief pause at head before sliding
+      return;
     }
     // BUG 4 FIX: Ladder exact landing check
     else if (LADDERS[finalPos] !== undefined) {

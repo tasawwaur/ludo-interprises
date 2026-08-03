@@ -8,6 +8,7 @@ import { CornerPlayerAvatar } from "../../gameplay/components/CornerPlayerAvatar
 import { UserProfileModal, UserStats } from "../../../components/modal/UserProfileModal";
 import { SoundEngine } from "../../../game/sound/SoundEngine";
 import confetti from "canvas-confetti";
+import { QuickChatPanel } from "../../gameplay/components/QuickChatPanel";
 
 // ─── Import Authoritative Rule Engine ────────────────────────────────────────
 import { SnakeLadderEngine } from "../engine/SnakeLadderEngine";
@@ -88,6 +89,15 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
   const [killBanner, setKillBanner] = useState<string | null>(null);
   // Exit confirmation modal state
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  // Chat speech bubbles state
+  const [activeSpeechBubbles, setActiveSpeechBubbles] = useState<Record<string, string | null>>({});
+
+  const handleSendMessage = (msg: string) => {
+    setActiveSpeechBubbles((prev) => ({ ...prev, RED: msg }));
+    setTimeout(() => {
+      setActiveSpeechBubbles((prev) => ({ ...prev, RED: null }));
+    }, 3500);
+  };
 
   // Ref flag — true while a token is animating step-by-step
   const isTokenAnimating = useRef(false);
@@ -666,6 +676,14 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         >
           ←
         </button>
+
+        {/* Reset Game Button */}
+        <button
+          onClick={resetGame}
+          className="px-3 py-1.5 rounded-xl border border-slate-700/50 bg-slate-900/80 text-slate-300 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
+        >
+          🔄 Reset
+        </button>
       </div>
 
       {/* Top Right Corner Player Avatar (Player 2 / Bot) */}
@@ -681,6 +699,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           canRoll={false}
           turnTimerSeconds={turnTimerSeconds}
           isAutoMode={false}
+          chatBubbleMessage={activeSpeechBubbles.GREEN}
           position="top-right"
           isLocalPlayer={false}
         />
@@ -715,10 +734,16 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           canRoll={engineState.currentTurnColor === "RED" && !redIsRolling && engineState.phase === "PLAYING" && !engineState.isWaitingForTokenChoice}
           turnTimerSeconds={turnTimerSeconds}
           isAutoMode={false}
+          chatBubbleMessage={activeSpeechBubbles.RED}
           onRollDice={handleRoll}
           position="bottom-left"
           isLocalPlayer={true}
         />
+      </div>
+
+      {/* LUXURY CHAT BUTTON: FIXED BOTTOM RIGHT */}
+      <div className="absolute bottom-24 right-3 z-30 flex items-center justify-center pointer-events-auto">
+        <QuickChatPanel onSendMessage={handleSendMessage} />
       </div>
 
       {/* RED Start Yard (Tokens at position 0) */}

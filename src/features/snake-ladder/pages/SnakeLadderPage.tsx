@@ -7,6 +7,7 @@ import { LudoPageBackground } from "../../../components/effects/LudoPageBackgrou
 import { CornerPlayerAvatar } from "../../gameplay/components/CornerPlayerAvatar";
 import { UserProfileModal, UserStats } from "../../../components/modal/UserProfileModal";
 import { SoundEngine } from "../../../game/sound/SoundEngine";
+import confetti from "canvas-confetti";
 
 // ─── Import Authoritative Rule Engine ────────────────────────────────────────
 import { SnakeLadderEngine } from "../engine/SnakeLadderEngine";
@@ -83,6 +84,10 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
 
   // Ladder animation state
   const [ladderAnim, setLadderAnim] = useState<{ from: number; to: number; active: boolean } | null>(null);
+  // Kill banner animation state
+  const [killBanner, setKillBanner] = useState<string | null>(null);
+  // Exit confirmation modal state
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // Ref flag — true while a token is animating step-by-step
   const isTokenAnimating = useRef(false);
@@ -165,15 +170,12 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       localStorage.setItem("ludo_sl_engine_state", JSON.stringify(payload.state));
     });
 
-    // GREEN bot dice flash animation on roll start
+    // Sync rolling state on roll start
     engine.addEventListener("DICE_ROLL_START", (payload) => {
-      if (payload.activePlayerColor === "GREEN") {
-        let count = 0;
-        const interval = setInterval(() => {
-          setGreenDiceValue(Math.ceil(Math.random() * 6));
-          count++;
-          if (count >= 10) clearInterval(interval);
-        }, 80);
+      if (payload.activePlayerColor === "RED") {
+        setRedIsRolling(true);
+      } else {
+        setGreenIsRolling(true);
       }
     });
 
@@ -201,6 +203,14 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       SoundEngine.play('CAPTURE');
     });
 
+    // Token Kill — play capture sound + show announcement banner
+    engine.addEventListener("TOKEN_KILL", (payload) => {
+      isTokenAnimating.current = true;
+      SoundEngine.play('CAPTURE');
+      setKillBanner(payload.message || "⚔️ TOKEN KILLED!");
+      setTimeout(() => setKillBanner(null), 2500);
+    });
+
     // Ladder Climb — golden glow + sparkle + sound
     engine.addEventListener("LADDER_CLIMB", (payload) => {
       isTokenAnimating.current = true;
@@ -212,14 +222,34 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       setTimeout(() => setLadderAnim(null), steps * 300 + 1000);
     });
 
-    // Win event — reward coins + sound
+    // Win event — reward 9,500 coins + XP calculation (1 kill = 50 XP, 1 ladder = 70 XP, Win = 200 XP) + sound
     engine.addEventListener("GAME_OVER", (payload) => {
-      const winner = payload.state.players.find((p) => p.winnerRank === 1);
-      if (winner && winner.id === "RED") {
-        const coins = user?.coins || 0;
-        updateUser({ coins: coins + 5000 });
+      const redPlayer = payload.state.players[0];
+      const isWinner = redPlayer.winnerRank === 1;
+      const killsXP = (redPlayer.killCount || 0) * 50;
+      const laddersXP = (redPlayer.ladderCount || 0) * 70;
+      const winXP = isWinner ? 200 : 20;
+      const totalXP = killsXP + laddersXP + winXP;
+
+      const currentCoins = user?.coins || 0;
+      const currentXP = user?.xp || 0;
+
+      updateUser({
+        coins: isWinner ? currentCoins + 9500 : currentCoins,
+        xp: currentXP + totalXP,
+      });
+
+      if (isWinner) {
+        SoundEngine.play('WIN');
+        try {
+          confetti({
+            particleCount: 120,
+            spread: 80,
+            origin: { y: 0.6 },
+            colors: ['#FFD700', '#FFA500', '#10B981', '#3B82F6', '#EF4444'],
+          });
+        } catch (e) {}
       }
-      SoundEngine.play('WIN');
     });
 
   }, [user, updateUser]);
@@ -293,6 +323,38 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
   const handleSelectToken = (tokenId: number) => {
     if (!engineRef.current || engineState.currentTurnColor !== "RED" || !engineState.isWaitingForTokenChoice) return;
     engineRef.current.moveToken(tokenId, engineState.diceValue || 0);
+  };
+
+  const handleExitClick = () => {
+    if (engineState.phase === "PLAYING") {
+      setShowExitConfirm(true);
+    } else {
+      onLeave();
+    }
+  };
+
+  const handleConfirmExit = () => {
+    setShowExitConfirm(false);
+
+    if (engineRef.current && engineState.phase === "PLAYING") {
+      const state = engineRef.current.getGameState();
+      state.phase = "FINISHED";
+      state.players[0].winnerRank = 2; // Local player RED is Loser
+      state.players[1].winnerRank = 1; // Opponent GREEN is Winner
+      state.logMessage = `🚪 Match Forfeited! ${state.players[0].name} quit the match.`;
+      engineRef.current.setGameState(state);
+
+      // Deduct 5,000 Coins penalty for quitting match
+      const currentCoins = user?.coins || 0;
+      updateUser({
+        coins: Math.max(0, currentCoins - 5000),
+      });
+
+      localStorage.removeItem("ludo_sl_engine_state");
+    } else {
+      localStorage.removeItem("ludo_sl_engine_state");
+      onLeave();
+    }
   };
 
   const resetGame = () => {
@@ -585,21 +647,24 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         className="absolute inset-0 bg-cover bg-center pointer-events-none z-0"
         style={{ backgroundImage: "url('/assets/images/backgrounds/luxury_snake_bg.jpg')" }}
       />
+
+      {/* ⚔️ Token Kill Banner Announcement Overlay */}
+      {killBanner && (
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none animate-bounce">
+          <div className="px-6 py-3 rounded-2xl bg-gradient-to-r from-red-600 via-rose-700 to-amber-600 border-2 border-yellow-300 text-white font-black text-xs md:text-sm tracking-wider shadow-[0_0_25px_rgba(239,68,68,0.95)] flex items-center gap-2">
+            <span className="text-base">⚔️</span>
+            <span>{killBanner}</span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="relative z-10 flex items-center justify-between px-4 pt-4 pb-2">
         <button
-          onClick={onLeave}
+          onClick={handleExitClick}
           className="w-10 h-10 rounded-full bg-slate-900/80 border border-amber-500/30 flex items-center justify-center text-amber-200 text-lg hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-lg"
         >
           ←
-        </button>
-
-        {/* Reset Game Button */}
-        <button
-          onClick={resetGame}
-          className="px-3 py-1.5 rounded-xl border border-slate-700/50 bg-slate-900/80 text-slate-300 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
-        >
-          🔄 Reset
         </button>
       </div>
 
@@ -776,6 +841,148 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           onAddFriend={() => handleAddFriend(selectedProfile.id)}
         />
       )}
+
+      {/* ⚠️ Game Exit Confirmation Modal */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-sm rounded-3xl bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-rose-500/40 p-6 shadow-[0_0_50px_rgba(244,63,94,0.3)] text-center flex flex-col items-center gap-4">
+            
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-rose-600 to-red-500 flex items-center justify-center text-3xl shadow-[0_0_20px_rgba(244,63,94,0.6)] border border-rose-300">
+              🚪
+            </div>
+
+            <div>
+              <h2 className="text-xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-rose-300 via-red-400 to-rose-300">
+                LEAVE MATCH?
+              </h2>
+              <p className="text-xs text-slate-300 font-medium mt-2 leading-relaxed">
+                अगर आप बीच में गेम छोड़कर बाहर जाते हैं, तो आपको <span className="text-rose-400 font-extrabold">Match Forfeit (हार)</span> घोषित कर दिया जाएगा और आपके दांव के कॉइन्स कट जाएंगे!
+              </p>
+            </div>
+
+            <div className="flex w-full gap-3 mt-2">
+              <button
+                onClick={() => setShowExitConfirm(false)}
+                className="flex-1 py-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 font-black text-xs uppercase tracking-wider hover:bg-slate-700 active:scale-95 transition-all cursor-pointer"
+              >
+                🎮 Stay & Play
+              </button>
+              <button
+                onClick={handleConfirmExit}
+                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-rose-600 to-red-700 text-white font-black text-xs uppercase tracking-wider shadow-lg hover:scale-102 active:scale-95 transition-all cursor-pointer border-0 outline-none"
+              >
+                🚪 Quit Match
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* 🏆 Match Result Victory / Defeat Modal Overlay */}
+      {engineState.phase === "FINISHED" && (() => {
+        const redPlayer = engineState.players[0];
+        const isWinner = redPlayer.winnerRank === 1;
+        const kills = redPlayer.killCount || 0;
+        const ladders = redPlayer.ladderCount || 0;
+        const killsXP = kills * 50;
+        const laddersXP = ladders * 70;
+        const winXP = isWinner ? 200 : 20;
+        const totalXP = killsXP + laddersXP + winXP;
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+            <div className="relative w-full max-w-sm rounded-3xl bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 border-2 border-amber-400/40 p-6 shadow-[0_0_50px_rgba(245,158,11,0.3)] text-center flex flex-col items-center gap-4">
+              
+              {/* Header Badge */}
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-3xl shadow-[0_0_20px_rgba(245,158,11,0.6)] border border-yellow-200">
+                {isWinner ? "🏆" : "💔"}
+              </div>
+
+              <div>
+                <h2 className="text-xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200">
+                  {isWinner ? "VICTORY!" : "MATCH ENDED"}
+                </h2>
+                <p className="text-xs text-slate-400 font-medium mt-1">
+                  {isWinner ? "Congratulations! You reached Cell 100 first!" : `${engineState.players[1].name} reached Cell 100!`}
+                </p>
+              </div>
+
+              {/* Rewards Summary Box */}
+              <div className="w-full rounded-2xl bg-slate-800/80 border border-slate-700/60 p-4 flex flex-col gap-3">
+                {/* Coins Row */}
+                <div className={`flex items-center justify-between px-3 py-2 rounded-xl border ${
+                  isWinner ? 'bg-amber-500/10 border-amber-500/20' : 'bg-rose-500/10 border-rose-500/20'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🪙</span>
+                    <span className={`text-xs font-bold uppercase tracking-wider ${isWinner ? 'text-amber-200' : 'text-rose-200'}`}>
+                      {isWinner ? "Bet Win Reward" : "Forfeit Penalty"}
+                    </span>
+                  </div>
+                  <span className={`text-sm font-black ${isWinner ? 'text-amber-400' : 'text-rose-400'}`}>
+                    {isWinner ? "+9,500 Coins" : "-5,000 Coins"}
+                  </span>
+                </div>
+
+                {/* XP Breakdown Header */}
+                <div className="text-[10px] font-black uppercase text-purple-300 tracking-wider text-left pl-1">
+                  XP Rewards Breakdown
+                </div>
+
+                {/* Kill XP Row */}
+                <div className="flex items-center justify-between text-xs text-slate-300 px-2">
+                  <span className="flex items-center gap-1.5">
+                    ⚔️ <span>{kills} Kills</span> <span className="text-[10px] text-slate-500">(×50 XP)</span>
+                  </span>
+                  <span className="font-extrabold text-emerald-400">+{killsXP} XP</span>
+                </div>
+
+                {/* Ladder XP Row */}
+                <div className="flex items-center justify-between text-xs text-slate-300 px-2">
+                  <span className="flex items-center gap-1.5">
+                    🪜 <span>{ladders} Ladders</span> <span className="text-[10px] text-slate-500">(×70 XP)</span>
+                  </span>
+                  <span className="font-extrabold text-emerald-400">+{laddersXP} XP</span>
+                </div>
+
+                {/* Win Bonus XP Row */}
+                <div className="flex items-center justify-between text-xs text-slate-300 px-2">
+                  <span className="flex items-center gap-1.5">
+                    🏆 <span>{isWinner ? "Victory Bonus" : "Match Bonus"}</span>
+                  </span>
+                  <span className="font-extrabold text-emerald-400">+{winXP} XP</span>
+                </div>
+
+                <div className="h-[1px] bg-slate-700/60 my-0.5" />
+
+                {/* Total XP Row */}
+                <div className="flex items-center justify-between px-2">
+                  <span className="text-xs font-black uppercase text-purple-200 tracking-wider">Total XP Earned</span>
+                  <span className="text-sm font-black text-purple-400">+{totalXP} XP</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex w-full gap-2">
+                <button
+                  onClick={resetGame}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs uppercase tracking-wider shadow-lg hover:scale-102 active:scale-95 transition-all border-0 outline-none cursor-pointer"
+                >
+                  🔄 Play Again
+                </button>
+                <button
+                  onClick={onLeave}
+                  className="px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider hover:bg-slate-700 active:scale-95 transition-all cursor-pointer"
+                >
+                  🚪 Exit
+                </button>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

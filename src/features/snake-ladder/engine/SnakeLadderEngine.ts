@@ -42,6 +42,7 @@ export class SnakeLadderEngine {
     SNAKE_SLIDE: [],
     LADDER_CLIMB: [],
     EXTRA_TURN: [],
+    TOKEN_KILL: [],
     PLAYER_FINISHED: [],
     GAME_OVER: [],
     STATE_UPDATE: [],
@@ -75,6 +76,8 @@ export class SnakeLadderEngine {
         isBot: p.isBot,
         avatar: p.avatar,
         equippedFrameId: p.equippedFrameId,
+        killCount: 0,
+        ladderCount: 0,
       };
     });
 
@@ -323,21 +326,20 @@ export class SnakeLadderEngine {
     const activePlayer = this.state.players[this.state.activePlayerIndex];
     let finalPos = landingPos;
 
-    // Check Win
+    // Check Win (1 Token reaching cell 100 wins match immediately)
     if (finalPos === 100) {
       token.isFinished = true;
-      this.state.logMessage = `🏁 ${activePlayer.name}'s token ${tokenId + 1} reached Home!`;
+      if (!activePlayer.winnerRank) {
+        this.state.winnerCount += 1;
+        activePlayer.winnerRank = this.state.winnerCount;
+      }
+      this.state.logMessage = `🏁 ${activePlayer.name}'s token reached 100! 🏆 WINNER!`;
       this.emit("PLAYER_FINISHED", {
         state: this.state,
         activePlayerColor: activePlayer.color,
         tokenId,
-        message: `${activePlayer.name} got token ${tokenId + 1} home!`,
+        message: `${activePlayer.name} won the match by reaching 100!`,
       });
-      const allFinished = activePlayer.tokens.every((t) => t.isFinished);
-      if (allFinished) {
-        this.state.winnerCount += 1;
-        activePlayer.winnerRank = this.state.winnerCount;
-      }
     }
     // Snake Head Landing — Slide down to tail (punch)
     else if (SNAKES[finalPos] !== undefined) {
@@ -387,6 +389,7 @@ export class SnakeLadderEngine {
       const ladderDest = LADDERS[finalPos];
       const ladderStart = finalPos;
 
+      activePlayer.ladderCount = (activePlayer.ladderCount || 0) + 1;
       this.state.logMessage = `🪜 LADDER! ${activePlayer.name}'s token ${tokenId + 1} climbs from ${ladderStart} → ${ladderDest}!`;
 
       // Emit LADDER_CLIMB event BEFORE stepping — UI shows golden glow immediately
@@ -437,14 +440,11 @@ export class SnakeLadderEngine {
   private handlePostLanding(token: TokenState, tokenId: number, finalPos: number, rolled: number) {
     const activePlayer = this.state.players[this.state.activePlayerIndex];
 
-    // Check game-over condition
-    const activeStillPlaying = this.state.players.filter((p) => !p.tokens.every((t) => t.isFinished));
-    if (
-      activeStillPlaying.length <= 1 ||
-      (this.state.players.length === 2 && activeStillPlaying.length === 1)
-    ) {
+    // Check game-over condition (As soon as ANY 1 token reaches 100)
+    const winnerPlayer = this.state.players.find((p) => p.winnerRank === 1);
+    if (winnerPlayer) {
       this.state.phase = "FINISHED";
-      this.state.logMessage = `🏆 Game Over! Winner: ${this.state.players.find((p) => p.winnerRank === 1)?.name}`;
+      this.state.logMessage = `🏆 Game Over! Winner: ${winnerPlayer.name}`;
       this.emit("GAME_OVER", { state: this.state });
       return;
     }
@@ -459,11 +459,19 @@ export class SnakeLadderEngine {
         );
         if (killedTokens.length > 0) {
           hasKilledOpponent = true;
+          activePlayer.killCount = (activePlayer.killCount || 0) + killedTokens.length;
           killedTokens.forEach((t) => {
             t.previousPosition = t.currentPosition;
             t.currentPosition = 1; // Sent back to start cell 1
           });
           this.state.logMessage = `⚔️ KILL! ${activePlayer.name} killed ${opponent.name}'s token at cell ${finalPos}! Extra turn reward!`;
+          this.emit("TOKEN_KILL", {
+            state: this.state,
+            activePlayerColor: activePlayer.color,
+            tokenId,
+            stepCell: finalPos,
+            message: `⚔️ ${activePlayer.name} killed ${opponent.name}'s token at cell ${finalPos}!`,
+          });
         }
       }
     }

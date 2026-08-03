@@ -21,6 +21,8 @@ export interface PlayerState {
   avatar?: string;
   equippedFrameId?: string;
   winnerRank?: number; // 1, 2, 3, 4
+  killCount?: number;
+  ladderCount?: number;
 }
 
 export interface GameState {
@@ -44,6 +46,7 @@ export type GameEventType =
   | "SNAKE_SLIDE"
   | "LADDER_CLIMB"
   | "EXTRA_TURN"
+  | "TOKEN_KILL"
   | "PLAYER_FINISHED"
   | "GAME_OVER"
   | "STATE_UPDATE";

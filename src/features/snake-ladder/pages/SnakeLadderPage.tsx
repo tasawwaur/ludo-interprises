@@ -89,6 +89,14 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
   const [killBanner, setKillBanner] = useState<string | null>(null);
   // Exit confirmation modal state
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  // Menu & Audio states
+  const [showMenu, setShowMenu] = useState(false);
+  const [isMuted, setIsMuted] = useState(() => SoundEngine.getMuteState());
+
+  const handleSoundToggle = () => {
+    SoundEngine.toggleMute();
+    setIsMuted(SoundEngine.getMuteState());
+  };
   // Chat speech bubbles state
   const [activeSpeechBubbles, setActiveSpeechBubbles] = useState<Record<string, string | null>>({});
 
@@ -670,21 +678,78 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
 
       {/* Header */}
       <div className="relative z-10 flex items-center justify-between px-4 pt-4 pb-2">
+        {/* HAMBURGER MENU BUTTON: FIXED TOP-LEFT */}
         <button
-          onClick={handleExitClick}
-          className="w-10 h-10 rounded-full bg-slate-900/80 border border-amber-500/30 flex items-center justify-center text-amber-200 text-lg hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-lg"
+          onClick={() => setShowMenu(!showMenu)}
+          className="w-10 h-10 rounded-2xl bg-slate-900/90 border border-amber-400/40 flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer z-30"
+          title="Open Menu"
         >
-          ←
-        </button>
-
-        {/* Reset Game Button */}
-        <button
-          onClick={resetGame}
-          className="px-3 py-1.5 rounded-xl border border-slate-700/50 bg-slate-900/80 text-slate-300 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
-        >
-          🔄 Reset
+          <span className="text-lg text-amber-300 font-bold">☰</span>
         </button>
       </div>
+
+      {/* Gameplay Settings Dropdown Menu */}
+      {showMenu && (
+        <div className="fixed inset-0 bg-transparent z-50 pointer-events-auto" onClick={() => setShowMenu(false)}>
+          <div 
+            className="absolute top-16 left-4 w-[165px] bg-[#12061F]/95 backdrop-blur-md border border-amber-400/30 p-3 rounded-2xl flex flex-col gap-2.5 shadow-2xl z-50 pointer-events-auto animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex justify-between items-center pb-1.5 border-b border-purple-500/20">
+              <h3 className="text-[10px] font-black text-amber-400 tracking-wider uppercase">GAME OPTIONS</h3>
+              <button
+                onClick={() => setShowMenu(false)}
+                className="text-[10px] text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Sounds Toggle */}
+            <div className="flex justify-between items-center bg-purple-950/40 px-2 py-1.5 rounded-xl border border-purple-500/10">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs">{isMuted ? "🔇" : "🔊"}</span>
+                <span className="text-[9.5px] font-bold text-gray-200">Sounds</span>
+              </div>
+              <button
+                onClick={handleSoundToggle}
+                className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-200 focus:outline-none cursor-pointer ${
+                  !isMuted ? "bg-amber-400" : "bg-slate-700"
+                }`}
+              >
+                <div
+                  className={`w-3 h-3 rounded-full bg-white shadow-md transform transition-transform duration-200 ${
+                    !isMuted ? "translate-x-4" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Reset Board */}
+            <button
+              onClick={() => {
+                setShowMenu(false);
+                resetGame();
+              }}
+              className="w-full py-1.5 bg-amber-500/20 hover:bg-amber-500/30 active:scale-95 transition-all border border-amber-400/30 rounded-xl text-amber-300 font-black text-[9.5px] tracking-wider uppercase flex items-center justify-center gap-1 cursor-pointer"
+            >
+              🔄 RESET MATCH
+            </button>
+
+            {/* Exit Option */}
+            <button
+              onClick={() => {
+                setShowMenu(false);
+                handleExitClick();
+              }}
+              className="w-full py-1.5 bg-red-600/20 hover:bg-red-600/30 active:scale-95 transition-all border border-red-500/35 rounded-xl text-red-400 font-black text-[9.5px] tracking-wider uppercase flex items-center justify-center gap-1 cursor-pointer"
+            >
+              🚪 EXIT MATCH
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Top Right Corner Player Avatar (Player 2 / Bot) */}
       <div

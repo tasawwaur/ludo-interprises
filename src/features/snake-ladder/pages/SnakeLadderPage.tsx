@@ -8,7 +8,7 @@ import { CornerPlayerAvatar } from "../../gameplay/components/CornerPlayerAvatar
 import { UserProfileModal, UserStats } from "../../../components/modal/UserProfileModal";
 import { SoundEngine } from "../../../game/sound/SoundEngine";
 import confetti from "canvas-confetti";
-import { QuickChatPanel } from "../../gameplay/components/QuickChatPanel";
+import { ChatModal, ChatMessage } from "../../chat/ChatModal";
 
 // ─── Import Authoritative Rule Engine ────────────────────────────────────────
 import { SnakeLadderEngine } from "../engine/SnakeLadderEngine";
@@ -97,10 +97,21 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     SoundEngine.toggleMute();
     setIsMuted(SoundEngine.getMuteState());
   };
-  // Chat speech bubbles state
+  // Chat states
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [activeSpeechBubbles, setActiveSpeechBubbles] = useState<Record<string, string | null>>({});
 
   const handleSendMessage = (msg: string) => {
+    if (!msg.trim()) return;
+    const newMsg: ChatMessage = {
+      id: "msg_" + Date.now(),
+      sender: user?.displayName || user?.username || "Player 1",
+      text: msg,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      color: "RED",
+    };
+    setChatHistory((prev) => [...prev, newMsg]);
     setActiveSpeechBubbles((prev) => ({ ...prev, RED: msg }));
     setTimeout(() => {
       setActiveSpeechBubbles((prev) => ({ ...prev, RED: null }));
@@ -825,7 +836,18 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
 
       {/* LUXURY CHAT BUTTON: FIXED BOTTOM RIGHT */}
       <div className="absolute bottom-24 right-3 z-30 flex items-center justify-center pointer-events-auto">
-        <QuickChatPanel onSendMessage={handleSendMessage} />
+        <button
+          onClick={() => setShowChatModal(true)}
+          className="w-8 h-8 relative hover:scale-110 active:scale-90 transition-transform cursor-pointer filter drop-shadow-[0_4px_10px_rgba(234,179,8,0.7)]"
+          title="Open Chat"
+        >
+          <img
+            src="/assets/images/icons/luxury_chat_button.png"
+            alt="Chat"
+            className="w-full h-full object-contain pointer-events-none"
+            draggable={false}
+          />
+        </button>
       </div>
 
       {/* RED Start Yard (Tokens at position 0) */}
@@ -1090,6 +1112,14 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           </div>
         );
       })()}
+
+      {/* Chat Modal */}
+      <ChatModal
+        isOpen={showChatModal}
+        onClose={() => setShowChatModal(false)}
+        onSendMessage={handleSendMessage}
+        messages={chatHistory}
+      />
     </div>
   );
 };

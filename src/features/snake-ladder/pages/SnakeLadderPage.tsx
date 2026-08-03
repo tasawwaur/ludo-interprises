@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import { useUserStore } from "../../../user/user.store";
 import { GLOBAL_PLAYER_DATABASE } from "../../../store/player-database.store";
+import { useFriendsStore } from "../../../store/friends.store";
 import { useCosmeticsStore } from "../../../store/cosmetics.store";
 import { DiceFace } from "../../gameplay/components/DiceFace";
 import { LudoPageBackground } from "../../../components/effects/LudoPageBackground";
@@ -605,6 +606,20 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       localStorage.setItem("ludo_sent_friend_requests", JSON.stringify(updated));
       return updated;
     });
+
+    const targetPlayer = GLOBAL_PLAYER_DATABASE.find(p => p.playerId === friendId);
+    if (targetPlayer) {
+      useFriendsStore.getState().addFriend({
+        id: targetPlayer.playerId,
+        name: targetPlayer.username,
+        status: "Online",
+        isOnline: true,
+        isFB: false,
+        avatarUrl: targetPlayer.avatarUrl,
+        coins: targetPlayer.currentCoins,
+        level: targetPlayer.level
+      });
+    }
   };
 
   const renderBoard = () => {

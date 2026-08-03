@@ -12,6 +12,8 @@ import { usePlayerStatsStore } from "../../../store/player-stats.store";
 
 import { getFrameFilter } from "../../../store/cosmetics.store";
 import { getDefaultAvatar } from "../../../utils/avatar";
+import { InboxModal } from "../../../components/modal/InboxModal";
+import { GLOBAL_PLAYER_DATABASE } from "../../../store/player-database.store";
 import confetti from 'canvas-confetti';
 
 const formatCurrency = (val: number): string => {
@@ -93,6 +95,33 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [activeNav, setActiveNav] = useState("home");
   const [showModeSelection, setShowModeSelection] = useState(false);
+  const [showInboxModal, setShowInboxModal] = useState(false);
+
+  const handleAcceptGameInvite = (invite: any) => {
+    const opp = GLOBAL_PLAYER_DATABASE.find(p => p.username === invite.senderName);
+    const opponentData = opp ? {
+      name: opp.username,
+      avatar: opp.avatarUrl,
+      profileFrame: opp.equippedFrame,
+      nameBanner: "/assets/images/icons/name_banner_v2.png",
+      color: "GREEN",
+      isBot: true,
+      roomCode: "ROOM-" + Math.floor(100000 + Math.random() * 900000)
+    } : {
+      name: invite.senderName,
+      avatar: "/assets/images/icons/icon_club_crown.png",
+      profileFrame: "frame_default",
+      nameBanner: "/assets/images/icons/name_banner_v2.png",
+      color: "GREEN",
+      isBot: true,
+      roomCode: "ROOM-" + Math.floor(100000 + Math.random() * 900000)
+    };
+
+    localStorage.setItem("ludo_sl_opponent", JSON.stringify(opponentData));
+    localStorage.setItem("ludo_sl_botName", opponentData.name);
+    localStorage.removeItem("ludo_sl_engine_state");
+    onSelectMode?.("Snake & Ladders");
+  };
 
   const [animCrowns, setAnimCrowns] = useState<number | null>(null);
   const [animCoins, setAnimCoins] = useState<number | null>(null);
@@ -477,7 +506,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
 
         {/* Mail */}
         <button
-          onClick={() => triggerToast("Inbox: No new messages")}
+          onClick={() => setShowInboxModal(true)}
           className="w-[34px] h-[34px] p-0 border-0 outline-none bg-transparent hover:scale-110 active:scale-95 transition-transform cursor-pointer"
           style={{ WebkitTapHighlightColor: "transparent" }}
           aria-label="Inbox"
@@ -687,6 +716,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
         isOpen={showLuckySpin}
         onClose={() => setShowLuckySpin(false)}
         onSpinWin={(reward) => triggerToast(`You won ${reward}!`)}
+      />
+
+      {/* Inbox Modal */}
+      <InboxModal
+        isOpen={showInboxModal}
+        onClose={() => setShowInboxModal(false)}
+        onAcceptGameInvite={handleAcceptGameInvite}
       />
 
       {/* XP & Quests Detail Modal */}

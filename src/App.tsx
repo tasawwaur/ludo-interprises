@@ -25,6 +25,7 @@ import { DicePage } from "./features/dice";
 import { RewardCenterPage, AdsSettingsPage } from "./features/ads";
 import { useGlobalModalStore, getPlayerProfile } from "./store/global-modal.store";
 import { UserProfileModal } from "./components/modal/UserProfileModal";
+import { useFriendsStore } from "./store/friends.store";
 
 import { useUserStore } from "./user/user.store";
 import { ValidationEngine } from "./game/validation/ValidationEngine";
@@ -562,6 +563,18 @@ const MainApp: React.FC = () => {
               <UserProfileModal
                 userStats={profile}
                 onClose={closeProfile}
+                onAddFriend={() => {
+                  useFriendsStore.getState().addFriend({
+                    id: profile.id,
+                    name: profile.name,
+                    status: 'Online',
+                    isOnline: true,
+                    isFB: false,
+                    avatarUrl: profile.avatarUrl,
+                    coins: profile.currentGold,
+                    level: profile.level
+                  });
+                }}
               />
             );
           })()}

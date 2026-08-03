@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import { LudoPageBackground } from "../../../components/effects/LudoPageBackground";
 import { useUserStore } from "../../../user/user.store";
 import { UserProfileModal } from "../../../components/modal/UserProfileModal";
+import { useFriendsStore } from "../../../store/friends.store";
 import { GLOBAL_PLAYER_DATABASE } from "../../../store/player-database.store";
 import confetti from "canvas-confetti";
 
@@ -75,19 +76,8 @@ export const FriendsPage: React.FC<FriendsPageProps> = ({ onBack, onInviteFriend
     return val ? parseFloat(val) : 0;
   });
 
-  // Default friends mapped from the realistic database
-  const [friendsList, setFriendsList] = useState<Friend[]>(() => {
-    return GLOBAL_PLAYER_DATABASE.slice(0, 10).map((player, idx) => ({
-      id: player.playerId,
-      name: player.username,
-      status: idx % 3 === 0 ? "Offline" : "Online",
-      isOnline: idx % 3 !== 0,
-      isFB: idx % 2 === 0,
-      avatarUrl: player.avatarUrl,
-      coins: player.currentCoins,
-      level: player.level
-    }));
-  });
+  const friendsList = useFriendsStore((s) => s.friendsList);
+  const removeFriend = useFriendsStore((s) => s.removeFriend);
 
   // Synchronized Facebook list from user store (if logged in with FB)
   const mergedFriends = useMemo(() => {
@@ -483,8 +473,18 @@ export const FriendsPage: React.FC<FriendsPageProps> = ({ onBack, onInviteFriend
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    useFriendsStore.getState().addFriend({
+                      id: searchResult.id,
+                      name: searchResult.name,
+                      status: searchResult.status as 'Online' | 'Offline',
+                      isOnline: searchResult.isOnline,
+                      isFB: searchResult.isFB,
+                      avatarUrl: searchResult.avatarUrl,
+                      coins: searchResult.coins,
+                      level: searchResult.level
+                    });
                     confetti({ particleCount: 30, spread: 40 });
-                    triggerToast(`Friend Request Sent to ${searchResult.name}!`);
+                    triggerToast(`Added ${searchResult.name} to Friends!`);
                     setShowAddModal(false);
                   }}
                   className="px-3 py-1.5 bg-emerald-500 text-white font-black text-[9px] uppercase rounded-lg border border-emerald-300 active:scale-95"
@@ -602,7 +602,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = ({ onBack, onInviteFriend
               onClose={() => setSelectedFriendProfile(null)}
               onSendGift={handleSendGift}
               onRemove={() => {
-                setFriendsList(prev => prev.filter(f => f.id !== friend.id));
+                removeFriend(friend.id);
                 triggerToast(`Removed ${friend.name} from Friends!`);
                 setSelectedFriendProfile(null);
               }}
@@ -643,7 +643,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = ({ onBack, onInviteFriend
             onClose={() => setSelectedFriendProfile(null)}
             onSendGift={handleSendGift}
             onRemove={() => {
-              setFriendsList(prev => prev.filter(f => f.id !== friend.id));
+              removeFriend(friend.id);
               triggerToast(`Removed ${friend.name} from Friends!`);
               setSelectedFriendProfile(null);
             }}

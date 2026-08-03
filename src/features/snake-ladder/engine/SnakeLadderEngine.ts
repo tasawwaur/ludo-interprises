@@ -449,17 +449,36 @@ export class SnakeLadderEngine {
       return;
     }
 
-    // Extra turn on rolling 6
-    if (rolled === 6 && !token.isFinished) {
-      this.state.logMessage = `🎲 ${activePlayer.name} rolled 6! Extra turn!`;
+    // ⚔️ TOKEN KILL RULE: Check if landing position kills an opponent token
+    let hasKilledOpponent = false;
+    if (finalPos > 1 && finalPos < 100) {
+      const opponent = this.state.players.find((p) => p.id !== activePlayer.id);
+      if (opponent) {
+        const killedTokens = opponent.tokens.filter(
+          (t) => t.currentPosition === finalPos && !t.isFinished
+        );
+        if (killedTokens.length > 0) {
+          hasKilledOpponent = true;
+          killedTokens.forEach((t) => {
+            t.previousPosition = t.currentPosition;
+            t.currentPosition = 1; // Sent back to start cell 1
+          });
+          this.state.logMessage = `⚔️ KILL! ${activePlayer.name} killed ${opponent.name}'s token at cell ${finalPos}! Extra turn reward!`;
+        }
+      }
+    }
+
+    // Extra turn on rolling 6 OR killing opponent token
+    if ((rolled === 6 || hasKilledOpponent) && !token.isFinished) {
+      const reason = hasKilledOpponent ? "Token Kill Reward" : "Rolled 6";
+      this.state.logMessage = `🎲 ${activePlayer.name} gets an Extra Turn! (${reason})`;
       this.emit("EXTRA_TURN", {
         state: this.state,
         activePlayerColor: activePlayer.color,
-        message: `${activePlayer.name} gets an extra turn!`,
+        message: `${activePlayer.name} gets an Extra Turn! (${reason})`,
       });
       this.state.diceValue = null;
       this.emit("STATE_UPDATE", { state: this.state });
-      // Bot extra turn handled by React UI useEffect
     } else {
       this.state.consecutiveSixesCount = 0;
       this.advanceTurn();
@@ -489,6 +508,17 @@ export class SnakeLadderEngine {
   // ─── Smart Bot AI ───────────────────────────────────────────────────────────
   private chooseSmartBotToken(bot: PlayerState, rolled: number, movableIds: number[]): number {
     const movable = bot.tokens.filter((t) => movableIds.includes(t.tokenId));
+
+    // 0. Kill an opponent token if possible! (Highest Priority)
+    const opponentPlayer = this.state.players.find((p) => p.id !== bot.id);
+    if (opponentPlayer) {
+      const oppPositions = opponentPlayer.tokens
+        .filter((t) => t.currentPosition > 1 && !t.isFinished)
+        .map((t) => t.currentPosition);
+
+      const killerToken = movable.find((t) => oppPositions.includes(t.currentPosition + rolled));
+      if (killerToken) return killerToken.tokenId;
+    }
 
     // 1. Finish a token if possible
     const finisher = movable.find((t) => t.currentPosition + rolled === 100);

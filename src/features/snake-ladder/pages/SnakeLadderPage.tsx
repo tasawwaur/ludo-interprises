@@ -75,6 +75,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
   const [greenIsRolling, setGreenIsRolling] = useState(false);
 
   const [showCalibrator, setShowCalibrator] = useState(false);
+  const [showNumbers, setShowNumbers]       = useState(true);
   const [turnTimerSeconds, setTurnTimerSeconds] = useState(15);
 
   // Ladder animation state
@@ -507,10 +508,10 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
             ))}
           </div>
 
-          {/* Grid Calibration Dots */}
-          {showCalibrator && (
+          {/* Cell Number Badge (1 - 100) */}
+          {showNumbers && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-              <div className="w-[15px] h-[15px] rounded-full bg-amber-500/80 border border-yellow-400/40 flex items-center justify-center text-[7.5px] font-black text-slate-950 shadow-[0_0_5px_rgba(245,158,11,0.5)]">
+              <div className="w-[15px] h-[15px] rounded-full bg-amber-500/85 border border-yellow-400/50 flex items-center justify-center text-[7.5px] font-black text-slate-950 shadow-[0_0_5px_rgba(245,158,11,0.6)]">
                 {cell}
               </div>
             </div>
@@ -563,13 +564,24 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           ←
         </button>
 
-        {/* Reset Game Button */}
-        <button
-          onClick={resetGame}
-          className="px-3 py-1.5 rounded-xl border border-slate-700/50 bg-slate-900/80 text-slate-300 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
-        >
-          🔄 Reset
-        </button>
+        <div className="flex gap-2 items-center">
+          {/* Toggle Cell Numbers Button */}
+          <button
+            onClick={() => setShowNumbers((prev) => !prev)}
+            className="px-3 py-1.5 rounded-xl border border-amber-500/40 bg-slate-900/90 text-amber-300 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
+            title="Toggle Cell Numbers (1-100)"
+          >
+            {showNumbers ? "🔢 Numbers: ON" : "🔢 Numbers: OFF"}
+          </button>
+
+          {/* Reset Game Button */}
+          <button
+            onClick={resetGame}
+            className="px-3 py-1.5 rounded-xl border border-slate-700/50 bg-slate-900/80 text-slate-300 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
+          >
+            🔄 Reset
+          </button>
+        </div>
       </div>
 
       {/* Top Right Corner Player Avatar (Player 2 / Bot) */}

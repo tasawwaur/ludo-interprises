@@ -30,7 +30,7 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
     return `${mm}:${ss}`;
   };
 
-  const [opponent, setOpponent] = useState<{ name: string; avatar?: string; profileFrame?: string; nameBanner?: string; color?: string; isBot?: boolean } | null>(null);
+  const [opponent, setOpponent] = useState<{ id?: string; name: string; avatar?: string; profileFrame?: string; nameBanner?: string; color?: string; roomCode?: string; isBot?: boolean } | null>(null);
   const [myAssignedColor, setMyAssignedColor] = useState<string | null>(null);
   const [matchConnected, setMatchConnected] = useState(false);
   const [matchCountdown, setMatchCountdown] = useState(5);
@@ -62,6 +62,7 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
           profileFrame: data.opponent.profileFrame || "/assets/images/icons/profile_frame_v3.png",
           nameBanner: data.opponent.nameBanner || "/assets/images/icons/name_banner_v2.png",
           color: data.opponent.color,
+          roomCode: data.roomCode,
           isBot: false, // Real matched player — disable auto-play
         });
       }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { io } from "socket.io-client";
 import { useUserStore } from "../../../user/user.store";
 import { GLOBAL_PLAYER_DATABASE } from "../../../store/player-database.store";
 import { useCosmeticsStore } from "../../../store/cosmetics.store";
@@ -116,6 +117,18 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     setTimeout(() => {
       setActiveSpeechBubbles((prev) => ({ ...prev, RED: null }));
     }, 3500);
+
+    if (socketRef.current) {
+      const savedOpponentRaw = localStorage.getItem("ludo_sl_opponent");
+      if (savedOpponentRaw) {
+        try {
+          const roomCode = JSON.parse(savedOpponentRaw).roomCode;
+          if (roomCode) {
+            socketRef.current.emit("client_action", { roomCode, actionType: "SL_CHAT_MESSAGE", text: msg });
+          }
+        } catch (e) {}
+      }
+    }
   };
 
   // Ref flag — true while a token is animating step-by-step
@@ -137,13 +150,18 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       userFrame = cosmetics.equippedFrameId || "frame_default";
     } catch (e) {}
 
+    const savedOpponentRaw = localStorage.getItem("ludo_sl_opponent");
+    let opponentData = savedOpponentRaw ? JSON.parse(savedOpponentRaw) : null;
+
     const botProfile = GLOBAL_PLAYER_DATABASE.find((p) => p.username === botName);
-    const bAvatar = botProfile ? botProfile.avatarUrl : "/assets/images/icons/icon_club_crown.png";
-    const bFrame = botProfile ? botProfile.equippedFrame || "frame_default" : "frame_default";
+    const p2Name = opponentData?.name || botName;
+    const p2Avatar = opponentData?.avatar || (botProfile ? botProfile.avatarUrl : "/assets/images/icons/icon_club_crown.png");
+    const p2Frame = opponentData?.profileFrame || (botProfile ? botProfile.equippedFrame || "frame_default" : "frame_default");
+    const p2IsBot = opponentData ? (opponentData.isBot ?? false) : true;
 
     const playersConfig = [
       { id: "RED", name: playerName, color: "RED" as PlayerColor, isBot: false, avatar: userAvatar, equippedFrameId: userFrame },
-      { id: "GREEN", name: botName, color: "GREEN" as PlayerColor, isBot: true, avatar: bAvatar, equippedFrameId: bFrame },
+      { id: "GREEN", name: p2Name, color: "GREEN" as PlayerColor, isBot: p2IsBot, avatar: p2Avatar, equippedFrameId: p2Frame },
     ];
 
     const engine = new SnakeLadderEngine(playersConfig, {
@@ -177,6 +195,58 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
   // Save active match session flag on mount so refresh auto-rejoins
   useEffect(() => {
     localStorage.setItem("ludo_active_match_session", "SNAKE_LADDER");
+  }, []);
+
+  // Socket ref for real-time live multiplayer synchronization
+  const socketRef = useRef<any>(null);
+
+  useEffect(() => {
+    const savedOpponentRaw = localStorage.getItem("ludo_sl_opponent");
+    if (!savedOpponentRaw) return;
+
+    try {
+      const oppData = JSON.parse(savedOpponentRaw);
+      const roomCode = oppData.roomCode;
+      if (!roomCode) return;
+
+      const socketUrl = import.meta.env.DEV ? "http://localhost:8080" : window.location.origin;
+      const socket = io(socketUrl, { transports: ["websocket", "polling"], reconnection: true });
+
+      socket.emit("join_room_game", { roomCode });
+
+      socket.on("server_action", (data: any) => {
+        if (!engineRef.current) return;
+
+        if (data.actionType === "SL_DICE_ROLL") {
+          setGreenIsRolling(true);
+          setTimeout(() => {
+            setGreenIsRolling(false);
+            if (data.diceValue) setGreenDiceValue(data.diceValue);
+          }, 500);
+        } else if (data.actionType === "SL_TOKEN_MOVE") {
+          engineRef.current.moveToken(data.tokenId, data.rolled);
+        } else if (data.actionType === "SL_CHAT_MESSAGE") {
+          const newMsg: ChatMessage = {
+            id: "msg_" + Date.now(),
+            sender: oppData.name || "Opponent",
+            text: data.text,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            color: "GREEN",
+          };
+          setChatHistory((prev) => [...prev, newMsg]);
+          setActiveSpeechBubbles((prev) => ({ ...prev, GREEN: data.text }));
+          setTimeout(() => {
+            setActiveSpeechBubbles((prev) => ({ ...prev, GREEN: null }));
+          }, 3500);
+        }
+      });
+
+      socketRef.current = socket;
+
+      return () => {
+        socket.disconnect();
+      };
+    } catch (e) {}
   }, []);
 
   // Turn timer countdown effect — resets to 15s on turn change
@@ -337,17 +407,29 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         setRedIsRolling(false);
         const rolled = engineRef.current!.roll();
         setRedDiceValue(rolled);
+        if (socketRef.current) {
+          const savedOpponentRaw = localStorage.getItem("ludo_sl_opponent");
+          if (savedOpponentRaw) {
+            try {
+              const roomCode = JSON.parse(savedOpponentRaw).roomCode;
+              if (roomCode) {
+                socketRef.current.emit("client_action", { roomCode, actionType: "SL_DICE_ROLL", diceValue: rolled });
+              }
+            } catch (e) {}
+          }
+        }
       }
     }, 80);
   };
 
-  // Bot Auto-Play: GREEN's turn — roll after random 1-15 sec human-feel delay
+  // Bot Auto-Play: GREEN's turn — roll after random 1-1.2 sec delay if bot
   useEffect(() => {
     if (
       engineState.currentTurnColor !== "GREEN" ||
       engineState.phase !== "PLAYING" ||
       greenIsRolling ||
-      engineState.isWaitingForTokenChoice
+      engineState.isWaitingForTokenChoice ||
+      !engineState.players[1].isBot
     ) return;
 
     const botDelay = setTimeout(() => {
@@ -373,7 +455,19 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
 
   const handleSelectToken = (tokenId: number) => {
     if (!engineRef.current || engineState.currentTurnColor !== "RED" || !engineState.isWaitingForTokenChoice) return;
-    engineRef.current.moveToken(tokenId, engineState.diceValue || 0);
+    const rolled = engineState.diceValue || 0;
+    engineRef.current.moveToken(tokenId, rolled);
+    if (socketRef.current) {
+      const savedOpponentRaw = localStorage.getItem("ludo_sl_opponent");
+      if (savedOpponentRaw) {
+        try {
+          const roomCode = JSON.parse(savedOpponentRaw).roomCode;
+          if (roomCode) {
+            socketRef.current.emit("client_action", { roomCode, actionType: "SL_TOKEN_MOVE", tokenId, rolled });
+          }
+        } catch (e) {}
+      }
+    }
   };
 
   const handleExitClick = () => {

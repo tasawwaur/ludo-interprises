@@ -982,121 +982,136 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
 
           {/* Modes List */}
           <div className="w-full max-w-[390px] relative z-10 flex flex-col gap-4">
-            {/* Mode 1: Snake & Ladders (TOP FEATURED) */}
-            <button
-              onClick={() => {
-                setShowModeSelection(false);
-                triggerToast("Loading Snakes & Ladders...");
-                onSelectMode?.("Snake & Ladders");
-              }}
-              className="w-full rounded-[24px] border border-amber-400/60 bg-gradient-to-r from-amber-950/70 via-slate-950/90 to-emerald-950/50 p-3.5 flex items-center gap-4 text-left shadow-[0_8px_25px_rgba(245,158,11,0.35)] hover:border-amber-300 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-amber-600 text-slate-950 text-[8px] font-black px-2 py-0.5 rounded-bl-lg tracking-wider uppercase">
-                🔥 POPULAR
-              </div>
-              <img 
-                src="/assets/images/icons/snake_ladder_icon.jpg" 
-                alt="Snakes & Ladders" 
-                className="w-16 h-16 rounded-[16px] object-cover border-2 border-amber-400/60 shadow-inner shadow-amber-900/50" 
-              />
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-black text-amber-200 tracking-wide flex items-center gap-1.5">
-                  🐍 SNAKES &amp; LADDERS
-                  <span className="text-[9px] bg-amber-500/20 border border-amber-400/40 text-amber-300 px-2 py-0.5 rounded-full font-black uppercase">1 VS 1</span>
-                </h3>
-                <p className="text-[10px] text-amber-100/90 mt-1 leading-snug">
-                  Roll dice, climb golden ladders &amp; dodge deadly snakes. First to reach 100 wins!
-                </p>
-                <div className="flex items-center gap-1 mt-2.5">
-                  <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-500/20 uppercase">
-                    ENTRY: 5K COINS
-                  </span>
-                </div>
-              </div>
-            </button>
-
-            {/* Mode 2: Quick Classic */}
+            {/* Mode 1: Quick Classic */}
             <button
               onClick={() => {
                 setShowModeSelection(false);
                 triggerToast("Joining Quick Classic...");
                 onSelectMode?.("Quick Classic");
               }}
-              className="w-full rounded-[24px] border border-amber-500/20 bg-gradient-to-r from-slate-950/80 to-purple-950/40 p-3.5 flex items-center gap-4 text-left shadow-[0_8px_20px_rgba(0,0,0,0.65)] hover:border-amber-400/50 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer"
+              className="w-full rounded-[24px] border border-amber-500/30 bg-gradient-to-r from-slate-950/90 via-purple-950/50 to-slate-950/90 p-3.5 flex items-center gap-4 text-left shadow-[0_8px_20px_rgba(0,0,0,0.65)] hover:border-amber-400/60 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer relative"
             >
               <img 
                 src="/assets/images/icons/quick_classic_icon.jpg" 
                 alt="Quick Classic" 
-                className="w-16 h-16 rounded-[16px] object-cover border border-amber-400/30 shadow-inner" 
+                className="w-16 h-16 rounded-[16px] object-cover border-2 border-amber-400/40 shadow-inner" 
               />
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-black text-white tracking-wide flex items-center gap-1.5">
-                  QUICK CLASSIC <span className="text-[9px] bg-sky-500/20 border border-sky-400/30 text-sky-300 px-2 py-0.5 rounded-full font-black uppercase">1 TOKEN</span>
-                </h3>
-                <p className="text-[10px] text-purple-300 mt-1 leading-snug">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-amber-200 tracking-wide">QUICK CLASSIC</h3>
+                  <span className="text-[9px] bg-purple-950/80 border border-amber-400/40 text-amber-300 px-2.5 py-0.5 rounded-full font-black uppercase shadow">1 TOKEN</span>
+                </div>
+                <p className="text-[10px] text-purple-200/80 mt-1 leading-snug">
                   1-Token combat. Reach center to win instantly. Fast-paced &amp; action-packed!
                 </p>
-                <div className="flex items-center gap-1 mt-2.5">
-                  <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-500/20 uppercase">
-                    ENTRY: 5K COINS
+                <div className="flex items-center gap-1.5 mt-2.5">
+                  <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-md border border-amber-500/30 uppercase flex items-center gap-1">
+                    ENTRY: 5K COINS <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline" alt="coin" />
                   </span>
                 </div>
               </div>
             </button>
 
-            {/* Mode 3: Unique Classic */}
+            {/* Mode 2: Unique Classic */}
             <button
               onClick={() => {
                 setShowModeSelection(false);
                 triggerToast("Joining Unique Classic...");
                 onSelectMode?.("Unique Classic");
               }}
-              className="w-full rounded-[24px] border border-amber-500/20 bg-gradient-to-r from-slate-950/80 to-purple-950/40 p-3.5 flex items-center gap-4 text-left shadow-[0_8px_20px_rgba(0,0,0,0.65)] hover:border-amber-400/50 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer"
+              className="w-full rounded-[24px] border border-amber-500/30 bg-gradient-to-r from-slate-950/90 via-purple-950/50 to-slate-950/90 p-3.5 flex items-center gap-4 text-left shadow-[0_8px_20px_rgba(0,0,0,0.65)] hover:border-amber-400/60 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer relative"
             >
               <img 
                 src="/assets/images/icons/unique_classic_icon.jpg" 
                 alt="Unique Classic" 
-                className="w-16 h-16 rounded-[16px] object-cover border border-amber-400/30 shadow-inner" 
+                className="w-16 h-16 rounded-[16px] object-cover border-2 border-amber-400/40 shadow-inner" 
               />
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-black text-white tracking-wide flex items-center gap-1.5">
-                  UNIQUE CLASSIC <span className="text-[9px] bg-purple-500/20 border border-purple-400/30 text-purple-300 px-2 py-0.5 rounded-full font-black uppercase">COSMETICS</span>
-                </h3>
-                <p className="text-[10px] text-purple-300 mt-1 leading-snug">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-amber-200 tracking-wide">UNIQUE CLASSIC</h3>
+                  <span className="text-[9px] bg-purple-950/80 border border-amber-400/40 text-amber-300 px-2.5 py-0.5 rounded-full font-black uppercase shadow">COSMETICS</span>
+                </div>
+                <p className="text-[10px] text-purple-200/80 mt-1 leading-snug">
                   Show off equipped luxury dice, profile frames, board themes, and custom pawns!
                 </p>
-                <div className="flex items-center gap-1 mt-2.5">
-                  <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-500/20 uppercase">
-                    ENTRY: 5K COINS
+                <div className="flex items-center gap-1.5 mt-2.5">
+                  <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-md border border-amber-500/30 uppercase flex items-center gap-1">
+                    ENTRY: 5K COINS <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline" alt="coin" />
                   </span>
                 </div>
               </div>
             </button>
 
-            {/* Mode 4: Normal Classic */}
+            {/* Mode 3: Normal Classic */}
             <button
               onClick={() => {
                 setShowModeSelection(false);
                 triggerToast("Joining Normal Classic...");
                 onSelectMode?.("Normal Classic");
               }}
-              className="w-full rounded-[24px] border border-amber-500/20 bg-gradient-to-r from-slate-950/80 to-purple-950/40 p-3.5 flex items-center gap-4 text-left shadow-[0_8px_20px_rgba(0,0,0,0.65)] hover:border-amber-400/50 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer"
+              className="w-full rounded-[24px] border border-amber-500/30 bg-gradient-to-r from-slate-950/90 via-purple-950/50 to-slate-950/90 p-3.5 flex items-center gap-4 text-left shadow-[0_8px_20px_rgba(0,0,0,0.65)] hover:border-amber-400/60 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer relative"
             >
               <img 
                 src="/assets/images/icons/normal_classic_icon.jpg" 
                 alt="Normal Classic" 
-                className="w-16 h-16 rounded-[16px] object-cover border border-amber-400/30 shadow-inner" 
+                className="w-16 h-16 rounded-[16px] object-cover border-2 border-amber-400/40 shadow-inner" 
               />
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-black text-white tracking-wide flex items-center gap-1.5">
-                  NORMAL CLASSIC <span className="text-[9px] bg-amber-500/20 border border-amber-400/30 text-amber-300 px-2 py-0.5 rounded-full font-black uppercase">STANDARD</span>
-                </h3>
-                <p className="text-[10px] text-purple-300 mt-1 leading-snug">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-amber-200 tracking-wide">NORMAL CLASSIC</h3>
+                  <span className="text-[9px] bg-purple-950/80 border border-amber-400/40 text-amber-300 px-2.5 py-0.5 rounded-full font-black uppercase shadow">STANDARD</span>
+                </div>
+                <p className="text-[10px] text-purple-200/80 mt-1 leading-snug">
                   Play standard classic rules. Enforces default styles (standard dice, pawns &amp; classic board).
                 </p>
-                <div className="flex items-center gap-1 mt-2.5">
-                  <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-500/20 uppercase">
-                    ENTRY: 5K COINS
+                <div className="flex items-center gap-1.5 mt-2.5">
+                  <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-md border border-amber-500/30 uppercase flex items-center gap-1">
+                    ENTRY: 5K COINS <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline" alt="coin" />
+                  </span>
+                </div>
+              </div>
+            </button>
+
+            {/* Divider: OTHER GAMES */}
+            <div className="flex items-center gap-2 my-0.5">
+              <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent via-amber-500/40 to-amber-500/20" />
+              <div className="text-[9px] font-black text-amber-300 tracking-[0.2em] uppercase flex items-center gap-1">
+                <span className="text-amber-400 text-xs">♦</span> OTHER GAMES <span className="text-amber-400 text-xs">♦</span>
+              </div>
+              <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent via-amber-500/40 to-amber-500/20" />
+            </div>
+
+            {/* Mode 4: Snake & Ladders */}
+            <button
+              onClick={() => {
+                setShowModeSelection(false);
+                triggerToast("Loading Snakes & Ladders...");
+                onSelectMode?.("Snake & Ladders");
+              }}
+              className="w-full rounded-[24px] border-2 border-emerald-500/40 bg-gradient-to-r from-slate-950/95 via-emerald-950/50 to-slate-950/95 p-3.5 flex items-center gap-4 text-left shadow-[0_10px_30px_rgba(16,185,129,0.25)] hover:border-emerald-400/70 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer relative"
+            >
+              <img 
+                src="/assets/images/icons/snake_ladder_luxury_icon.jpg" 
+                alt="Snakes & Ladders" 
+                className="w-16 h-16 rounded-[16px] object-cover border-2 border-emerald-400/60 shadow-[0_0_15px_rgba(16,185,129,0.4)]" 
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-amber-200 tracking-wide leading-tight flex flex-col">
+                    <span>SNAKES &amp;</span>
+                    <span>LADDERS</span>
+                  </h3>
+                  <div className="w-10 h-10 rounded-full border-2 border-amber-400/70 bg-gradient-to-br from-emerald-900 to-slate-950 flex flex-col items-center justify-center shadow-lg">
+                    <span className="text-[9px] font-black text-amber-300 leading-none">1 vs</span>
+                    <span className="text-[10px] font-black text-amber-300 leading-none">1</span>
+                  </div>
+                </div>
+                <p className="text-[10px] text-emerald-200/80 mt-1 leading-snug">
+                  Roll dice, climb golden ladders &amp; dodge deadly snakes. First to reach 100 wins!
+                </p>
+                <div className="flex items-center gap-1.5 mt-2.5">
+                  <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-md border border-amber-500/30 uppercase flex items-center gap-1">
+                    ENTRY: 5K COINS <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline" alt="coin" />
                   </span>
                 </div>
               </div>

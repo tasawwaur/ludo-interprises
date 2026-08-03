@@ -678,11 +678,18 @@ export const useGameStore = create<GameStoreState>()(
       }
     });
 
-    socket.on("server_action", (data: { actionType: 'ROLL' | 'MOVE' | 'UNDO'; diceValue?: number; tokenId?: string; nextColor?: string; cost?: number }) => {
+    socket.on("server_action", (data: { actionType: 'ROLL' | 'MOVE' | 'UNDO' | 'CHAT'; diceValue?: number; tokenId?: string; nextColor?: string; cost?: number; text?: string; senderName?: string; color?: string }) => {
       const { gameState } = get();
       if (!gameState) return;
 
       console.log(`[Socket Sync] Action ${data.actionType} received`, data);
+
+      if (data.actionType === 'CHAT') {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('game_chat_message', { detail: data }));
+        }
+        return;
+      }
 
       if (data.actionType === 'ROLL' && data.diceValue !== undefined) {
         // Opponent rolled the dice, sync their rolled value

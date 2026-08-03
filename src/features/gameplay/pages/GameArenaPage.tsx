@@ -163,13 +163,36 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
     return () => clearInterval(interval);
   }, [gameState, tickTurnTimer]);
 
+  // Listen to incoming chat messages from the socket
+  useEffect(() => {
+    const handleIncomingChat = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const data = customEvent.detail;
+      const newMsgItem: ChatMessageItem = {
+        id: Date.now().toString() + Math.random().toString().slice(2, 5),
+        sender: data.senderName || 'Opponent',
+        text: data.text,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        color: data.color || 'BLUE',
+      };
+      setChatHistory((prev) => [...prev.slice(-15), newMsgItem]);
+      setActiveSpeechBubbles((prev) => ({ ...prev, [data.color]: data.text }));
+      setTimeout(() => {
+        setActiveSpeechBubbles((prev) => ({ ...prev, [data.color]: null }));
+      }, 2800);
+    };
+
+    window.addEventListener('game_chat_message', handleIncomingChat);
+    return () => window.removeEventListener('game_chat_message', handleIncomingChat);
+  }, []);
+
   if (!gameState) return null;
 
   const activePlayer = gameState.players[gameState.activePlayerIndex];
 
   const handleSendMessage = (msg: string) => {
-    const activeCol = activePlayer?.color || localPlayer?.color || 'BLUE';
-    const senderName = activePlayer?.name || user?.username || 'You';
+    const activeCol = localPlayer?.color || 'BLUE';
+    const senderName = user?.displayName || user?.username || 'You';
     
     // Add to chat history
     const newMsgItem: ChatMessageItem = {
@@ -186,6 +209,18 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
     setTimeout(() => {
       setActiveSpeechBubbles((prev) => ({ ...prev, [activeCol]: null }));
     }, 2800);
+
+    const roomCode = useRoomStore.getState().roomCode;
+    const gameSocket = useGameStore.getState().gameSocket;
+    if (gameSocket && roomCode) {
+      gameSocket.emit("client_action", {
+        roomCode,
+        actionType: 'CHAT',
+        text: msg,
+        senderName: senderName,
+        color: activeCol,
+      });
+    }
   };
 
   const getFrameImage = (color: string | undefined): string => {

@@ -191,6 +191,7 @@ export const usePlayerStatsStore = create<PlayerStatsState>((set, get) => {
       set((state) => {
         const updated = {
           ...state.stats,
+          playerId: user.uid || user.id || state.stats.playerId,
           username: user.displayName || user.username || state.stats.username,
           avatarUrl: user.avatar || state.stats.avatarUrl,
           equippedFrame: user.equippedFrame || state.stats.equippedFrame,

@@ -181,16 +181,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
       }
     }
   }, [user?.id, user?.displayName, user?.username, user?.avatar]);
-  const [showPhotoAdjust, setShowPhotoAdjust] = useState(false);
-  const [photoScale, setPhotoScale] = useState(() => {
-    const val = localStorage.getItem("ludo_player_photo_scale");
-    return val ? parseFloat(val) : 1;
-  });
-  const [photoOffsetY, setPhotoOffsetY] = useState(() => {
-    const val = localStorage.getItem("ludo_player_photo_offset");
-    return val ? parseFloat(val) : 0;
-  });
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
@@ -256,40 +246,14 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
         />
       </div>
 
-      {/* Hidden file input for photo upload */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-              const base64Str = event.target?.result as string;
-              setPlayerPhoto(base64Str);
-              localStorage.setItem("ludo_player_photo", base64Str);
-              updateUser({ avatar: base64Str });
-              setPhotoScale(1);
-              setPhotoOffsetY(0);
-              localStorage.setItem("ludo_player_photo_scale", "1");
-              localStorage.setItem("ludo_player_photo_offset", "0");
-              setShowPhotoAdjust(true);
-            };
-            reader.readAsDataURL(file);
-          }
-        }}
-      />
-
       {/* ── LUXURY PROFILE — Top Left Corner ── */}
       <div className="absolute top-[12px] left-[5%] z-40 flex flex-col items-center" style={{ width: '108px' }}>
-        {/* Profile Picture with Luxury Frame - clickable to upload */}
+        {/* Profile Picture with Luxury Frame - clickable to view profile */}
         <button
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => onOpenView?.("PROFILE")}
           className="relative w-[108px] h-[108px] cursor-pointer border-0 outline-none bg-transparent p-0 hover:scale-105 active:scale-95 transition-transform"
           style={{ WebkitTapHighlightColor: "transparent" }}
-          aria-label="Change Profile Photo"
+          aria-label="View Player Profile"
         >
           {/* Avatar inside round circle — perfectly centered in frame opening */}
           <div
@@ -301,7 +265,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
                 src={playerPhoto}
                 alt="Player"
                 className="w-full h-full object-cover"
-                style={{ transform: `scale(${photoScale}) translateY(${photoOffsetY}px)`, transformOrigin: 'center center' }}
               />
             ) : (
               <img
@@ -451,66 +414,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
         </button>
       </div>
 
-      {/* Photo Adjustment Modal */}
-      {showPhotoAdjust && (
-        <div className="absolute inset-0 z-[100] bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center gap-4 px-6">
-          <p className="text-amber-300 font-black text-sm tracking-widest uppercase">Adjust Photo</p>
 
-          {/* Live circular preview with frame */}
-          <div className="w-[108px] h-[108px] relative">
-            <div
-              className="absolute rounded-full overflow-hidden z-10"
-              style={{ top: '16%', left: '20%', right: '20%', bottom: '28%' }}
-            >
-              <img
-                src={playerPhoto!}
-                alt="preview"
-                className="w-full h-full object-cover"
-                style={{ transform: `scale(${photoScale}) translateY(${photoOffsetY}px)`, transformOrigin: 'center center' }}
-              />
-            </div>
-            <img src="/assets/images/icons/profile_frame_v3.png" alt="" className="absolute inset-0 w-full h-full object-contain z-20 pointer-events-none" style={{ filter: getFrameFilter(user?.equippedFrame) }} />
-          </div>
-
-          {/* Zoom slider */}
-          <div className="w-full flex flex-col gap-1">
-            <span className="text-[10px] text-amber-200 uppercase tracking-wider">🔍 Zoom</span>
-            <input type="range" min="1" max="3" step="0.05" value={photoScale}
-              onChange={e => setPhotoScale(parseFloat(e.target.value))}
-              className="w-full accent-amber-400" />
-          </div>
-
-          {/* Vertical position slider */}
-          <div className="w-full flex flex-col gap-1">
-            <span className="text-[10px] text-amber-200 uppercase tracking-wider">↕ Position</span>
-            <input type="range" min="-40" max="40" step="1" value={photoOffsetY}
-              onChange={e => setPhotoOffsetY(parseFloat(e.target.value))}
-              className="w-full accent-amber-400" />
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-3 mt-1">
-            <button onClick={() => {
-              localStorage.setItem("ludo_player_photo_scale", photoScale.toString());
-              localStorage.setItem("ludo_player_photo_offset", photoOffsetY.toString());
-              setShowPhotoAdjust(false);
-            }}
-              className="px-5 py-2 rounded-xl bg-amber-500 text-black font-black text-xs tracking-wider hover:bg-amber-400 active:scale-95 transition-all">
-              ✓ Done
-            </button>
-            <button onClick={() => {
-              setPlayerPhoto(null);
-              localStorage.removeItem("ludo_player_photo");
-              localStorage.removeItem("ludo_player_photo_scale");
-              localStorage.removeItem("ludo_player_photo_offset");
-              setShowPhotoAdjust(false);
-            }}
-              className="px-4 py-2 rounded-xl bg-slate-700 text-white font-black text-xs tracking-wider hover:bg-slate-600 active:scale-95 transition-all">
-              Remove
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* ── LUXURY CURRENCY BAR — Top Header ── */}
       <div className="absolute top-[8px] right-1.5 z-40 w-[62%] max-w-[260px]">

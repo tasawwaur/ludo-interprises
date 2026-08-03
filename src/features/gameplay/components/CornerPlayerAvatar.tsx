@@ -16,6 +16,7 @@ interface CornerPlayerAvatarProps {
   onSendGift?: () => void;
   onDisableAutoMode?: () => void;
   onOpenChat?: () => void;
+  onAvatarClick?: () => void;
   position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   isLocalPlayer?: boolean;
   remoteMicStatus?: boolean;
@@ -34,6 +35,7 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
   onSendGift,
   onDisableAutoMode,
   onOpenChat,
+  onAvatarClick,
   position,
   isLocalPlayer = true,
   remoteMicStatus = false,
@@ -126,8 +128,10 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
 
 
         {/* Golden frame image with getFrameFilter applied */}
-        <div
-          className="absolute inset-0 z-10"
+        <button
+          onClick={onAvatarClick}
+          disabled={!onAvatarClick}
+          className="absolute inset-0 z-10 cursor-pointer border-0 outline-none bg-transparent p-0 hover:scale-102 active:scale-98 transition-transform disabled:pointer-events-none"
         >
           {/* Avatar image cutout inside the frame */}
           <div
@@ -155,7 +159,7 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
             style={{ filter: getFrameFilter(player.equippedFrameId) }}
             draggable={false}
           />
-        </div>
+        </button>
 
         {/* Voice Chat Mic Button (Local Player: Clickable Control | Opponent: Read-Only Status Indicator) */}
         {isLocalPlayer ? (

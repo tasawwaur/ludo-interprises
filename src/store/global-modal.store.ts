@@ -27,6 +27,7 @@ export const getPlayerProfile = (idOrUsername: string) => {
   if (
     localUser &&
     (query === localUser.id.toLowerCase() || 
+     query === (localUser.uid || '').toLowerCase() ||
      query === localStats.playerId.toLowerCase() || 
      query === (localUser.displayName || localUser.username || "tasavvur").toLowerCase())
   ) {

@@ -12,6 +12,7 @@ import { Royal3DDice } from '../components/Royal3DDice';
 import { getGridPos, OUTER_TRACK_COORDS } from '../../../game/board/BoardCoordinates';
 import { ProtectButton } from '../components/ProtectButton';
 import { LuxuryLiveCamera } from '../../../components/camera/LuxuryLiveCamera';
+import { useGlobalModalStore } from '../../../store/global-modal.store';
 
 
 interface GameArenaPageProps {
@@ -117,6 +118,14 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
 
   const localPlayer = gameState?.players.find(p => p.color === localPlayerColor) || gameState?.players[0];
   const opponentPlayer = gameState?.players.find(p => p.color !== localPlayerColor) || gameState?.players[1];
+
+  const handleProfileClick = (color: string) => {
+    const p = gameState?.players.find((pl) => pl.color === color);
+    if (!p) return;
+    const isMe = color === localPlayerColor;
+    const profileId = isMe ? (user?.uid || user?.id || "Player 1") : p.name;
+    useGlobalModalStore.getState().openProfile(profileId);
+  };
 
   useEffect(() => {
     if (!gameState) {
@@ -553,6 +562,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                 onSendGift={() => handleSendMessage('🎁 Gift Sent!')}
                 onDisableAutoMode={disableAutoMode}
                 onOpenChat={() => setShowChatModal(true)}
+                onAvatarClick={() => handleProfileClick(opponentPlayer.color)}
                 position="top-right"
                 isLocalPlayer={false}
                 remoteMicStatus={false}
@@ -578,6 +588,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                 onSendGift={() => handleSendMessage('🎁 Gift Sent!')}
                 onDisableAutoMode={disableAutoMode}
                 onOpenChat={() => setShowChatModal(true)}
+                onAvatarClick={() => handleProfileClick(localPlayer.color)}
                 position="bottom-left"
                 isLocalPlayer={true}
               />

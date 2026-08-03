@@ -14,7 +14,7 @@ export type SoundEffect =
 
 export class SoundEngine {
   private static audioCtx: AudioContext | null = null;
-  private static isMuted = true;
+  private static isMuted = false;
 
   private static getAudioContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;

@@ -190,6 +190,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
 
     // Sync rolling state on roll start
     engine.addEventListener("DICE_ROLL_START", (payload) => {
+      SoundEngine.play('DICE_ROLL');
       if (payload.activePlayerColor === "RED") {
         setRedIsRolling(true);
       } else {
@@ -198,6 +199,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     });
 
     engine.addEventListener("DICE_ROLL_COMPLETE", (payload) => {
+      SoundEngine.play('DICE_STOP');
       if (payload.activePlayerColor === "RED") {
         setRedIsRolling(false);
         if (payload.diceValue !== undefined) setRedDiceValue(payload.diceValue);
@@ -294,6 +296,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       engineState.isWaitingForTokenChoice
     ) return;
 
+    SoundEngine.play('DICE_ROLL');
     setRedIsRolling(true);
     let flashCount = 0;
     const flashInterval = setInterval(() => {

@@ -37,6 +37,8 @@ const ROW_VERTICAL_OFFSETS: Record<number, number> = {
 };
 
 const CUSTOM_CELL_OFFSETS: Record<number, { x?: number; y?: number }> = {};
+const LADDER_STARTS = [2, 8, 20, 32, 41, 56, 65, 68, 77];
+const SNAKE_HEADS  = [99, 94, 87, 76, 66, 54, 43, 40, 27];
 
 // ─── Board Layout Helper ─────────────────────────────────────────────────────
 function cellToRowCol(cell: number): { row: number; col: number } {
@@ -74,9 +76,10 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
   const [redIsRolling, setRedIsRolling]     = useState(false);
   const [greenIsRolling, setGreenIsRolling] = useState(false);
 
-  const [showCalibrator, setShowCalibrator] = useState(false);
-  const [showNumbers, setShowNumbers]       = useState(true);
-  const [turnTimerSeconds, setTurnTimerSeconds] = useState(15);
+  const [showCalibrator, setShowCalibrator]   = useState(true);
+  const [showNumbers, setShowNumbers]         = useState(true);
+  const [activeClickedCell, setActiveClickedCell] = useState<number | null>(null);
+  const [turnTimerSeconds, setTurnTimerSeconds]   = useState(15);
 
   // Ladder animation state
   const [ladderAnim, setLadderAnim] = useState<{ from: number; to: number; active: boolean } | null>(null);
@@ -452,12 +455,15 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         <div
           key={cell}
           data-cell={cell}
+          onClick={() => {
+            setActiveClickedCell(cell);
+          }}
           style={{
             gridRow: row + 1,
             gridColumn: col + 1,
             transform: transformStr || undefined,
           }}
-          className="relative flex flex-col items-center justify-center bg-transparent border-0 select-none"
+          className="relative flex flex-col items-center justify-center bg-transparent border-0 select-none cursor-pointer"
         >
           {/* Player tokens */}
           <div className={`${containerClass} max-w-full max-h-full p-[1px]`}>
@@ -467,7 +473,10 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
                 <button
                   key={`red-${t.tokenId}-${t.currentPosition}`}
                   disabled={!isMovable}
-                  onClick={() => handleSelectToken(t.tokenId)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSelectToken(t.tokenId);
+                  }}
                   style={{ width: `${sizePx}px`, height: `${sizePx}px` }}
                   className={`p-0 bg-transparent border-0 outline-none relative ${
                     t.isMoving
@@ -508,10 +517,31 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
             ))}
           </div>
 
+          {/* Ladder Start Highlight Ring */}
+          {LADDER_STARTS.includes(cell) && (
+            <div className="absolute inset-0.5 rounded-lg border border-emerald-400/60 bg-emerald-500/10 pointer-events-none z-0 shadow-[0_0_8px_rgba(16,185,129,0.4)] animate-pulse" />
+          )}
+
+          {/* Snake Head Highlight Ring */}
+          {SNAKE_HEADS.includes(cell) && (
+            <div className="absolute inset-0.5 rounded-lg border border-rose-500/60 bg-rose-500/10 pointer-events-none z-0 shadow-[0_0_8px_rgba(244,63,94,0.4)] animate-pulse" />
+          )}
+
           {/* Cell Number Badge (1 - 100) */}
           {showNumbers && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
               <div className="w-[15px] h-[15px] rounded-full bg-amber-500/85 border border-yellow-400/50 flex items-center justify-center text-[7.5px] font-black text-slate-950 shadow-[0_0_5px_rgba(245,158,11,0.6)]">
+                {cell}
+              </div>
+            </div>
+          )}
+
+          {/* Red Target Calibration Dot Overlay */}
+          {(showCalibrator || activeClickedCell === cell) && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40">
+              <div className={`w-[18px] h-[18px] rounded-full bg-gradient-to-r from-red-600 to-rose-600 border-[1.5px] border-amber-300 flex items-center justify-center text-[7.5px] font-black text-white shadow-[0_0_10px_rgba(239,68,68,0.95)] ${
+                activeClickedCell === cell ? 'animate-bounce scale-125 border-yellow-200' : ''
+              }`}>
                 {cell}
               </div>
             </div>
@@ -564,20 +594,29 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           ←
         </button>
 
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-1.5 items-center">
+          {/* Toggle Dot Calibration Mode */}
+          <button
+            onClick={() => setShowCalibrator((prev) => !prev)}
+            className="px-2.5 py-1.5 rounded-xl border border-rose-500/50 bg-slate-900/90 text-rose-300 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
+            title="Toggle Red Target Dots"
+          >
+            {showCalibrator ? "🎯 Dot: ON" : "🎯 Dot: OFF"}
+          </button>
+
           {/* Toggle Cell Numbers Button */}
           <button
             onClick={() => setShowNumbers((prev) => !prev)}
-            className="px-3 py-1.5 rounded-xl border border-amber-500/40 bg-slate-900/90 text-amber-300 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
+            className="px-2.5 py-1.5 rounded-xl border border-amber-500/40 bg-slate-900/90 text-amber-300 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
             title="Toggle Cell Numbers (1-100)"
           >
-            {showNumbers ? "🔢 Numbers: ON" : "🔢 Numbers: OFF"}
+            {showNumbers ? "🔢 Num: ON" : "🔢 Num: OFF"}
           </button>
 
           {/* Reset Game Button */}
           <button
             onClick={resetGame}
-            className="px-3 py-1.5 rounded-xl border border-slate-700/50 bg-slate-900/80 text-slate-300 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
+            className="px-2.5 py-1.5 rounded-xl border border-slate-700/50 bg-slate-900/80 text-slate-300 text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
           >
             🔄 Reset
           </button>

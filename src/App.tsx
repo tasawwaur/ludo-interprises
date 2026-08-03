@@ -183,11 +183,6 @@ const MainApp: React.FC = () => {
       setCurrentView("SHOP");
       return;
     }
-    if (selectedMode === "Snake & Ladders") {
-      setCurrentView("SNAKE_LADDER");
-      return;
-    }
-
     // Check entry fee (5,000 Coins)
     const userCoins = user?.coins ?? 0;
     if (userCoins < 5000) {
@@ -283,6 +278,16 @@ const MainApp: React.FC = () => {
               const hostAvatar = user?.avatar || "/assets/images/icons/icon_club_crown.png";
               
               const activeQueueMode = useQueueStore.getState().mode || "2P Classic";
+
+              if (activeQueueMode === "Snake & Ladders") {
+                if (opponent) {
+                  localStorage.setItem("ludo_sl_botName", opponent.name);
+                }
+                localStorage.removeItem("ludo_sl_engine_state");
+                setCurrentView("SNAKE_LADDER");
+                return;
+              }
+
               const code = createRoom(
                 activeQueueMode,
                 2,

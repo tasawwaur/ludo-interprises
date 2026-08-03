@@ -148,12 +148,19 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
       <div className="w-full max-w-[400px] flex-1 flex flex-col items-center justify-between z-10 my-4">
         {/* Top Header Badge */}
         <div className="w-full flex justify-center mt-2">
-          <img
-            src="/assets/images/icons/luxury_2p_classic_header.png"
-            alt="2 PLAYER CLASSIC"
-            className="w-72 h-auto object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]"
-            draggable={false}
-          />
+          {mode === "Snake & Ladders" ? (
+            <div className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 border-2 border-yellow-200 shadow-[0_0_25px_rgba(245,158,11,0.7)] text-slate-950 font-black text-sm uppercase tracking-widest flex items-center gap-2">
+              <span>🐍</span>
+              <span>SNAKE & LADDERS 1V1</span>
+            </div>
+          ) : (
+            <img
+              src="/assets/images/icons/luxury_2p_classic_header.png"
+              alt="2 PLAYER CLASSIC"
+              className="w-72 h-auto object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]"
+              draggable={false}
+            />
+          )}
         </div>
 
         {/* Graphic & VS Emblem */}

@@ -9,6 +9,7 @@ import { LuckySpinModal } from "../../events/LuckySpinModal";
 import { XPBar } from "../components/Profile/XPBar";
 import { useUserStore } from "../../../user/user.store";
 import { usePlayerStatsStore } from "../../../store/player-stats.store";
+import { useGlobalModalStore } from "../../../store/global-modal.store";
 
 import { getFrameFilter } from "../../../store/cosmetics.store";
 import { getDefaultAvatar } from "../../../utils/avatar";
@@ -279,7 +280,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
       <div className="absolute top-[12px] left-[5%] z-40 flex flex-col items-center" style={{ width: '108px' }}>
         {/* Profile Picture with Luxury Frame - clickable to view profile */}
         <button
-          onClick={() => onOpenView?.("PROFILE")}
+          onClick={() => {
+            const pId = user?.uid || user?.id || "Player 1";
+            useGlobalModalStore.getState().openProfile(pId);
+          }}
           className="relative w-[108px] h-[108px] cursor-pointer border-0 outline-none bg-transparent p-0 hover:scale-105 active:scale-95 transition-transform"
           style={{ WebkitTapHighlightColor: "transparent" }}
           aria-label="View Player Profile"
@@ -331,7 +335,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
 
         {/* Name Banner — Auto-scaled font size with Hindi & English support */}
         <button
-          onClick={handleNameClick}
+          onClick={() => {
+            const pId = user?.uid || user?.id || "Player 1";
+            useGlobalModalStore.getState().openProfile(pId);
+          }}
           className="relative w-[124px] -mt-[10px] cursor-pointer hover:scale-105 active:scale-95 transition-all border-0 outline-none p-0 bg-transparent flex flex-col items-center justify-center"
           style={{ WebkitTapHighlightColor: "transparent" }}
           aria-label="Change Player Name"

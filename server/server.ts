@@ -224,9 +224,169 @@ interface WaitingPlayer {
 }
 
 const matchmakingQueue: WaitingPlayer[] = [];
+interface OnlineUser {
+  socketId: string;
+  userId: string;
+  username: string;
+  avatar?: string;
+  equippedFrame?: string;
+  level: number;
+}
+const connectedUsers = new Map<string, OnlineUser>(); // username/userId -> OnlineUser
 
 io.on("connection", (socket) => {
   console.log("Player connected:", socket.id);
+
+  // Register user for friend requests / match invites
+  socket.on("register_user", (data: { userId: string; username: string; uid?: string; avatar?: string; equippedFrame?: string; level?: number }) => {
+    const userRecord: OnlineUser = {
+      socketId: socket.id,
+      userId: data.userId,
+      username: data.username,
+      avatar: data.avatar,
+      equippedFrame: data.equippedFrame,
+      level: data.level || 1
+    };
+    connectedUsers.set(data.userId.toLowerCase(), userRecord);
+    connectedUsers.set(data.username.toLowerCase(), userRecord);
+    if (data.uid) {
+      connectedUsers.set(data.uid.toLowerCase(), userRecord);
+    }
+    console.log(`[Register] User registered: ${data.username} / ${data.uid} (${socket.id})`);
+  });
+
+  // Search player handler
+  socket.on("search_player", (data: { query: string }) => {
+    const q = data.query.toLowerCase();
+    const onlineUser = connectedUsers.get(q);
+    if (onlineUser) {
+      socket.emit("search_player_result", {
+        found: true,
+        id: onlineUser.userId,
+        name: onlineUser.username,
+        avatarUrl: onlineUser.avatar,
+        equippedFrame: onlineUser.equippedFrame,
+        level: onlineUser.level
+      });
+    } else {
+      socket.emit("search_player_result", {
+        found: false,
+        query: data.query
+      });
+    }
+  });
+
+  socket.on("send_friend_request", (data: { 
+    senderId: string; 
+    senderName: string; 
+    senderAvatar?: string;
+    senderFrame?: string;
+    senderLevel: number;
+    targetId?: string;
+    targetName: string; 
+  }) => {
+    console.log(`[Friend Request] From ${data.senderName} to ${data.targetName} (${data.targetId})`);
+    let targetSocketId = null;
+    if (data.targetId) {
+      targetSocketId = connectedUsers.get(data.targetId.toLowerCase())?.socketId;
+    }
+    if (!targetSocketId) {
+      targetSocketId = connectedUsers.get(data.targetName.toLowerCase())?.socketId;
+    }
+
+    if (targetSocketId) {
+      io.to(targetSocketId).emit("incoming_friend_request", {
+        id: data.senderId,
+        senderName: data.senderName,
+        senderAvatar: data.senderAvatar,
+        senderFrame: data.senderFrame,
+        senderLevel: data.senderLevel,
+        time: "Just now"
+      });
+      socket.emit("friend_request_status", { success: true, message: `Request sent to ${data.targetName}!` });
+    } else {
+      socket.emit("friend_request_status", { success: false, message: `${data.targetName} is offline.` });
+    }
+  });
+
+  socket.on("send_game_invite", (data: { 
+    senderName: string; 
+    senderAvatar?: string; 
+    mode: string; 
+    targetId?: string;
+    targetName: string; 
+  }) => {
+    console.log(`[Game Invite] From ${data.senderName} to ${data.targetName} (${data.targetId})`);
+    let targetSocketId = null;
+    if (data.targetId) {
+      targetSocketId = connectedUsers.get(data.targetId.toLowerCase())?.socketId;
+    }
+    if (!targetSocketId) {
+      targetSocketId = connectedUsers.get(data.targetName.toLowerCase())?.socketId;
+    }
+
+    if (targetSocketId) {
+      io.to(targetSocketId).emit("incoming_game_invite", {
+        id: "inv_" + Date.now(),
+        senderName: data.senderName,
+        senderAvatar: data.senderAvatar,
+        mode: data.mode,
+        time: "Just now"
+      });
+    }
+  });
+
+  socket.on("accept_friend_request", (data: { 
+    senderId?: string;
+    senderName: string; 
+    receiverId: string;
+    receiverName: string;
+    receiverAvatar?: string;
+    receiverFrame?: string;
+    receiverLevel: number;
+  }) => {
+    console.log(`[Friend Request Accepted] From ${data.receiverName} to ${data.senderName} (senderId: ${data.senderId})`);
+    let targetSocketId = null;
+    if (data.senderId) {
+      targetSocketId = connectedUsers.get(data.senderId.toLowerCase())?.socketId;
+    }
+    if (!targetSocketId) {
+      targetSocketId = connectedUsers.get(data.senderName.toLowerCase())?.socketId;
+    }
+
+    if (targetSocketId) {
+      io.to(targetSocketId).emit("friend_request_accepted", {
+        receiverId: data.receiverId,
+        receiverName: data.receiverName,
+        receiverAvatar: data.receiverAvatar,
+        receiverFrame: data.receiverFrame,
+        receiverLevel: data.receiverLevel
+      });
+    }
+  });
+
+  socket.on("send_dm", (data: { 
+    senderName: string; 
+    targetId?: string;
+    targetName: string; 
+    text: string; 
+  }) => {
+    console.log(`[DM] From ${data.senderName} to ${data.targetName} (${data.targetId}): ${data.text}`);
+    let targetSocketId = null;
+    if (data.targetId) {
+      targetSocketId = connectedUsers.get(data.targetId.toLowerCase())?.socketId;
+    }
+    if (!targetSocketId) {
+      targetSocketId = connectedUsers.get(data.targetName.toLowerCase())?.socketId;
+    }
+
+    if (targetSocketId) {
+      io.to(targetSocketId).emit("incoming_dm", {
+        senderName: data.senderName,
+        text: data.text
+      });
+    }
+  });
 
   // Player joins Matchmaking Queue
   socket.on("join_queue", (playerData: { userId: string; name: string; avatar?: string; profileFrame?: string; nameBanner?: string }) => {
@@ -369,6 +529,13 @@ io.on("connection", (socket) => {
     const idx = matchmakingQueue.findIndex((p) => p.socketId === socket.id);
     if (idx !== -1) matchmakingQueue.splice(idx, 1);
     console.log("Player disconnected:", socket.id);
+
+    // Clean up registered user
+    for (const [key, value] of connectedUsers.entries()) {
+      if (value.socketId === socket.id) {
+        connectedUsers.delete(key);
+      }
+    }
 
     // Stop active room timers if player disconnected
     for (const [code, room] of activeRooms.entries()) {

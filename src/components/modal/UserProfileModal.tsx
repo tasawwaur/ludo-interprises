@@ -29,6 +29,8 @@ interface UserProfileModalProps {
   onSendGift?: (type: "COINS" | "GEMS", amount: number) => void;
   onRemove?: () => void;
   onAddFriend?: () => void;
+  onRemoveFriend?: () => void;
+  isFriend?: boolean;
 }
 
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({ 
@@ -37,7 +39,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   isMe = false,
   onSendGift,
   onRemove,
-  onAddFriend
+  onAddFriend,
+  onRemoveFriend,
+  isFriend = false
 }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [hasSentRequest, setHasSentRequest] = useState((userStats as any).isFriendRequested || false);
@@ -119,23 +123,36 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
           {/* Action icon next to name */}
           {!isMe && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!hasSentRequest) {
-                  setHasSentRequest(true);
-                  onAddFriend?.();
-                }
-              }}
-              className={`w-8 h-8 rounded-xl border flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer ${
-                hasSentRequest
-                  ? "bg-emerald-950/80 border-emerald-500/50 text-emerald-400 font-bold"
-                  : "bg-purple-950/70 border-purple-500/30 text-amber-200"
-              }`}
-              title={hasSentRequest ? "Friend Request Sent" : "Add Friend"}
-            >
-              {hasSentRequest ? "✔️" : "👤➕"}
-            </button>
+            isFriend ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveFriend?.();
+                }}
+                className="w-8 h-8 rounded-xl border flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer bg-rose-950/80 border-rose-500/50 text-rose-400"
+                title="Remove Friend"
+              >
+                👤❌
+              </button>
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!hasSentRequest) {
+                    setHasSentRequest(true);
+                    onAddFriend?.();
+                  }
+                }}
+                className={`w-8 h-8 rounded-xl border flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer ${
+                  hasSentRequest
+                    ? "bg-emerald-950/80 border-emerald-500/50 text-emerald-400 font-bold"
+                    : "bg-purple-950/70 border-purple-500/30 text-amber-200"
+                }`}
+                title={hasSentRequest ? "Friend Request Sent" : "Add Friend"}
+              >
+                {hasSentRequest ? "✔️" : "👤➕"}
+              </button>
+            )
           )}
         </div>
 

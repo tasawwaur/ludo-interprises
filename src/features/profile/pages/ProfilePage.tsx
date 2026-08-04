@@ -289,7 +289,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   {/* Dynamic circular avatar */}
-                  <div className="w-20 h-20 relative flex-shrink-0 cursor-pointer" onClick={handleAvatarClick}>
+                  <div className="w-20 h-20 relative flex-shrink-0 cursor-pointer" onClick={() => setShowStatsCard(true)}>
                     <div
                       className="absolute rounded-full overflow-hidden bg-slate-950 border border-purple-950 z-10"
                       style={{ top: '15%', left: '15%', right: '15%', bottom: '26%' }}
@@ -620,6 +620,43 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500"></div>
 
               <div className="w-full flex flex-col gap-3">
+                {/* Profile Avatar Row */}
+                <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 relative flex-shrink-0">
+                      <div
+                        className="absolute rounded-full overflow-hidden bg-slate-950 border border-purple-950 z-10"
+                        style={{ top: '15%', left: '15%', right: '15%', bottom: '26%' }}
+                      >
+                        {user?.avatar ? (
+                          <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-purple-800 to-indigo-900 flex items-center justify-center text-sm font-black text-purple-200">
+                            {playerName.charAt(0)}
+                          </div>
+                        )}
+                      </div>
+                      <img
+                        src="/assets/images/icons/profile_frame_v3.png"
+                        alt="Profile Frame"
+                        className="w-full h-full object-contain absolute inset-0 z-20 pointer-events-none"
+                        style={{ filter: getFrameFilter(user?.equippedFrame) }}
+                        draggable={false}
+                      />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-purple-300 font-bold uppercase tracking-wider">Avatar Photo</span>
+                      <span className="text-[8px] text-gray-400">Click to upload from gallery</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleAvatarClick}
+                    className="px-3.5 py-1.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-[10px] rounded-xl hover:scale-105 active:scale-95 transition-transform uppercase"
+                  >
+                    Change Photo
+                  </button>
+                </div>
+
                 {/* Display Name Row */}
                 <div className="flex items-center justify-between bg-black/40 px-4 py-3 rounded-2xl border border-purple-500/20">
                   <div className="flex flex-col">

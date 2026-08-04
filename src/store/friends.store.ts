@@ -8,6 +8,7 @@ export interface Friend {
   isOnline: boolean;
   isFB: boolean;
   avatarUrl?: string;
+  equippedFrame?: string;
   coins: number;
   level: number;
 }
@@ -17,6 +18,7 @@ export interface FriendRequest {
   senderName: string;
   senderAvatar?: string;
   senderLevel: number;
+  senderFrame?: string;
   time: string;
 }
 
@@ -39,11 +41,13 @@ interface FriendsState {
   acceptInvite: (inviteId: string) => void;
   declineInvite: (inviteId: string) => void;
   sendRequest: (targetName: string) => void;
+  addFriendRequest: (req: FriendRequest) => void;
+  addGameInvite: (invite: GameInvite) => void;
 }
 
-const STORAGE_KEY_FRIENDS = 'ludo_friends_list_v2';
-const STORAGE_KEY_REQUESTS = 'ludo_incoming_requests_v2';
-const STORAGE_KEY_INVITES = 'ludo_incoming_invites_v2';
+const STORAGE_KEY_FRIENDS = 'ludo_friends_list_v4';
+const STORAGE_KEY_REQUESTS = 'ludo_incoming_requests_v4';
+const STORAGE_KEY_INVITES = 'ludo_incoming_invites_v4';
 
 const getInitialFriends = (): Friend[] => {
   if (typeof window !== 'undefined') {
@@ -52,16 +56,7 @@ const getInitialFriends = (): Friend[] => {
       if (saved) return JSON.parse(saved);
     } catch (e) {}
   }
-  return GLOBAL_PLAYER_DATABASE.slice(2, 8).map((player, idx) => ({
-    id: player.playerId,
-    name: player.username,
-    status: idx % 3 === 0 ? "Offline" : "Online",
-    isOnline: idx % 3 !== 0,
-    isFB: idx % 2 === 0,
-    avatarUrl: player.avatarUrl,
-    coins: player.currentCoins,
-    level: player.level
-  }));
+  return [];
 };
 
 const getInitialRequests = (): FriendRequest[] => {
@@ -71,10 +66,7 @@ const getInitialRequests = (): FriendRequest[] => {
       if (saved) return JSON.parse(saved);
     } catch (e) {}
   }
-  return [
-    { id: 'req_1', senderName: 'Roxana', senderLevel: 45, senderAvatar: '', time: '10 mins ago' },
-    { id: 'req_2', senderName: 'Aman', senderLevel: 32, senderAvatar: '', time: '1h ago' }
-  ];
+  return [];
 };
 
 const getInitialInvites = (): GameInvite[] => {
@@ -84,9 +76,7 @@ const getInitialInvites = (): GameInvite[] => {
       if (saved) return JSON.parse(saved);
     } catch (e) {}
   }
-  return [
-    { id: 'inv_1', senderName: 'Roxana', senderAvatar: '', mode: 'Snakes & Ladders (1v1)', time: 'Just now' }
-  ];
+  return [];
 };
 
 export const useFriendsStore = create<FriendsState>((set, get) => ({
@@ -127,6 +117,7 @@ export const useFriendsStore = create<FriendsState>((set, get) => ({
         isOnline: true,
         isFB: false,
         avatarUrl: req.senderAvatar,
+        equippedFrame: req.senderFrame,
         coins: 50000,
         level: req.senderLevel
       };
@@ -179,5 +170,27 @@ export const useFriendsStore = create<FriendsState>((set, get) => ({
   sendRequest: (targetName) => {
     // If we click "Add Friend" on someone (e.g. from Search or profile view), we simulate success
     console.log(`Friend request sent to ${targetName}`);
+  },
+
+  addFriendRequest: (req) => {
+    set((state) => {
+      if (state.incomingRequests.some(r => r.id === req.id || r.senderName === req.senderName)) return state;
+      const updated = [...state.incomingRequests, req];
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY_REQUESTS, JSON.stringify(updated));
+      }
+      return { incomingRequests: updated };
+    });
+  },
+
+  addGameInvite: (invite) => {
+    set((state) => {
+      if (state.incomingInvites.some(i => i.id === invite.id)) return state;
+      const updated = [...state.incomingInvites, invite];
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY_INVITES, JSON.stringify(updated));
+      }
+      return { incomingInvites: updated };
+    });
   }
 }));

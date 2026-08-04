@@ -294,11 +294,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
         nextLevelXp: 1000,
         loginProvider: 'facebook',
         facebookId: profile.id,
-        syncedFBFriends: fbFriends.length > 0 ? fbFriends : [
-          { id: 'fb_f1', name: 'Roxana [FB]', isOnline: true },
-          { id: 'fb_f2', name: 'Aman [FB]', isOnline: true },
-          { id: 'fb_f3', name: 'Govind [FB]', isOnline: false }
-        ]
+        syncedFBFriends: fbFriends
       };
       saveAccountForProvider(newFBUser, 'facebook', profile.name);
       setJustClaimedWelcome(true);

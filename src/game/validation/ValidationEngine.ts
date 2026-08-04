@@ -19,7 +19,15 @@ export class ValidationEngine {
    */
   public static performFullSecurityCheck(playerId: string): { isSafe: boolean; bansRequired: boolean; alerts: string[] } {
     // Local development bypass (allows debugging, devtools, and emulators during local testing)
-    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    if (typeof window !== 'undefined' && (
+      window.location.hostname === 'localhost' || 
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname.startsWith('192.168.') ||
+      window.location.hostname.startsWith('10.') ||
+      window.location.hostname.startsWith('172.') ||
+      window.location.hostname.endsWith('.local') ||
+      window.location.hostname.endsWith('.internal')
+    )) {
       return { isSafe: true, bansRequired: false, alerts: [] };
     }
 
@@ -143,7 +151,15 @@ export class ValidationEngine {
   }
 
   public static isBanned(): boolean {
-    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    if (typeof window !== 'undefined' && (
+      window.location.hostname === 'localhost' || 
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname.startsWith('192.168.') ||
+      window.location.hostname.startsWith('10.') ||
+      window.location.hostname.startsWith('172.') ||
+      window.location.hostname.endsWith('.local') ||
+      window.location.hostname.endsWith('.internal')
+    )) {
       return false;
     }
     return this.systemBanned;

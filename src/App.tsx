@@ -28,6 +28,7 @@ import { UserProfileModal } from "./components/modal/UserProfileModal";
 import { useFriendsStore } from "./store/friends.store";
 
 import { useUserStore } from "./user/user.store";
+import { globalSocket } from "./multiplayer/socket/SocketClient";
 import { ValidationEngine } from "./game/validation/ValidationEngine";
 import { useQueueStore } from "./features/matchmaking/queue/QueueStore";
 import { useRoomStore } from "./features/matchmaking/rooms/RoomStore";
@@ -35,6 +36,8 @@ import { useGameStore } from "./store/game.store";
 import { PlayerColor } from "./game/engine/Engine.types";
 import { GlobalCurrencyBar } from "./components/ui/GlobalCurrencyBar";
 import confetti from "canvas-confetti";
+import { getFrameFilter } from "./store/cosmetics.store";
+import { getDefaultAvatar } from "./utils/avatar";
 
 export type AppView =
   | "SPLASH"
@@ -86,6 +89,107 @@ const MainApp: React.FC = () => {
 
   const [showLuckySpin, setShowLuckySpin] = useState(false);
   const [lastRewardedMatchId, setLastRewardedMatchId] = useState<string | null>(null);
+
+  const [activeRequestPopup, setActiveRequestPopup] = useState<{
+    id: string;
+    senderName: string;
+    senderAvatar?: string;
+    senderFrame?: string;
+    senderLevel: number;
+  } | null>(null);
+
+  const [globalToast, setGlobalToast] = useState<string | null>(null);
+  const triggerGlobalToast = (msg: string) => {
+    setGlobalToast(msg);
+    setTimeout(() => setGlobalToast(null), 3000);
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    
+    // Connect globally
+    globalSocket.connect();
+    
+    const socket = globalSocket.socket;
+    if (!socket) return;
+
+    const playerName = user.displayName || user.username || "TASAVVUR";
+    
+    // Register user
+    socket.emit("register_user", {
+      userId: user.id || "usr_guest_" + Math.floor(Math.random() * 1000),
+      username: playerName,
+      uid: user.uid,
+      avatar: user.avatar,
+      equippedFrame: user.equippedFrame,
+      level: user.level || 1
+    });
+
+    // Listen for incoming friend request
+    socket.on("incoming_friend_request", (data: any) => {
+      useFriendsStore.getState().addFriendRequest({
+        id: data.id,
+        senderName: data.senderName,
+        senderAvatar: data.senderAvatar,
+        senderLevel: data.senderLevel,
+        senderFrame: data.senderFrame,
+        time: data.time || "Just now"
+      });
+      // Show dynamic popup modal directly on display
+      setActiveRequestPopup({
+        id: data.id,
+        senderName: data.senderName,
+        senderAvatar: data.senderAvatar,
+        senderFrame: data.senderFrame,
+        senderLevel: data.senderLevel || 1
+      });
+    });
+
+    // Listen for incoming game invite
+    socket.on("incoming_game_invite", (data: any) => {
+      useFriendsStore.getState().addGameInvite({
+        id: data.id,
+        senderName: data.senderName,
+        senderAvatar: data.senderAvatar,
+        mode: data.mode,
+        time: data.time || "Just now"
+      });
+      triggerGlobalToast(`🎮 Match invitation from ${data.senderName}!`);
+    });
+
+    // Listen for accepted request
+    socket.on("friend_request_accepted", (data: any) => {
+      useFriendsStore.getState().addFriend({
+        id: data.receiverId,
+        name: data.receiverName,
+        status: "Online",
+        isOnline: true,
+        isFB: false,
+        avatarUrl: data.receiverAvatar,
+        coins: 10000,
+        level: data.receiverLevel
+      });
+      triggerGlobalToast(`🎉 ${data.receiverName} accepted your friend request!`);
+    });
+
+    // Listen for incoming direct message
+    socket.on("incoming_dm", (data: any) => {
+      const friendsList = useFriendsStore.getState().friendsList;
+      const matchedFriend = friendsList.find(f => f.name.toLowerCase() === data.senderName.toLowerCase());
+      if (matchedFriend) {
+        const event = new CustomEvent("new_dm_message", { detail: data });
+        window.dispatchEvent(event);
+      }
+      triggerGlobalToast(`💬 ${data.senderName}: ${data.text}`);
+    });
+
+    return () => {
+      socket.off("incoming_friend_request");
+      socket.off("incoming_game_invite");
+      socket.off("friend_request_accepted");
+      socket.off("incoming_dm");
+    };
+  }, [user]);
 
   const activeProfilePlayerId = useGlobalModalStore((s) => s.activeProfilePlayerId);
   const closeProfile = useGlobalModalStore((s) => s.closeProfile);
@@ -486,7 +590,21 @@ const MainApp: React.FC = () => {
         return (
           <FriendsPage
             onBack={() => setCurrentView("HOME")}
-            onInviteFriend={(name) => alert(`Invite link sent to ${name}!`)}
+            onInviteFriend={(friend) => {
+              const socket = globalSocket.socket;
+              if (socket && socket.connected) {
+                socket.emit("send_game_invite", {
+                  senderName: user?.displayName || user?.username || "TASAVVUR",
+                  senderAvatar: user?.avatar,
+                  mode: "LUDO CLASSIC 2P",
+                  targetId: friend.id,
+                  targetName: friend.name
+                });
+                triggerGlobalToast(`Sent match invitation to ${friend.name}!`);
+              } else {
+                alert(`Invite link sent to ${friend.name}!`);
+              }
+            }}
           />
         );
 
@@ -563,21 +681,118 @@ const MainApp: React.FC = () => {
               <UserProfileModal
                 userStats={profile}
                 onClose={closeProfile}
+                isFriend={useFriendsStore.getState().friendsList.some(
+                  f => f.id === profile.id || f.name.toLowerCase() === profile.name.toLowerCase()
+                )}
+                onRemoveFriend={() => {
+                  useFriendsStore.getState().removeFriend(profile.id);
+                  closeProfile();
+                  triggerGlobalToast(`Removed ${profile.name} from buddies.`);
+                }}
                 onAddFriend={() => {
-                  useFriendsStore.getState().addFriend({
-                    id: profile.id,
-                    name: profile.name,
-                    status: 'Online',
-                    isOnline: true,
-                    isFB: false,
-                    avatarUrl: profile.avatarUrl,
-                    coins: profile.currentGold,
-                    level: profile.level
-                  });
+                  const socket = globalSocket.socket;
+                  if (socket && socket.connected) {
+                    socket.emit("send_friend_request", {
+                      senderId: user?.id || "usr_guest_" + Math.floor(Math.random() * 1000),
+                      senderName: user?.displayName || user?.username || "TASAVVUR",
+                      senderAvatar: user?.avatar,
+                      senderFrame: user?.equippedFrame,
+                      senderLevel: user?.level || 1,
+                      targetName: profile.name
+                    });
+                    triggerGlobalToast(`Friend request sent to ${profile.name}!`);
+                  } else {
+                    useFriendsStore.getState().addFriend({
+                      id: profile.id,
+                      name: profile.name,
+                      status: 'Online',
+                      isOnline: true,
+                      isFB: false,
+                      avatarUrl: profile.avatarUrl,
+                      coins: profile.currentGold,
+                      level: profile.level
+                    });
+                    triggerGlobalToast(`Added ${profile.name} to buddies.`);
+                  }
                 }}
               />
             );
           })()}
+          {/* Incoming Friend Request Popup */}
+          {activeRequestPopup && (
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+              <div className="w-[280px] bg-gradient-to-b from-[#2E0B4E] to-[#12061F] border-[2.5px] border-amber-400 rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.95)] text-center relative animate-in zoom-in-95 duration-200">
+                <span className="text-3xl mb-1.5 block">👤➕</span>
+                <h3 className="text-xs font-black text-amber-200 uppercase tracking-widest mb-1">Friend Request</h3>
+                <p className="text-[9px] text-purple-300 mb-4 uppercase">Incoming request from</p>
+                
+                <div className="flex items-center gap-3 bg-black/45 p-3 rounded-2xl border border-purple-500/20 mb-5 text-left">
+                  <div className="w-12 h-12 relative flex-shrink-0">
+                    <div
+                      className="absolute rounded-full overflow-hidden bg-slate-900 z-10"
+                      style={{ top: '16%', left: '20%', right: '20%', bottom: '28%' }}
+                    >
+                      <img src={activeRequestPopup.senderAvatar || getDefaultAvatar(activeRequestPopup.id)} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <img
+                      src="/assets/images/icons/profile_frame_v3.png"
+                      alt=""
+                      className="w-full h-full object-fill absolute inset-0 z-20 pointer-events-none"
+                      style={{ filter: getFrameFilter(activeRequestPopup.senderFrame) }}
+                      draggable={false}
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-black text-white">{activeRequestPopup.senderName}</span>
+                    <span className="text-[8px] text-purple-200 font-bold">Level {activeRequestPopup.senderLevel}</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 w-full">
+                  <button
+                    onClick={() => {
+                      useFriendsStore.getState().acceptRequest(activeRequestPopup.id);
+                      
+                      const socket = globalSocket.socket;
+                      if (socket && socket.connected) {
+                        socket.emit("accept_friend_request", {
+                          senderName: activeRequestPopup.senderName,
+                          receiverId: user?.id || "usr_guest",
+                          receiverName: user?.displayName || user?.username || "TASAVVUR",
+                          receiverAvatar: user?.avatar,
+                          receiverFrame: user?.equippedFrame,
+                          receiverLevel: user?.level || 1
+                        });
+                      }
+                      
+                      confetti({ particleCount: 30, spread: 40 });
+                      setActiveRequestPopup(null);
+                      triggerGlobalToast(`Accepted ${activeRequestPopup.senderName}!`);
+                    }}
+                    className="flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white border border-emerald-300 font-black text-[10px] uppercase rounded-xl transition-all cursor-pointer shadow-md"
+                  >
+                    ✔️ Accept
+                  </button>
+                  <button
+                    onClick={() => {
+                      useFriendsStore.getState().declineRequest(activeRequestPopup.id);
+                      setActiveRequestPopup(null);
+                      triggerGlobalToast(`Declined request`);
+                    }}
+                    className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-gray-400 border border-slate-700 font-bold text-[10px] uppercase rounded-xl transition-all cursor-pointer"
+                  >
+                    ✕ Decline
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Global Toast */}
+          {globalToast && (
+            <div className="absolute top-[85px] left-1/2 -translate-x-1/2 bg-purple-950/95 border-2 border-purple-500/80 px-5 py-3 rounded-2xl text-[10px] text-amber-200 font-black shadow-[0_4px_20px_rgba(0,0,0,0.85)] z-[9999] animate-bounce uppercase tracking-widest text-center min-w-[200px]">
+              {globalToast}
+            </div>
+          )}
         </div>
       </div>
     </div>

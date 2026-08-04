@@ -17,7 +17,7 @@ interface MatchmakingPageProps {
 
 export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMatchFound }) => {
   const { mode, setMatchFound } = useQueueStore();
-  const [seconds, setSeconds] = useState(120);
+  const [seconds, setSeconds] = useState(10);
   const user = useUserStore((s) => s.user);
 
   const displayName = user?.displayName || user?.username || "Player 1";

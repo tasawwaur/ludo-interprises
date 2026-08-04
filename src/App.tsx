@@ -390,7 +390,7 @@ const MainApp: React.FC = () => {
 
               if (activeQueueMode === "Snake & Ladders") {
                 if (opponent) {
-                  localStorage.setItem("ludo_sl_opponent", JSON.stringify(opponent));
+                  localStorage.setItem("ludo_sl_opponent", JSON.stringify({ ...opponent, myColor }));
                   localStorage.setItem("ludo_sl_botName", opponent.name);
                 } else {
                   localStorage.removeItem("ludo_sl_opponent");

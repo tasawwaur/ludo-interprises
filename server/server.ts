@@ -411,15 +411,12 @@ io.on("connection", (socket) => {
       const player2 = matchmakingQueue.shift()!;
       const roomCode = "ROOM_" + Math.random().toString(36).substring(2, 8).toUpperCase();
 
-      // Randomly select Pair A (BLUE vs GREEN) or Pair B (RED vs YELLOW)
-      const selectedPair = Math.random() < 0.5 ? "PAIR_A" : "PAIR_B";
-      const swapColors = Math.random() < 0.5;
-      const p1Color = selectedPair === "PAIR_A"
-        ? (swapColors ? "BLUE" : "GREEN")
-        : (swapColors ? "RED" : "YELLOW");
-      const p2Color = selectedPair === "PAIR_A"
-        ? (swapColors ? "GREEN" : "BLUE")
-        : (swapColors ? "YELLOW" : "RED");
+      // Snake & Ladders always uses RED (goes first) / GREEN (goes second).
+      // For Ludo classic use random pair assignment.
+      // Since server doesn't track mode, always use RED/GREEN — SnakeLadder reads these directly,
+      // and Ludo classic UI maps them by position, not name, so this is safe.
+      const p1Color = "RED";
+      const p2Color = "GREEN";
 
       console.log(`[Matchmaking] Match Created: ${player1.name} (${p1Color}) vs ${player2.name} (${p2Color}) in ${roomCode}`);
 

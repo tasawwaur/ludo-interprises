@@ -154,27 +154,34 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     const savedOpponentRaw = localStorage.getItem("ludo_sl_opponent");
     let opponentData = savedOpponentRaw ? JSON.parse(savedOpponentRaw) : null;
 
+    // myColor: server-assigned color. Engine keeps RED=players[0], GREEN=players[1].
+    // If local player is GREEN, their name goes into GREEN slot; RED (opponent) goes first.
+    const myColorInit = (opponentData?.myColor as PlayerColor) || "RED";
     const botProfile = GLOBAL_PLAYER_DATABASE.find((p) => p.username === botName);
     const p2Name = opponentData?.name || botName;
     const p2Avatar = opponentData?.avatar || (botProfile ? botProfile.avatarUrl : "/assets/images/icons/icon_club_crown.png");
     const p2Frame = opponentData?.profileFrame || (botProfile ? botProfile.equippedFrame || "frame_default" : "frame_default");
     const p2IsBot = opponentData ? (opponentData.isBot ?? false) : true;
 
-    const playersConfig = [
-      { id: "RED", name: playerName, color: "RED" as PlayerColor, isBot: false, avatar: userAvatar, equippedFrameId: userFrame },
-      { id: "GREEN", name: p2Name, color: "GREEN" as PlayerColor, isBot: p2IsBot, avatar: p2Avatar, equippedFrameId: p2Frame },
-    ];
+    const playersConfig = myColorInit === "RED"
+      ? [
+          { id: "RED",   name: playerName, color: "RED"   as PlayerColor, isBot: false,   avatar: userAvatar, equippedFrameId: userFrame },
+          { id: "GREEN", name: p2Name,     color: "GREEN" as PlayerColor, isBot: p2IsBot, avatar: p2Avatar,   equippedFrameId: p2Frame  },
+        ]
+      : [
+          { id: "RED",   name: p2Name,     color: "RED"   as PlayerColor, isBot: p2IsBot, avatar: p2Avatar,   equippedFrameId: p2Frame  },
+          { id: "GREEN", name: playerName, color: "GREEN" as PlayerColor, isBot: false,   avatar: userAvatar, equippedFrameId: userFrame },
+        ];
 
     const engine = new SnakeLadderEngine(playersConfig, {
-      tokensPerPlayer: 2, // 2 tokens per player
-      animationDelayMs: 300, // step animation speed - clearly visible per cell
+      tokensPerPlayer: 2,
+      animationDelayMs: 300,
     });
 
     let savedData = localStorage.getItem("ludo_sl_engine_state");
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
-        // Reset if saved state has tokens at position 0 (old start yard rules) or missing isUnlocked property
         const hasOldState = parsed.players.some((p: any) =>
           p.tokens.some((t: any) => t.currentPosition === 0 || t.isUnlocked === undefined)
         );
@@ -193,6 +200,25 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     return engine.getGameState();
   });
 
+  // Derive local player's color from saved opponent data (stable, read once)
+  const savedOppRawComp = localStorage.getItem("ludo_sl_opponent");
+  const savedOppComp = savedOppRawComp ? (() => { try { return JSON.parse(savedOppRawComp); } catch { return null; } })() : null;
+  const myColor: PlayerColor  = (savedOppComp?.myColor as PlayerColor) || "RED";
+  const oppColor: PlayerColor = myColor === "RED" ? "GREEN" : "RED";
+  const myPlayerIndex         = myColor === "RED" ? 0 : 1;
+  const oppPlayerIndex        = myColor === "RED" ? 1 : 0;
+  // Alias dice state to local / opponent perspective
+  const myDiceValue    = myColor === "RED" ? redDiceValue   : greenDiceValue;
+  const oppDiceValue   = myColor === "RED" ? greenDiceValue : redDiceValue;
+  const myIsRolling    = myColor === "RED" ? redIsRolling   : greenIsRolling;
+  const oppIsRolling   = myColor === "RED" ? greenIsRolling : redIsRolling;
+  const setMyDiceValue  = myColor === "RED" ? setRedDiceValue  : setGreenDiceValue;
+  const setOppDiceValue = myColor === "RED" ? setGreenDiceValue : setRedDiceValue;
+  const setMyIsRolling  = myColor === "RED" ? setRedIsRolling  : setGreenIsRolling;
+  const setOppIsRolling = myColor === "RED" ? setGreenIsRolling : setRedIsRolling;
+  // Flag to prevent echoing state sync back to sender
+  const isSyncingFromRemote = useRef(false);
+
   // Save active match session flag on mount so refresh auto-rejoins
   useEffect(() => {
     localStorage.setItem("ludo_active_match_session", "SNAKE_LADDER");
@@ -210,7 +236,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       const roomCode = oppData.roomCode;
       if (!roomCode) return;
 
-      const socketUrl = import.meta.env.DEV ? "http://localhost:8080" : window.location.origin;
+      const socketUrl = import.meta.env.DEV ? "http://localhost:8000" : window.location.origin;
       const socket = io(socketUrl, { transports: ["websocket", "polling"], reconnection: true });
 
       socket.emit("join_room_game", { roomCode });
@@ -218,15 +244,16 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       socket.on("server_action", (data: any) => {
         if (!engineRef.current) return;
 
-        if (data.actionType === "SL_DICE_ROLL") {
-          setGreenIsRolling(true);
-          setTimeout(() => {
-            setGreenIsRolling(false);
-            if (data.diceValue) setGreenDiceValue(data.diceValue);
-          }, 500);
-        } else if (data.actionType === "SL_TOKEN_MOVE") {
-          engineRef.current.moveToken(data.tokenId, data.rolled);
-        } else if (data.actionType === "SL_CHAT_MESSAGE") {
+        if (data.actionType === "SL_STATE_SYNC") {
+          // Full authoritative state from opponent — apply directly, no echo
+          isSyncingFromRemote.current = true;
+          engineRef.current.setGameState(data.engineState);
+          setEngineState({ ...data.engineState });
+          isSyncingFromRemote.current = false;
+          return;
+        }
+
+        if (data.actionType === "SL_CHAT_MESSAGE") {
           const newMsg: ChatMessage = {
             id: "msg_" + Date.now(),
             sender: oppData.name || "Opponent",
@@ -259,7 +286,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       setTurnTimerSeconds((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          if (engineState.currentTurnColor === "RED" && !redIsRolling && !isTokenAnimating.current) {
+          if (engineState.currentTurnColor === myColor && !myIsRolling && !isTokenAnimating.current) {
             try { SoundEngine.play('TIMEOUT'); } catch (e) {}
             if (engineState.isWaitingForTokenChoice && engineState.movableTokenIds.length > 0) {
               handleSelectToken(engineState.movableTokenIds[0]);
@@ -274,7 +301,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [engineState.currentTurnColor, engineState.phase, engineState.isWaitingForTokenChoice, redIsRolling]);
+  }, [engineState.currentTurnColor, engineState.phase, engineState.isWaitingForTokenChoice, myIsRolling]);
 
   // Setup Event Listeners on mount
   useEffect(() => {
@@ -284,7 +311,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     // BUG 5 FIX: STATE_UPDATE is the ONLY place we persist to localStorage.
     // TOKEN_MOVE_STEP does NOT save — prevents O(N) localStorage writes per move.
     engine.addEventListener("STATE_UPDATE", (payload) => {
-      isTokenAnimating.current = false; // animation done when engine emits STATE_UPDATE
+      isTokenAnimating.current = false;
       setEngineState({ ...payload.state });
       localStorage.setItem("ludo_sl_engine_state", JSON.stringify(payload.state));
     });
@@ -387,88 +414,87 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     return () => window.removeEventListener('pointerdown', unlock);
   }, []);
 
+  // Helper: explicitly send current engine state to opponent (used after local actions)
+  const syncStateToOpponent = () => {
+    if (!socketRef.current || !engineRef.current) return;
+    const oppRaw = localStorage.getItem("ludo_sl_opponent");
+    if (!oppRaw) return;
+    try {
+      const rc = JSON.parse(oppRaw).roomCode;
+      if (rc) {
+        socketRef.current.emit("client_action", {
+          roomCode: rc,
+          actionType: "SL_STATE_SYNC",
+          engineState: engineRef.current.getGameState(),
+        });
+      }
+    } catch (e) {}
+  };
+
   const handleRoll = () => {
     if (
       !engineRef.current ||
-      engineState.currentTurnColor !== "RED" ||
-      redIsRolling ||
+      engineState.currentTurnColor !== myColor ||
+      myIsRolling ||
       isTokenAnimating.current ||
       engineState.phase !== "PLAYING" ||
       engineState.isWaitingForTokenChoice
     ) return;
 
     SoundEngine.play('DICE_ROLL');
-    setRedIsRolling(true);
+    setMyIsRolling(true);
     let flashCount = 0;
     const flashInterval = setInterval(() => {
-      setRedDiceValue(Math.ceil(Math.random() * 6));
+      setMyDiceValue(Math.ceil(Math.random() * 6));
       flashCount++;
       if (flashCount >= 10) {
         clearInterval(flashInterval);
-        setRedIsRolling(false);
+        setMyIsRolling(false);
         const rolled = engineRef.current!.roll();
-        setRedDiceValue(rolled);
-        if (socketRef.current) {
-          const savedOpponentRaw = localStorage.getItem("ludo_sl_opponent");
-          if (savedOpponentRaw) {
-            try {
-              const roomCode = JSON.parse(savedOpponentRaw).roomCode;
-              if (roomCode) {
-                socketRef.current.emit("client_action", { roomCode, actionType: "SL_DICE_ROLL", diceValue: rolled });
-              }
-            } catch (e) {}
-          }
-        }
+        setMyDiceValue(rolled);
+        // Explicitly sync engine state to opponent after a short settle delay
+        setTimeout(syncStateToOpponent, 150);
       }
     }, 80);
   };
 
-  // Bot Auto-Play: GREEN's turn — roll after random 1-1.2 sec delay if bot
+  // Bot Auto-Play: opponent's turn — roll after delay if opponent is a bot
   useEffect(() => {
     if (
-      engineState.currentTurnColor !== "GREEN" ||
+      engineState.currentTurnColor !== oppColor ||
       engineState.phase !== "PLAYING" ||
-      greenIsRolling ||
+      oppIsRolling ||
       engineState.isWaitingForTokenChoice ||
-      !engineState.players[1].isBot
+      !engineState.players[oppPlayerIndex].isBot
     ) return;
 
     const botDelay = setTimeout(() => {
       if (!engineRef.current || isTokenAnimating.current) return;
-      setGreenIsRolling(true);
+      setOppIsRolling(true);
       let flashCount = 0;
       const flashInterval = setInterval(() => {
-        setGreenDiceValue(Math.ceil(Math.random() * 6));
+        setOppDiceValue(Math.ceil(Math.random() * 6));
         flashCount++;
         if (flashCount >= 8) {
           clearInterval(flashInterval);
-          setGreenIsRolling(false);
+          setOppIsRolling(false);
           if (!isTokenAnimating.current) {
             const rolled = engineRef.current!.roll();
-            setGreenDiceValue(rolled);
+            setOppDiceValue(rolled);
           }
         }
       }, 80);
     }, 1000 + Math.random() * 1200);
 
     return () => clearTimeout(botDelay);
-  }, [engineState.currentTurnColor, engineState.phase, engineState.isWaitingForTokenChoice, greenIsRolling]);
+  }, [engineState.currentTurnColor, engineState.phase, engineState.isWaitingForTokenChoice, oppIsRolling]);
 
   const handleSelectToken = (tokenId: number) => {
-    if (!engineRef.current || engineState.currentTurnColor !== "RED" || !engineState.isWaitingForTokenChoice) return;
+    if (!engineRef.current || engineState.currentTurnColor !== myColor || !engineState.isWaitingForTokenChoice) return;
     const rolled = engineState.diceValue || 0;
     engineRef.current.moveToken(tokenId, rolled);
-    if (socketRef.current) {
-      const savedOpponentRaw = localStorage.getItem("ludo_sl_opponent");
-      if (savedOpponentRaw) {
-        try {
-          const roomCode = JSON.parse(savedOpponentRaw).roomCode;
-          if (roomCode) {
-            socketRef.current.emit("client_action", { roomCode, actionType: "SL_TOKEN_MOVE", tokenId, rolled });
-          }
-        } catch (e) {}
-      }
-    }
+    // Sync state to opponent after token move settles
+    setTimeout(syncStateToOpponent, 150);
   };
 
   const handleExitClick = () => {
@@ -898,14 +924,14 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         onClick={() => handleProfileClick("GREEN")}
       >
         <CornerPlayerAvatar
-          player={engineState.players[1] as any}
-          isActive={engineState.currentTurnColor === "GREEN" && engineState.phase === "PLAYING"}
-          diceValue={greenDiceValue}
+          player={engineState.players[oppPlayerIndex] as any}
+          isActive={engineState.currentTurnColor === oppColor && engineState.phase === "PLAYING"}
+          diceValue={oppDiceValue}
           isDiceRolled={false}
           canRoll={false}
           turnTimerSeconds={turnTimerSeconds}
           isAutoMode={false}
-          chatBubbleMessage={activeSpeechBubbles.GREEN}
+          chatBubbleMessage={activeSpeechBubbles[oppColor]}
           position="top-right"
           isLocalPlayer={false}
         />
@@ -913,12 +939,12 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
 
       {/* GREEN Start Yard (Tokens at position 0) */}
       <div className="absolute top-[64px] right-[105px] z-20 flex gap-1.5">
-        {engineState.players[1].tokens.map((t) => {
+        {engineState.players[oppPlayerIndex].tokens.map((t) => {
           if (t.currentPosition > 0) return null;
           return (
             <div key={t.tokenId} className="w-6 h-6 opacity-75">
               <img
-                src={`/assets/images/icons/luxury_token_green.png?v=${ASSET_VERSION}`}
+                src={`/assets/images/icons/luxury_token_${oppColor.toLowerCase()}.png?v=${ASSET_VERSION}`}
                 alt={`T${t.tokenId}`}
                 className="w-full h-full object-contain"
               />
@@ -933,14 +959,14 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         onClick={() => handleProfileClick("RED")}
       >
         <CornerPlayerAvatar
-          player={engineState.players[0] as any}
-          isActive={engineState.currentTurnColor === "RED" && engineState.phase === "PLAYING"}
-          diceValue={redDiceValue}
+          player={engineState.players[myPlayerIndex] as any}
+          isActive={engineState.currentTurnColor === myColor && engineState.phase === "PLAYING"}
+          diceValue={myDiceValue}
           isDiceRolled={false}
-          canRoll={engineState.currentTurnColor === "RED" && !redIsRolling && engineState.phase === "PLAYING" && !engineState.isWaitingForTokenChoice}
+          canRoll={engineState.currentTurnColor === myColor && !myIsRolling && engineState.phase === "PLAYING" && !engineState.isWaitingForTokenChoice}
           turnTimerSeconds={turnTimerSeconds}
           isAutoMode={false}
-          chatBubbleMessage={activeSpeechBubbles.RED}
+          chatBubbleMessage={activeSpeechBubbles[myColor]}
           onRollDice={handleRoll}
           position="bottom-left"
           isLocalPlayer={true}
@@ -965,9 +991,9 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
 
       {/* RED Start Yard (Tokens at position 0) */}
       <div className="absolute bottom-[77px] left-[180px] z-20 flex gap-1.5 items-center">
-        {engineState.players[0].tokens.map((t) => {
+        {engineState.players[myPlayerIndex].tokens.map((t) => {
           if (t.currentPosition > 0) return null;
-          const isMovable = engineState.currentTurnColor === "RED" && engineState.isWaitingForTokenChoice && engineState.movableTokenIds.includes(t.tokenId);
+          const isMovable = engineState.currentTurnColor === myColor && engineState.isWaitingForTokenChoice && engineState.movableTokenIds.includes(t.tokenId);
           return (
             <button
               key={t.tokenId}
@@ -978,10 +1004,10 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
                   ? "cursor-pointer scale-115 drop-shadow-[0_0_8px_rgba(251,191,36,0.95)] animate-pulse"
                   : "opacity-60 pointer-events-none"
               }`}
-              title={isMovable ? "Click to move this token onto the board" : `Red Token ${t.tokenId + 1} at Start`}
+              title={isMovable ? "Click to move this token onto the board" : `My Token ${t.tokenId + 1} at Start`}
             >
               <img
-                src={`/assets/images/icons/luxury_token_red.png?v=${ASSET_VERSION}`}
+                src={`/assets/images/icons/luxury_token_${myColor.toLowerCase()}.png?v=${ASSET_VERSION}`}
                 alt={`T${t.tokenId}`}
                 className="w-full h-full object-contain"
               />
@@ -998,18 +1024,18 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         <div className="absolute bottom-[60px] left-[118px] z-20">
           <button
             onClick={handleRoll}
-            disabled={redIsRolling || engineState.currentTurnColor !== "RED" || engineState.isWaitingForTokenChoice}
+            disabled={myIsRolling || engineState.currentTurnColor !== myColor || engineState.isWaitingForTokenChoice}
             className={`relative bg-transparent border-0 outline-none p-1 rounded-2xl transition-all active:scale-90 hover:scale-105 ${
-              redIsRolling || engineState.currentTurnColor !== "RED" || engineState.isWaitingForTokenChoice
+              myIsRolling || engineState.currentTurnColor !== myColor || engineState.isWaitingForTokenChoice
                 ? "pointer-events-none opacity-80"
                 : "cursor-pointer"
             }`}
             title="Click to Roll"
           >
             <DiceFace
-              value={redDiceValue}
-              isRolling={redIsRolling}
-              diceId="dice_red"
+              value={myDiceValue}
+              isRolling={myIsRolling}
+              diceId={`dice_${myColor.toLowerCase()}`}
               size={58}
             />
           </button>
@@ -1021,17 +1047,17 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         <div className="absolute top-[60px] right-[118px] z-20">
           <div
             className={`relative p-1 rounded-2xl transition-all ${
-              engineState.currentTurnColor === "GREEN" ? "opacity-100" : "opacity-40"
+              engineState.currentTurnColor === oppColor ? "opacity-100" : "opacity-40"
             }`}
-            title="Green Player Dice"
+            title="Opponent Dice"
           >
             <DiceFace
-              value={greenDiceValue}
-              isRolling={greenIsRolling}
-              diceId="dice_green"
+              value={oppDiceValue}
+              isRolling={oppIsRolling}
+              diceId={`dice_${oppColor.toLowerCase()}`}
               size={58}
             />
-            {engineState.currentTurnColor === "GREEN" && greenIsRolling && (
+            {engineState.currentTurnColor === oppColor && oppIsRolling && (
               <div className="absolute inset-0 rounded-2xl border border-emerald-400/50 animate-pulse pointer-events-none" />
             )}
           </div>

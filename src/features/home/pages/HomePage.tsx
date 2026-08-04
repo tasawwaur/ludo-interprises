@@ -98,6 +98,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [activeNav, setActiveNav] = useState("home");
   const [showModeSelection, setShowModeSelection] = useState(false);
+  const [selectedModeForEntry, setSelectedModeForEntry] = useState<string | null>(null);
   const [showInboxModal, setShowInboxModal] = useState(false);
   const [showBellRewardsModal, setShowBellRewardsModal] = useState(false);
 
@@ -947,11 +948,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
           <div className="w-full max-w-[390px] relative z-10 flex flex-col gap-4">
             {/* Mode 1: Quick Classic */}
             <button
-              onClick={() => {
-                setShowModeSelection(false);
-                triggerToast("Joining Quick Classic...");
-                onSelectMode?.("Quick Classic");
-              }}
+              onClick={() => setSelectedModeForEntry("Quick Classic")}
               className="w-full rounded-[24px] border border-amber-500/30 bg-gradient-to-r from-slate-950/90 via-purple-950/50 to-slate-950/90 p-3.5 flex items-center gap-4 text-left shadow-[0_8px_20px_rgba(0,0,0,0.65)] hover:border-amber-400/60 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer relative"
             >
               <img 
@@ -969,7 +966,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
                 </p>
                 <div className="flex items-center gap-1.5 mt-2.5">
                   <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-md border border-amber-500/30 uppercase flex items-center gap-1">
-                    ENTRY: 5K COINS <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline" alt="coin" />
+                    ENTRY: 5K - 10M COINS <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline" alt="coin" />
                   </span>
                 </div>
               </div>
@@ -977,11 +974,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
 
             {/* Mode 2: Unique Classic */}
             <button
-              onClick={() => {
-                setShowModeSelection(false);
-                triggerToast("Joining Unique Classic...");
-                onSelectMode?.("Unique Classic");
-              }}
+              onClick={() => setSelectedModeForEntry("Unique Classic")}
               className="w-full rounded-[24px] border border-amber-500/30 bg-gradient-to-r from-slate-950/90 via-purple-950/50 to-slate-950/90 p-3.5 flex items-center gap-4 text-left shadow-[0_8px_20px_rgba(0,0,0,0.65)] hover:border-amber-400/60 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer relative"
             >
               <img 
@@ -999,7 +992,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
                 </p>
                 <div className="flex items-center gap-1.5 mt-2.5">
                   <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-md border border-amber-500/30 uppercase flex items-center gap-1">
-                    ENTRY: 5K COINS <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline" alt="coin" />
+                    ENTRY: 5K - 10M COINS <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline" alt="coin" />
                   </span>
                 </div>
               </div>
@@ -1007,11 +1000,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
 
             {/* Mode 3: Normal Classic */}
             <button
-              onClick={() => {
-                setShowModeSelection(false);
-                triggerToast("Joining Normal Classic...");
-                onSelectMode?.("Normal Classic");
-              }}
+              onClick={() => setSelectedModeForEntry("Normal Classic")}
               className="w-full rounded-[24px] border border-amber-500/30 bg-gradient-to-r from-slate-950/90 via-purple-950/50 to-slate-950/90 p-3.5 flex items-center gap-4 text-left shadow-[0_8px_20px_rgba(0,0,0,0.65)] hover:border-amber-400/60 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer relative"
             >
               <img 
@@ -1029,7 +1018,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
                 </p>
                 <div className="flex items-center gap-1.5 mt-2.5">
                   <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-md border border-amber-500/30 uppercase flex items-center gap-1">
-                    ENTRY: 5K COINS <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline" alt="coin" />
+                    ENTRY: 5K - 10M COINS <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline" alt="coin" />
                   </span>
                 </div>
               </div>
@@ -1046,11 +1035,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
 
             {/* Mode 4: Snake & Ladders */}
             <button
-              onClick={() => {
-                setShowModeSelection(false);
-                triggerToast("Loading Snakes & Ladders...");
-                onSelectMode?.("Snake & Ladders");
-              }}
+              onClick={() => setSelectedModeForEntry("Snake & Ladders")}
               className="w-full rounded-[24px] border-2 border-emerald-500/40 bg-gradient-to-r from-slate-950/95 via-emerald-950/50 to-slate-950/95 p-3.5 flex items-center gap-4 text-left shadow-[0_10px_30px_rgba(16,185,129,0.25)] hover:border-emerald-400/70 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer relative"
             >
               <img 
@@ -1074,11 +1059,101 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
                 </p>
                 <div className="flex items-center gap-1.5 mt-2.5">
                   <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-md border border-amber-500/30 uppercase flex items-center gap-1">
-                    ENTRY: 5K COINS <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline" alt="coin" />
+                    ENTRY: 5K - 10M COINS <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline" alt="coin" />
                   </span>
                 </div>
               </div>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🪙 Entry Fee Selection Modal Overlay */}
+      {selectedModeForEntry && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in select-none">
+          <div className="relative w-full max-w-[390px] rounded-3xl bg-gradient-to-b from-slate-900 via-purple-950/80 to-slate-950 border-2 border-amber-400/50 p-5 shadow-[0_0_50px_rgba(245,158,11,0.4)] flex flex-col gap-3 text-center">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
+              <div className="flex flex-col text-left">
+                <h3 className="text-base font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 uppercase tracking-wider">
+                  SELECT ENTRY BET
+                </h3>
+                <span className="text-[10px] font-bold text-purple-300 uppercase">
+                  {selectedModeForEntry} • 5% Commission
+                </span>
+              </div>
+              <button
+                onClick={() => setSelectedModeForEntry(null)}
+                className="w-8 h-8 rounded-full bg-slate-900/90 border border-amber-500/30 flex items-center justify-center text-amber-200 text-sm hover:scale-105 active:scale-95 transition-transform cursor-pointer shadow"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Entry Fee Grid (6 Tiers) */}
+            <div className="grid grid-cols-2 gap-2.5 max-h-[380px] overflow-y-auto pr-1 no-scrollbar">
+              {[
+                { fee: 5000, label: "5K", winLabel: "9.5K" },
+                { fee: 10000, label: "10K", winLabel: "19K" },
+                { fee: 50000, label: "50K", winLabel: "95K" },
+                { fee: 200000, label: "200K", winLabel: "380K" },
+                { fee: 1000000, label: "1M", winLabel: "1.9M" },
+                { fee: 10000000, label: "10M", winLabel: "19M" },
+              ].map((tier) => {
+                const userCoins = user?.coins || 0;
+                const canAfford = userCoins >= tier.fee;
+                return (
+                  <button
+                    key={tier.fee}
+                    disabled={!canAfford}
+                    onClick={() => {
+                      if (!canAfford) return;
+                      localStorage.setItem("ludo_current_entry_fee", tier.fee.toString());
+                      const modeToJoin = selectedModeForEntry;
+                      setSelectedModeForEntry(null);
+                      setShowModeSelection(false);
+                      triggerToast(`Joining ${modeToJoin} (${tier.label} Bet)...`);
+                      onSelectMode?.(modeToJoin);
+                    }}
+                    className={`rounded-2xl p-3 border text-left flex flex-col justify-between transition-all duration-200 cursor-pointer relative overflow-hidden ${
+                      canAfford
+                        ? 'bg-gradient-to-b from-slate-900/90 to-purple-950/70 border-amber-500/40 hover:border-amber-400 hover:scale-[1.03] active:scale-[0.97] shadow-lg'
+                        : 'bg-slate-950/60 border-slate-800 opacity-50 cursor-not-allowed'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-black text-amber-300 bg-amber-400/10 border border-amber-500/30 px-2 py-0.5 rounded-md uppercase flex items-center gap-1">
+                        {tier.label} <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline" alt="" />
+                      </span>
+                      <span className="text-[8px] font-bold text-slate-400 uppercase">ENTRY</span>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase">WIN PRIZE</span>
+                      <span className="text-sm font-black text-amber-400 tracking-wide drop-shadow flex items-center gap-1">
+                        🏆 {tier.winLabel}
+                      </span>
+                    </div>
+
+                    {!canAfford && (
+                      <div className="mt-2 text-[8px] font-black text-rose-400 bg-rose-950/80 border border-rose-500/30 px-1.5 py-0.5 rounded text-center uppercase">
+                        Insufficient Coins
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Cancel Button */}
+            <button
+              onClick={() => setSelectedModeForEntry(null)}
+              className="w-full py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider hover:bg-slate-700 active:scale-95 transition-all cursor-pointer mt-1"
+            >
+              Cancel
+            </button>
+
           </div>
         </div>
       )}

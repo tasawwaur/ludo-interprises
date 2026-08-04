@@ -374,10 +374,12 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         const winXP = 200;
         const totalXP = killsXP + laddersXP + winXP;
 
+        const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
+        const winReward = Math.round(entryFee * 1.9); // 2 * entryFee - 5% commission
         const currentCoins = user?.coins || 0;
         const currentXP = user?.xp || 0;
         updateUser({
-          coins: currentCoins + 9500,
+          coins: currentCoins + winReward,
           xp: currentXP + totalXP,
         });
 
@@ -504,9 +506,9 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           const lXP = (localPlayer.ladderCount || 0) * 70;
           const wXP = isWin ? 200 : 20;
           const tXP = kXP + lXP + wXP;
-          const cCoins = useUserStore.getState().user?.coins || 0;
-          const cXP = useUserStore.getState().user?.xp || 0;
-          updateUser({ coins: isWin ? cCoins + 9500 : cCoins, xp: cXP + tXP });
+          const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
+          const winReward = Math.round(entryFee * 1.9); // 2 * entryFee - 5% commission
+          updateUser({ coins: isWin ? cCoins + winReward : cCoins, xp: cXP + tXP });
           if (isWin) {
             SoundEngine.play('WIN');
             try { confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['#FFD700', '#FFA500', '#10B981', '#3B82F6', '#EF4444'] }); } catch (e) {}
@@ -794,10 +796,11 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       state.logMessage = `🚪 Match Forfeited! ${state.players[myPlayerIndex].name} quit the match.`;
       engineRef.current.setGameState(state);
 
-      // Deduct 5,000 Coins penalty for quitting match
+      // Deduct entry fee penalty for quitting match
+      const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
       const currentCoins = user?.coins || 0;
       updateUser({
-        coins: Math.max(0, currentCoins - 5000),
+        coins: Math.max(0, currentCoins - entryFee),
       });
     } else {
       onLeave();
@@ -1629,7 +1632,11 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
                     </span>
                   </div>
                   <span className={`text-sm font-black ${isWinner ? 'text-amber-400' : 'text-rose-400'}`}>
-                    {isWinner ? "+9,500 Coins" : "-5,000 Coins"}
+                    {(() => {
+                      const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
+                      const winReward = Math.round(entryFee * 1.9);
+                      return isWinner ? `+${winReward.toLocaleString()} Coins` : `-${entryFee.toLocaleString()} Coins`;
+                    })()}
                   </span>
                 </div>
 

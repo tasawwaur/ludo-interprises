@@ -227,11 +227,14 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
               </div>
 
               {/* OPAQUE FLOATING COIN DEDUCTION TEXT */}
-              {showDeductText && (
-                <div className="absolute -right-2 top-0 z-50 text-red-500 font-extrabold text-[13px] tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,1)] animate-[floatUp_2s_ease-out_forwards] flex items-center gap-1 select-none whitespace-nowrap">
-                  -5000 <img src="/assets/images/icons/luxury_coin.png" className="w-3.5 h-3.5 object-contain" alt="coin" />
-                </div>
-              )}
+              {showDeductText && (() => {
+                const fee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
+                return (
+                  <div className="absolute -right-2 top-0 z-50 text-red-500 font-extrabold text-[13px] tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,1)] animate-[floatUp_2s_ease-out_forwards] flex items-center gap-1 select-none whitespace-nowrap">
+                    -{fee.toLocaleString()} <img src="/assets/images/icons/luxury_coin.png" className="w-3.5 h-3.5 object-contain" alt="coin" />
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Bottom-Right Profile (Player 2 / Joiner Opponent) - Only shown when connected */}
@@ -271,11 +274,14 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
                 </div>
 
                 {/* OPAQUE FLOATING COIN DEDUCTION TEXT */}
-                {showDeductText && (
-                  <div className="absolute -left-[54px] top-0 z-50 text-red-500 font-extrabold text-[13px] tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,1)] animate-[floatUp_2s_ease-out_forwards] flex items-center gap-1 select-none whitespace-nowrap">
-                    -5000 <img src="/assets/images/icons/luxury_coin.png" className="w-3.5 h-3.5 object-contain" alt="coin" />
-                  </div>
-                )}
+                {showDeductText && (() => {
+                  const fee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
+                  return (
+                    <div className="absolute -left-[54px] top-0 z-50 text-red-500 font-extrabold text-[13px] tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,1)] animate-[floatUp_2s_ease-out_forwards] flex items-center gap-1 select-none whitespace-nowrap">
+                      -{fee.toLocaleString()} <img src="/assets/images/icons/luxury_coin.png" className="w-3.5 h-3.5 object-contain" alt="coin" />
+                    </div>
+                  );
+                })()}
               </div>
             )}
 

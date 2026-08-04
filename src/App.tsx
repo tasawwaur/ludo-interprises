@@ -243,8 +243,9 @@ const MainApp: React.FC = () => {
     const passedTokens = localPlayer.tokens.filter(t => t.stepCount === 57).length;
     const xpReward = (passedTokens * 50) + (kills * 10);
 
-    const newXp = (user.xp || 0) + xpReward;
-    const newCoins = isWinner ? (user.coins || 0) + 10000 : (user.coins || 0); // Net +5,000 on win, net -5,000 on loss (since 5k was already deducted at start)
+    const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
+    const winReward = Math.round(entryFee * 1.9); // 2 * entryFee - 5% commission
+    const newCoins = isWinner ? (user.coins || 0) + winReward : (user.coins || 0);
     const newGems = isWinner ? (user.gems || 0) + 5 : (user.gems || 0); // Winner gets +5 diamonds, Loser gets +0
 
     // Check for level up (every 1000 XP)
@@ -403,9 +404,10 @@ const MainApp: React.FC = () => {
               myColor?: string,
               isHost?: boolean
             ) => {
-              // Deduct 5,000 coins entry fee for 2P Match
+              // Deduct selected entry fee for Match
+              const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
               const currentCoins = user?.coins || 20000;
-              updateUser({ coins: Math.max(0, currentCoins - 5000) });
+              updateUser({ coins: Math.max(0, currentCoins - entryFee) });
               
               const hostName = user?.displayName || user?.username || "Govind";
               const hostAvatar = user?.avatar || "/assets/images/icons/icon_club_crown.png";
@@ -504,7 +506,7 @@ const MainApp: React.FC = () => {
         let loserPassedTokens = 2;
 
         let isLocalPlayerWinner = true;
-        const betCoins = 5000;
+        const betCoins = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
 
         if (gState) {
           const wColor = gState.winnerRankings[0] || "GREEN";

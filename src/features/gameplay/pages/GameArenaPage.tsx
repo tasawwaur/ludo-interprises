@@ -142,10 +142,12 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
       const winnerColor = gameState.winnerRankings[0];
       const winningPlayer = gameState.players.find((p) => p.color === winnerColor);
       
-      // If Host / User won the match, credit 9,500 coins to their wallet!
+      // If Host / User won the match, credit win reward to their wallet!
       if (winningPlayer?.isHost || winningPlayer?.color === localPlayer?.color) {
+        const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
+        const winReward = Math.round(entryFee * 1.9); // 2 * entryFee - 5% commission
         const currentCoins = user?.coins || 0;
-        updateUser({ coins: currentCoins + 9500 });
+        updateUser({ coins: currentCoins + winReward });
         setRewardClaimed(true);
       }
     }

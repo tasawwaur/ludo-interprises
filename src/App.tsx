@@ -414,15 +414,17 @@ const MainApp: React.FC = () => {
               
               const activeQueueMode = useQueueStore.getState().mode || "2P Classic";
 
-              if (opponent) {
-                localStorage.setItem("ludo_sl_opponent", JSON.stringify({ ...opponent, myColor }));
-                localStorage.setItem("ludo_sl_botName", opponent.name);
-              } else {
-                localStorage.removeItem("ludo_sl_opponent");
+              if (activeQueueMode === "Snake & Ladders") {
+                if (opponent) {
+                  localStorage.setItem("ludo_sl_opponent", JSON.stringify({ ...opponent, myColor }));
+                  localStorage.setItem("ludo_sl_botName", opponent.name);
+                } else {
+                  localStorage.removeItem("ludo_sl_opponent");
+                }
+                localStorage.removeItem("ludo_sl_engine_state");
+                setCurrentView("SNAKE_LADDER");
+                return;
               }
-              localStorage.removeItem("ludo_sl_engine_state");
-              setCurrentView("SNAKE_LADDER");
-              return;
 
               // Determine the room members in a consistent order on both screens (real host first, guest second)
               const actualHostName = isHost ? hostName : (opponent?.name || "Player 1");

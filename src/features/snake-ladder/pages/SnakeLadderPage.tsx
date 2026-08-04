@@ -12,6 +12,7 @@ import { SoundEngine } from "../../../game/sound/SoundEngine";
 import confetti from "canvas-confetti";
 import { ChatModal, ChatMessage } from "../../chat/ChatModal";
 import { globalSocket } from "../../../multiplayer/socket/SocketClient";
+import { useLevelStore } from "../../xp-level/store/level.store";
 
 // ─── Import Authoritative Rule Engine ────────────────────────────────────────
 import { SnakeLadderEngine } from "../engine/SnakeLadderEngine";
@@ -512,6 +513,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           SoundEngine.play('CAPTURE');
           setKillBanner(payload.message || "⚔️ TOKEN KILLED!");
           setTimeout(() => setKillBanner(null), 2500);
+          useLevelStore.getState().gainXp(50, "TOKEN_KILL");
         });
         engine.addEventListener("LADDER_CLIMB", (payload) => {
           isTokenAnimating.current = true;
@@ -530,12 +532,15 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           const lXP = (localPlayer.ladderCount || 0) * 70;
           const wXP = isWin ? 200 : 20;
           const tXP = kXP + lXP + wXP;
+
+          // Process Level Up via gainXp
+          useLevelStore.getState().gainXp(tXP, "MATCH_FINISH");
+
           const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
           const winReward = Math.round(entryFee * 1.9); // 2 * entryFee - 5% commission
           const currentUser = useUserStore.getState().user;
           const cCoins = currentUser?.coins || 0;
-          const cXP = currentUser?.xp || 0;
-          updateUser({ coins: isWin ? cCoins + winReward : cCoins, xp: cXP + tXP });
+          updateUser({ coins: isWin ? cCoins + winReward : cCoins });
           if (isWin) {
             SoundEngine.play('WIN');
             try { confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['#FFD700', '#FFA500', '#10B981', '#3B82F6', '#EF4444'] }); } catch (e) {}
@@ -641,12 +646,13 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       SoundEngine.play('CAPTURE');
     });
 
-    // Token Kill — play capture sound + show announcement banner
+    // Token Kill — play capture sound + show announcement banner + award XP
     engine.addEventListener("TOKEN_KILL", (payload) => {
       isTokenAnimating.current = true;
       SoundEngine.play('CAPTURE');
       setKillBanner(payload.message || "⚔️ TOKEN KILLED!");
       setTimeout(() => setKillBanner(null), 2500);
+      useLevelStore.getState().gainXp(50, "TOKEN_KILL");
     });
 
     // Ladder Climb — golden glow + sparkle + sound
@@ -660,7 +666,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       setTimeout(() => setLadderAnim(null), steps * 300 + 1000);
     });
 
-    // Win event — reward 9,500 coins + XP calculation (1 kill = 50 XP, 1 ladder = 70 XP, Win = 200 XP) + sound
+    // Win event — reward coins + XP calculation & level up
     engine.addEventListener("GAME_OVER", (payload) => {
       // Use local player's perspective (myPlayerIndex) instead of hardcoded players[0]
       const localPlayerIdx = myColor === "RED" ? 0 : 1;
@@ -671,14 +677,15 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       const winXP = isWinner ? 200 : 20;
       const totalXP = killsXP + laddersXP + winXP;
 
+      // Process Level Up via gainXp
+      useLevelStore.getState().gainXp(totalXP, "MATCH_FINISH");
+
       const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
       const winReward = Math.round(entryFee * 1.9); // 2 * entryFee - 5% commission
       const currentCoins = useUserStore.getState().user?.coins || 0;
-      const currentXP = useUserStore.getState().user?.xp || 0;
 
       updateUser({
         coins: isWinner ? currentCoins + winReward : currentCoins,
-        xp: currentXP + totalXP,
       });
 
       if (isWinner) {

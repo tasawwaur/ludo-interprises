@@ -1033,33 +1033,41 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
               <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent via-amber-500/40 to-amber-500/20" />
             </div>
 
-            {/* Mode 4: Snake & Ladders */}
+            {/* Mode 4: Snake & Ladders (Locked for now) */}
             <button
-              onClick={() => setSelectedModeForEntry("Snake & Ladders")}
-              className="w-full rounded-[24px] border-2 border-emerald-500/40 bg-gradient-to-r from-slate-950/95 via-emerald-950/50 to-slate-950/95 p-3.5 flex items-center gap-4 text-left shadow-[0_10px_30px_rgba(16,185,129,0.25)] hover:border-emerald-400/70 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer relative"
+              onClick={() => {
+                triggerToast("🔒 Snakes & Ladders mode is currently locked!");
+              }}
+              className="w-full rounded-[24px] border-2 border-slate-700/60 bg-gradient-to-r from-slate-950/95 via-slate-900/80 to-slate-950/95 p-3.5 flex items-center gap-4 text-left shadow-lg opacity-60 cursor-not-allowed relative overflow-hidden"
             >
+              {/* Lock Badge Overlay */}
+              <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[1px] flex items-center justify-center z-20">
+                <span className="bg-slate-900/90 border border-amber-400/60 text-amber-300 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-xl flex items-center gap-1.5">
+                  🔒 LOCKED
+                </span>
+              </div>
               <img 
                 src="/assets/images/icons/snake_ladder_luxury_icon.jpg" 
                 alt="Snakes & Ladders" 
-                className="w-16 h-16 rounded-[16px] object-cover border-2 border-emerald-400/60 shadow-[0_0_15px_rgba(16,185,129,0.4)]" 
+                className="w-16 h-16 rounded-[16px] object-cover border-2 border-slate-600/60 grayscale" 
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-black text-amber-200 tracking-wide leading-tight flex flex-col">
+                  <h3 className="text-sm font-black text-slate-400 tracking-wide leading-tight flex flex-col">
                     <span>SNAKES &amp;</span>
                     <span>LADDERS</span>
                   </h3>
-                  <div className="w-10 h-10 rounded-full border-2 border-amber-400/70 bg-gradient-to-br from-emerald-900 to-slate-950 flex flex-col items-center justify-center shadow-lg">
-                    <span className="text-[9px] font-black text-amber-300 leading-none">1 vs</span>
-                    <span className="text-[10px] font-black text-amber-300 leading-none">1</span>
+                  <div className="w-10 h-10 rounded-full border-2 border-slate-700 bg-slate-950 flex flex-col items-center justify-center shadow">
+                    <span className="text-[9px] font-black text-slate-500 leading-none">1 vs</span>
+                    <span className="text-[10px] font-black text-slate-500 leading-none">1</span>
                   </div>
                 </div>
-                <p className="text-[10px] text-emerald-200/80 mt-1 leading-snug">
+                <p className="text-[10px] text-slate-400/80 mt-1 leading-snug">
                   Roll dice, climb golden ladders &amp; dodge deadly snakes. First to reach 100 wins!
                 </p>
                 <div className="flex items-center gap-1.5 mt-2.5">
-                  <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-md border border-amber-500/30 uppercase flex items-center gap-1">
-                    ENTRY: 5K - 10M COINS <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline" alt="coin" />
+                  <span className="text-[9px] font-black tracking-wider text-slate-400 bg-slate-800/40 px-2.5 py-0.5 rounded-md border border-slate-700/50 uppercase flex items-center gap-1">
+                    ENTRY: LOCKED <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline grayscale" alt="coin" />
                   </span>
                 </div>
               </div>

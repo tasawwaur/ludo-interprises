@@ -24,9 +24,11 @@ interface GameStoreState {
   gameSocket: any | null;
   _isRolling: boolean;
   cheatNextRollValue: number | null;
+  isSpectatorMode: boolean; // ✅ Spectator mode active
 
   // Actions
   startMatch: (mode: '2P' | '2v2' | '4P', hostName: string) => void;
+  startSpectatorMatch: (p1: any, p2: any) => void; // ✅ Spectate VIP bots match
   rollDice: () => void;
   undoRoll: () => void;
   moveToken: (tokenId: string, isRemote?: boolean) => void;
@@ -56,6 +58,7 @@ export const useGameStore = create<GameStoreState>()(
       gameSocket: null,
       _isRolling: false,
       cheatNextRollValue: null,
+      isSpectatorMode: false, // ✅ Initialize as false
 
       startMatch: (mode, hostName) => {
         // ✅ Restore state from localStorage on refresh
@@ -127,6 +130,50 @@ export const useGameStore = create<GameStoreState>()(
         });
 
         localStorage.setItem("ludo_classic_engine_state", JSON.stringify(initialState));
+
+        setTimeout(() => {
+          get().triggerAiMoveIfNeeded();
+        }, 800);
+      },
+
+      startSpectatorMatch: (p1, p2) => {
+        set({ gameState: null });
+
+        // Build 2 AI players
+        const members = [
+          { id: "m_1", name: p1.username, isHost: true, isBot: true, color: "BLUE", avatar: p1.avatarUrl, profileFrame: "frame_vip" },
+          { id: "m_2", name: p2.username, isHost: false, isBot: true, color: "GREEN", avatar: p2.avatarUrl, profileFrame: "frame_vip" }
+        ];
+
+        const initialState = GameEngine.createInitialState('2P', p1.username, members, 'Normal Classic');
+
+        // Force both to be AI
+        initialState.players = initialState.players.map((p) => {
+          return {
+            ...p,
+            isAi: true,
+            equippedFrameId: 'frame_vip',
+            equippedTokenId: 'token_default',
+            equippedDiceId: 'dice_classic',
+          };
+        });
+
+        initialState.equippedBoardId = 'board_default';
+
+        const recorder = new ReplayRecorder();
+
+        set({
+          gameState: initialState,
+          localPlayerColor: "BLUE" as PlayerColor,
+          replayRecorder: recorder,
+          activeHoverTokenId: null,
+          selectedTokenId: null,
+          turnTimerSeconds: 15,
+          isAutoMode: false,
+          isSpectatorMode: true, // ✅ Set flag
+        });
+
+        SoundEngine.play('GAME_START');
 
         setTimeout(() => {
           get().triggerAiMoveIfNeeded();
@@ -459,6 +506,7 @@ export const useGameStore = create<GameStoreState>()(
       selectedTokenId: null,
       turnTimerSeconds: 15,
       isAutoMode: false,
+      isSpectatorMode: false, // ✅ Reset spectator mode
     });
   },
 

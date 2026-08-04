@@ -9,6 +9,7 @@ import { ReadyCheck } from "./features/matchmaking/party/ReadyCheck";
 import { GameArenaPage } from "./features/gameplay/pages/GameArenaPage";
 import { MatchResultScreen } from "./features/gameplay/pages/MatchResultScreen";
 import { SnakeLadderPage } from "./features/snake-ladder/pages/SnakeLadderPage";
+import { VIPLoungePage } from "./features/vip-room/pages/VIPHomePage";
 import { TournamentPage } from "./features/tournament/pages/TournamentPage";
 import { LeaderboardPage } from "./features/leaderboard/pages/LeaderboardPage";
 import { ProfilePage } from "./features/profile/pages/ProfilePage";
@@ -61,7 +62,8 @@ export type AppView =
   | "DICE_MAIN"
   | "REWARD_CENTER"
   | "ADS_SETTINGS"
-  | "SNAKE_LADDER";
+  | "SNAKE_LADDER"
+  | "VIP_LOUNGE";
 
 const MainApp: React.FC = () => {
   // Load persisted view if game in progress
@@ -400,7 +402,7 @@ const MainApp: React.FC = () => {
       return;
     }
     if (selectedMode === "VIP Lounge" || selectedMode === "VIP Room") {
-      setCurrentView("SHOP");
+      setCurrentView("VIP_LOUNGE");
       return;
     }
     // Check entry fee (5,000 Coins)
@@ -580,6 +582,22 @@ const MainApp: React.FC = () => {
           />
         );
 
+      case "VIP_LOUNGE":
+        return (
+          <VIPLoungePage
+            onBack={() => setCurrentView("HOME")}
+            onStartVIPMatch={() => {
+              localStorage.setItem("ludo_current_entry_fee", "50000");
+
+              startQueue("VIP Lounge");
+              setCurrentView("QUEUE");
+            }}
+            onSpectateMatch={() => {
+              setCurrentView("GAME_ARENA");
+            }}
+          />
+        );
+
       case "GAME_ARENA":
         return (
           <GameArenaPage
@@ -589,7 +607,13 @@ const MainApp: React.FC = () => {
               localStorage.removeItem("ludo_classic_members");
               localStorage.removeItem("ludo_classic_mode");
               localStorage.removeItem("ludo_classic_my_color");
-              setCurrentView("MATCH_RESULT");
+              
+              if (useGameStore.getState().isSpectatorMode) {
+                useGameStore.getState().resetMatch();
+                setCurrentView("VIP_LOUNGE");
+              } else {
+                setCurrentView("MATCH_RESULT");
+              }
             }}
           />
         );

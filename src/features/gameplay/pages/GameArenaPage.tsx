@@ -29,6 +29,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
   const moveToken = useGameStore((s) => s.moveToken);
   const turnTimerSeconds = useGameStore((s) => s.turnTimerSeconds);
   const isAutoMode = useGameStore((s) => s.isAutoMode);
+  const isSpectatorMode = useGameStore((s) => s.isSpectatorMode); // ✅ Select spectator mode state
   const disableAutoMode = useGameStore((s) => s.disableAutoMode);
   const tickTurnTimer = useGameStore((s) => s.tickTurnTimer);
   const demoStack = useGameStore((s) => s.demoStack);
@@ -139,6 +140,10 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
   // Match Victory Prize Reward (9,500 Coins for Winner)
   useEffect(() => {
     if (gameState?.gameStatus === 'GAME_OVER' && !rewardClaimed) {
+      if (isSpectatorMode) {
+        setRewardClaimed(true);
+        return;
+      }
       const winnerColor = gameState.winnerRankings[0];
       const winningPlayer = gameState.players.find((p) => p.color === winnerColor);
       
@@ -151,7 +156,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         setRewardClaimed(true);
       }
     }
-  }, [gameState?.gameStatus, gameState?.winnerRankings, rewardClaimed, user?.coins, updateUser, localPlayer?.color]);
+  }, [gameState?.gameStatus, gameState?.winnerRankings, rewardClaimed, user?.coins, updateUser, localPlayer?.color, isSpectatorMode]);
 
   // Auto transition to MatchResultScreen after 4 seconds when game is over
   useEffect(() => {
@@ -434,16 +439,20 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                       return (
                         <div
                           key={token.id}
-                          onMouseDown={(e) => handleMouseDown(e, token.id)}
+                          onMouseDown={(e) => {
+                            if (isSpectatorMode) return;
+                            handleMouseDown(e, token.id);
+                          }}
                           onClick={() => {
+                            if (isSpectatorMode) return;
                             if (isMoveable) {
                               moveToken(token.id);
                             }
                           }}
                           className={`absolute -translate-x-1/2 ${translateClass} w-[24px] h-[31px] z-30 flex items-center justify-center filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)] transition-all duration-200 pointer-events-auto ${
-                            isMoveable
+                            isMoveable && !isSpectatorMode
                               ? 'cursor-pointer hover:scale-125 active:scale-95 ring-4 ring-yellow-400 ring-offset-1 rounded-full animate-bounce shadow-[0_0_15px_rgba(251,191,36,0.9)] z-40'
-                              : 'cursor-grab active:cursor-grabbing'
+                              : isSpectatorMode ? 'pointer-events-none' : 'cursor-grab active:cursor-grabbing'
                           }`}
                           style={{
                             top: positionStyle.top,
@@ -518,6 +527,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                 value={localPlayer && gameState.currentTurnColor === localPlayer.color ? gameState.diceValue : null}
                 isActiveTurn={localPlayer && gameState.currentTurnColor === localPlayer.color}
                 canRoll={
+                  !isSpectatorMode && // ✅ Disables manual rolling in spectator mode
                   !!(localPlayer &&
                   gameState.currentTurnColor === localPlayer.color &&
                   gameState.gameStatus === 'ROLL_WAIT' &&
@@ -537,6 +547,16 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
 
       {/* 3. FIXED OVERLAY UI LAYER (Fixed absolute coordinate slots) */}
       <div className="w-full max-w-[430px] h-screen relative z-20 overflow-hidden pointer-events-none">
+
+        {/* VIP SPECTATING BANNER */}
+        {isSpectatorMode && (
+          <div className="absolute top-5 left-1/2 -translate-x-1/2 z-30 pointer-events-auto bg-gradient-to-r from-purple-900/95 via-amber-500/95 to-purple-900/95 border border-amber-400 px-4 py-1.5 rounded-full flex items-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.6)] scale-95 transition-all">
+            <span className="animate-pulse w-2 h-2 rounded-full bg-red-500" />
+            <span className="text-[9px] font-black text-white uppercase tracking-widest flex items-center gap-1 font-sans">
+              👑 VIP SPECTATING MODE
+            </span>
+          </div>
+        )}
 
         {/* HAMBURGER MENU BUTTON: FIXED TOP-LEFT */}
         <div className="absolute top-5 left-3 z-30 pointer-events-auto">

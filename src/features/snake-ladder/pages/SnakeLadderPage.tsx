@@ -481,6 +481,9 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           isTokenAnimating.current = true;
           SoundEngine.play('TOKEN_STEP');
           setEngineState({ ...payload.state });
+          if (!isSyncingFromRemote.current) {
+            syncStateToOpponent();
+          }
         });
         engine.addEventListener("SNAKE_SLIDE", () => { isTokenAnimating.current = true; SoundEngine.play('CAPTURE'); });
         engine.addEventListener("TOKEN_KILL", (payload) => {
@@ -603,6 +606,9 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       SoundEngine.play('TOKEN_STEP');
       // Live board update — no localStorage write here
       setEngineState({ ...payload.state });
+      if (!isSyncingFromRemote.current) {
+        syncStateToOpponent();
+      }
     });
 
     // Snake Slide — play snake bite / capture sound effect

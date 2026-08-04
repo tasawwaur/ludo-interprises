@@ -1068,27 +1068,40 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
                   key={`red-${t.tokenId}-${t.currentPosition}`}
                   disabled={!isMovable}
                   onClick={(e) => {
+                    if (!isMovable) return;
                     e.stopPropagation();
                     handleSelectToken(t.tokenId);
                   }}
                   style={{ width: `${sizePx}px`, height: `${sizePx}px` }}
-                  className={`p-0 bg-transparent border-0 outline-none relative ${
+                  className={`p-0 bg-transparent border-0 outline-none relative transition-all duration-200 ${
                     t.isMoving
-                      ? "token-hop z-30"
+                      ? "token-hop z-30 scale-125"
                       : isMovable
-                      ? `cursor-pointer scale-110 drop-shadow-[0_0_6px_rgba(251,191,36,0.95)] ${animationClass} z-30`
-                      : "z-10 transition-transform"
+                      ? `cursor-pointer scale-125 drop-shadow-[0_0_12px_rgba(251,191,36,1)] ${animationClass} z-30`
+                      : "z-10 animate-pulse drop-shadow-[0_0_8px_rgba(239,68,68,0.9)]"
                   }`}
-                  title={isMovable ? "Click to move this Red Token" : `Red Token ${t.tokenId + 1}`}
+                  title={isMovable ? `Click to move Red Token ${t.tokenId + 1}` : `Red Token ${t.tokenId + 1}`}
                 >
+                  {/* Continuous Placed Token Breathing Aura */}
+                  {!t.isMoving && !isMovable && (
+                    <div className="absolute -inset-1 rounded-full bg-red-500/25 border border-red-400/50 animate-pulse pointer-events-none" />
+                  )}
+
                   <img
                     src={`/assets/images/icons/luxury_token_red.png?v=${ASSET_VERSION}`}
                     alt="RED"
                     className="w-full h-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]"
                     draggable={false}
                   />
+
+                  {/* Movable Choice Highlight & Pulse Indicator */}
                   {isMovable && (
-                    <div className="absolute inset-0 border-[1px] border-yellow-400 rounded-full animate-ping" />
+                    <>
+                      <div className="absolute -inset-1 border-2 border-yellow-300 rounded-full animate-ping shadow-[0_0_10px_rgba(253,224,71,0.9)]" />
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-yellow-400 text-slate-950 font-black text-[7px] px-1 py-0.2 rounded shadow uppercase whitespace-nowrap animate-bounce z-40 border border-yellow-200">
+                        MOVE
+                      </div>
+                    </>
                   )}
                 </button>
               );
@@ -1096,48 +1109,47 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
 
             {greenTokensHere.map((t) => {
               const isMovable = myColor === "GREEN" && engineState.currentTurnColor === "GREEN" && engineState.isWaitingForTokenChoice && engineState.movableTokenIds.includes(t.tokenId);
-              return isMovable ? (
+              return (
                 <button
                   key={`green-${t.tokenId}-${t.currentPosition}`}
                   disabled={!isMovable}
                   onClick={(e) => {
+                    if (!isMovable) return;
                     e.stopPropagation();
                     handleSelectToken(t.tokenId);
                   }}
                   style={{ width: `${sizePx}px`, height: `${sizePx}px` }}
-                  className={`p-0 bg-transparent border-0 outline-none relative ${
+                  className={`p-0 bg-transparent border-0 outline-none relative transition-all duration-200 ${
                     t.isMoving
-                      ? "token-hop z-30"
+                      ? "token-hop z-30 scale-125"
                       : isMovable
-                      ? `cursor-pointer scale-110 drop-shadow-[0_0_6px_rgba(251,191,36,0.95)] ${animationClass} z-30`
-                      : "z-10 transition-transform"
+                      ? `cursor-pointer scale-125 drop-shadow-[0_0_12px_rgba(251,191,36,1)] ${animationClass} z-30`
+                      : "z-10 animate-pulse drop-shadow-[0_0_8px_rgba(16,185,129,0.9)]"
                   }`}
-                  title="Click to move this Green Token"
+                  title={isMovable ? `Click to move Green Token ${t.tokenId + 1}` : `Green Token ${t.tokenId + 1}`}
                 >
+                  {/* Continuous Placed Token Breathing Aura */}
+                  {!t.isMoving && !isMovable && (
+                    <div className="absolute -inset-1 rounded-full bg-emerald-500/25 border border-emerald-400/50 animate-pulse pointer-events-none" />
+                  )}
+
                   <img
                     src={`/assets/images/icons/luxury_token_green.png?v=${ASSET_VERSION}`}
                     alt="GREEN"
                     className="w-full h-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]"
                     draggable={false}
                   />
+
+                  {/* Movable Choice Highlight & Pulse Indicator */}
                   {isMovable && (
-                    <div className="absolute inset-0 border-[1px] border-yellow-400 rounded-full animate-ping" />
+                    <>
+                      <div className="absolute -inset-1 border-2 border-yellow-300 rounded-full animate-ping shadow-[0_0_10px_rgba(253,224,71,0.9)]" />
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-yellow-400 text-slate-950 font-black text-[7px] px-1 py-0.2 rounded shadow uppercase whitespace-nowrap animate-bounce z-40 border border-yellow-200">
+                        MOVE
+                      </div>
+                    </>
                   )}
                 </button>
-              ) : (
-                <div
-                  key={`green-${t.tokenId}-${t.currentPosition}`}
-                  style={{ width: `${sizePx}px`, height: `${sizePx}px` }}
-                  className={`relative z-10 ${t.isMoving ? "token-hop" : ""}`}
-                  title={`Green Token ${t.tokenId + 1}`}
-                >
-                  <img
-                    src={`/assets/images/icons/luxury_token_green.png?v=${ASSET_VERSION}`}
-                    alt="GREEN"
-                    className="w-full h-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]"
-                    draggable={false}
-                  />
-                </div>
               );
             })}
           </div>

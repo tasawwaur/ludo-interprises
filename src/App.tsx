@@ -681,6 +681,7 @@ const MainApp: React.FC = () => {
               <UserProfileModal
                 userStats={profile}
                 onClose={closeProfile}
+                isMe={profile.id === user?.id || profile.id === user?.uid}
                 isFriend={useFriendsStore.getState().friendsList.some(
                   f => f.id === profile.id || f.name.toLowerCase() === profile.name.toLowerCase()
                 )}

@@ -39,7 +39,8 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
 
   useEffect(() => {
     // Connect to live multiplayer server
-    const socketUrl = import.meta.env.DEV ? "http://localhost:8000" : window.location.origin;
+    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    const socketUrl = import.meta.env.DEV ? `http://${host}:8000` : window.location.origin;
     const socket = io(socketUrl, {
       transports: ["websocket", "polling"],
       reconnection: true,

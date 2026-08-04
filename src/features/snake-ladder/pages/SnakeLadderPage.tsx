@@ -236,7 +236,8 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       const roomCode = oppData.roomCode;
       if (!roomCode) return;
 
-      const socketUrl = import.meta.env.DEV ? "http://localhost:8000" : window.location.origin;
+      const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+      const socketUrl = import.meta.env.DEV ? `http://${host}:8000` : window.location.origin;
       const socket = io(socketUrl, { transports: ["websocket", "polling"], reconnection: true });
 
       socket.emit("join_room_game", { roomCode });

@@ -603,7 +603,8 @@ export const useGameStore = create<GameStoreState>()(
   },
 
   connectGameSocket: (roomCode) => {
-    const socketUrl = import.meta.env.DEV ? "http://localhost:8080" : window.location.origin;
+    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    const socketUrl = import.meta.env.DEV ? `http://${host}:8000` : window.location.origin;
     const socket = io(socketUrl, {
       transports: ["websocket", "polling"],
       reconnection: true,

@@ -3,6 +3,7 @@ import { io } from "socket.io-client";
 import { useQueueStore } from "../queue/QueueStore";
 import { LudoPageBackground } from "../../../components/effects/LudoPageBackground";
 import { useUserStore } from "../../../user/user.store";
+import { getSocketUrl } from "../../../utils/socketUrl";
 
 interface MatchmakingPageProps {
   onCancel: () => void;
@@ -41,8 +42,7 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
 
   useEffect(() => {
     // Connect to live multiplayer server
-    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-    const socketUrl = import.meta.env.DEV ? `http://${host}:8000` : window.location.origin;
+    const socketUrl = getSocketUrl();
     const socket = io(socketUrl, {
       transports: ["websocket", "polling"],
       reconnection: true,

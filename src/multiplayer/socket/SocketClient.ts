@@ -1,4 +1,6 @@
 import { io, Socket } from "socket.io-client"; 
+import { getSocketUrl } from "../../utils/socketUrl";
+
 export class SocketClient { 
   private static instance: SocketClient;
   public socket?: Socket; 
@@ -10,8 +12,8 @@ export class SocketClient {
 
   public connect() { 
     if (this.socket?.connected) return;
-    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-    this.socket = io(`http://${host}:8000`, {
+    const socketUrl = getSocketUrl();
+    this.socket = io(socketUrl, {
       transports: ["websocket", "polling"],
       reconnection: true
     }); 

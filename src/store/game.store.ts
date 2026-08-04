@@ -10,6 +10,7 @@ import { useRoomStore } from '../features/matchmaking/rooms/RoomStore';
 import { useUserStore } from '../user/user.store';
 import { useCosmeticsStore } from './cosmetics.store';
 import { useDiceStore } from '../features/dice/store/dice.store';
+import { getSocketUrl } from '../utils/socketUrl';
 
 interface GameStoreState {
   gameState: GameState | null;
@@ -605,8 +606,7 @@ export const useGameStore = create<GameStoreState>()(
   },
 
   connectGameSocket: (roomCode) => {
-    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-    const socketUrl = import.meta.env.DEV ? `http://${host}:8000` : window.location.origin;
+    const socketUrl = getSocketUrl();
     const socket = io(socketUrl, {
       transports: ["websocket", "polling"],
       reconnection: true,

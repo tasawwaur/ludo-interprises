@@ -13,6 +13,7 @@ import confetti from "canvas-confetti";
 import { ChatModal, ChatMessage } from "../../chat/ChatModal";
 import { globalSocket } from "../../../multiplayer/socket/SocketClient";
 import { useLevelStore } from "../../xp-level/store/level.store";
+import { getSocketUrl } from "../../../utils/socketUrl";
 
 // ─── Import Authoritative Rule Engine ────────────────────────────────────────
 import { SnakeLadderEngine } from "../engine/SnakeLadderEngine";
@@ -267,7 +268,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       if (!roomCode) return;
 
       const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-      const socketUrl = import.meta.env.DEV ? `http://${host}:8000` : window.location.origin;
+      const socketUrl = getSocketUrl();
       const socket = io(socketUrl, { transports: ["websocket", "polling"], reconnection: true });
 
       socket.emit("join_room_game", { roomCode });

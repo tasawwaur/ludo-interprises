@@ -125,6 +125,40 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     setShowGuestRegModal(true);
   };
 
+  const awardDiamondsToInviter = (invitationCode: string) => {
+    if (typeof window === 'undefined') return;
+    try {
+      const trimmedCode = invitationCode.trim().toUpperCase();
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('ludo_guest_') || key.startsWith('ludo_google_') || key.startsWith('ludo_facebook_') || key === 'ludo_user_profile_v8')) {
+          const item = localStorage.getItem(key);
+          if (item) {
+            try {
+              const profile = JSON.parse(item);
+              if (profile && profile.id && profile.username) {
+                const cleanId = profile.id.replace(/[^A-Za-z0-9]/g, '').slice(-4).toUpperCase();
+                const cleanName = profile.username.replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase();
+                const derivedCode = `LUDO-${cleanName}${cleanId}`;
+                
+                if (derivedCode === trimmedCode) {
+                  const updatedProfile = {
+                    ...profile,
+                    gems: (profile.gems || 0) + 1000
+                  };
+                  localStorage.setItem(key, JSON.stringify(updatedProfile));
+                  console.log(`Successfully awarded 1,000 gems to inviter profile saved at key: ${key}`);
+                }
+              }
+            } catch (e) {}
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Error awarding diamonds to inviter:', err);
+    }
+  };
+
   const handleGuestRegistrationComplete = (data: {
     name: string;
     age: number;
@@ -132,6 +166,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     gender: 'male' | 'female' | 'other';
     avatar: string;
     guestId: string;
+    invitationCode?: string;
   }) => {
     // Pehle check karo agar is naam ka account pehle se hai
     const existingByName = getSavedAccount('guest', data.name);
@@ -151,6 +186,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     }
 
     const guestId = data.guestId || `GST-${Date.now()}`;
+    const startingGems = data.invitationCode ? 1200 : 200; // 200 starting + 1000 referral reward
+
     const newUser: UserProfile = {
       id: guestId,
       uid: formatPlayerUID({ id: guestId, username: data.name }),
@@ -164,13 +201,37 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
       country: '🇮🇳',
       rank: 1,
       coins: 20000,
-      gems: 200,
+      gems: startingGems,
       crowns: 10,
       level: 1,
       xp: 0,
       nextLevelXp: 1000,
       loginProvider: 'guest',
     };
+
+    // If invitation code was used, save to localStorage and append notifications log
+    if (data.invitationCode) {
+      try {
+        awardDiamondsToInviter(data.invitationCode);
+        localStorage.setItem(`ludo_claimed_referral_code_${guestId}_v1`, data.invitationCode);
+        const inviteNotif = {
+          id: `notif_invite_${Date.now()}`,
+          title: '🤝 Player Invitation Reward',
+          desc: `Used invitation code ${data.invitationCode} (+1,000 Diamonds)`,
+          rewardType: 'gems',
+          amount: 1000,
+          time: 'Just now',
+          claimed: true,
+          type: 'referral'
+        };
+        const savedNotifs = localStorage.getItem(`ludo_bell_notifications_${guestId}_v1`);
+        const parsedNotifs = savedNotifs ? JSON.parse(savedNotifs) : [];
+        localStorage.setItem(`ludo_bell_notifications_${guestId}_v1`, JSON.stringify([inviteNotif, ...parsedNotifs]));
+      } catch (e) {
+        console.warn('Failed to save signup invitation details:', e);
+      }
+    }
+
     // Name aur guestId dono se save karo for reliable lookup
     saveAccountForProvider(newUser, 'guest', data.name);
     saveAccountForProvider(newUser, 'guest', guestId);

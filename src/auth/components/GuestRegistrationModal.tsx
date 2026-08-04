@@ -11,6 +11,7 @@ interface GuestRegistrationModalProps {
     gender: 'male' | 'female' | 'other';
     avatar: string;
     guestId: string;
+    invitationCode?: string;
   }) => void;
 }
 
@@ -41,6 +42,33 @@ const generateGuestId = (): string => {
   return `GST-${rand}`;
 };
 
+const isValidInviterCode = (invitationCode: string): boolean => {
+  if (typeof window === 'undefined') return false;
+  try {
+    const trimmedCode = invitationCode.trim().toUpperCase();
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('ludo_guest_') || key.startsWith('ludo_google_') || key.startsWith('ludo_facebook_') || key === 'ludo_user_profile_v8')) {
+        const item = localStorage.getItem(key);
+        if (item) {
+          try {
+            const profile = JSON.parse(item);
+            if (profile && profile.id && profile.username) {
+              const cleanId = profile.id.replace(/[^A-Za-z0-9]/g, '').slice(-4).toUpperCase();
+              const cleanName = profile.username.replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase();
+              const derivedCode = `LUDO-${cleanName}${cleanId}`;
+              if (derivedCode === trimmedCode) {
+                return true;
+              }
+            }
+          } catch (e) {}
+        }
+      }
+    }
+  } catch (err) {}
+  return false;
+};
+
 export const GuestRegistrationModal: React.FC<GuestRegistrationModalProps> = ({
   isOpen,
   onClose,
@@ -56,6 +84,7 @@ export const GuestRegistrationModal: React.FC<GuestRegistrationModalProps> = ({
 
   // Generated Guest ID
   const [guestId, setGuestId] = useState<string>('');
+  const [invitationCode, setInvitationCode] = useState<string>('');
 
   // Status states
   const [isSaving, setIsSaving] = useState(false);
@@ -129,6 +158,15 @@ export const GuestRegistrationModal: React.FC<GuestRegistrationModalProps> = ({
   };
 
   const handleCreateAccount = () => {
+    setErrorMsg(null);
+    const trimmedInvite = invitationCode.trim().toUpperCase();
+    if (trimmedInvite) {
+      if (!isValidInviterCode(trimmedInvite)) {
+        setErrorMsg('Invalid invitation code! Please enter a real player code or clear the field.');
+        return;
+      }
+    }
+
     setIsSaving(true);
     setSavingProgress(0);
 
@@ -173,6 +211,7 @@ export const GuestRegistrationModal: React.FC<GuestRegistrationModalProps> = ({
       gender,
       avatar: finalAvatar,
       guestId: guestId || generateGuestId(),
+      invitationCode: invitationCode.trim() ? invitationCode.trim().toUpperCase() : undefined,
     });
   };
 
@@ -311,7 +350,7 @@ export const GuestRegistrationModal: React.FC<GuestRegistrationModalProps> = ({
             />
 
             {/* Top User Avatar Circle (Text hidden as requested) */}
-            <div className="relative z-10 flex flex-col items-center mt-7 pointer-events-none">
+            <div className="relative z-10 flex flex-col items-center mt-7 pointer-events-none gap-2">
               <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full border-2 border-amber-400/90 p-0.5 shadow-[0_0_20px_rgba(255,215,0,0.6)] bg-purple-950 overflow-hidden">
                 <img
                   src={customAvatar || selectedAvatar || (gender === 'female' ? PRESET_FEMALE_AVATARS[0] : PRESET_MALE_AVATARS[0])}
@@ -319,6 +358,11 @@ export const GuestRegistrationModal: React.FC<GuestRegistrationModalProps> = ({
                   className="w-full h-full object-cover rounded-full"
                 />
               </div>
+              {invitationCode && (
+                <div className="bg-emerald-500/90 border border-emerald-400 px-2.5 py-0.5 rounded-full text-[9px] font-black text-white shadow-lg animate-pulse uppercase tracking-wider">
+                  🤝 Invite Applied (+1,000 💎)
+                </div>
+              )}
             </div>
 
             {/* 🌟 DYNAMIC FLYING CURRENCY ANIMATION (Triggered on COLLECT) */}
@@ -374,7 +418,7 @@ export const GuestRegistrationModal: React.FC<GuestRegistrationModalProps> = ({
                   className="absolute right-[20%] bottom-[35%] text-cyan-300 font-black text-sm tracking-wider drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] bg-black/70 px-2 py-0.5 rounded-full border border-cyan-400/60"
                   style={{ animation: `floatTextGems 1.1s ease-out forwards` }}
                 >
-                  +100 GEMS 💎
+                  {invitationCode ? '+1,100 GEMS 💎' : '+100 GEMS 💎'}
                 </div>
               </div>
             )}
@@ -623,6 +667,23 @@ export const GuestRegistrationModal: React.FC<GuestRegistrationModalProps> = ({
                       <span className="font-extrabold text-amber-300">{is18Plus ? '18+ Verified' : 'Under 18'}</span>
                     </div>
                   </div>
+                </div>
+
+                {/* Invitation Code (Optional) */}
+                <div className="bg-purple-950/40 border border-purple-500/30 rounded-2xl p-3.5 flex flex-col gap-1.5 shadow-inner">
+                  <label className="text-[10px] font-black text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>🤝</span> Invitation Code (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={invitationCode}
+                    onChange={(e) => setInvitationCode(e.target.value)}
+                    placeholder="e.g. LUDO-ABCD123"
+                    className="w-full px-3 py-2 bg-black/70 border border-purple-500/50 focus:border-amber-400 rounded-xl text-white placeholder-purple-400/40 font-mono text-xs uppercase tracking-wider focus:outline-none"
+                  />
+                  <p className="text-[9px] text-purple-200/70 leading-tight">
+                    Enter a friend's invitation code here to get 💎 1,000 Diamonds instantly on signup!
+                  </p>
                 </div>
               </div>
             )}

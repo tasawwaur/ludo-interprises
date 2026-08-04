@@ -18,6 +18,67 @@ interface ActivityNotification {
   type: 'referral' | 'redeem' | 'system';
 }
 
+const awardDiamondsToInviter = (invitationCode: string) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const trimmedCode = invitationCode.trim().toUpperCase();
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('ludo_guest_') || key.startsWith('ludo_google_') || key.startsWith('ludo_facebook_') || key === 'ludo_user_profile_v8')) {
+        const item = localStorage.getItem(key);
+        if (item) {
+          try {
+            const profile = JSON.parse(item);
+            if (profile && profile.id && profile.username) {
+              const cleanId = profile.id.replace(/[^A-Za-z0-9]/g, '').slice(-4).toUpperCase();
+              const cleanName = profile.username.replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase();
+              const derivedCode = `LUDO-${cleanName}${cleanId}`;
+              
+              if (derivedCode === trimmedCode) {
+                const updatedProfile = {
+                  ...profile,
+                  gems: (profile.gems || 0) + 1000
+                };
+                localStorage.setItem(key, JSON.stringify(updatedProfile));
+                console.log(`Successfully awarded 1,000 gems to inviter profile saved at key: ${key}`);
+              }
+            }
+          } catch (e) {}
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Error awarding diamonds to inviter:', err);
+  }
+};
+
+const isValidInviterCode = (invitationCode: string): boolean => {
+  if (typeof window === 'undefined') return false;
+  try {
+    const trimmedCode = invitationCode.trim().toUpperCase();
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('ludo_guest_') || key.startsWith('ludo_google_') || key.startsWith('ludo_facebook_') || key === 'ludo_user_profile_v8')) {
+        const item = localStorage.getItem(key);
+        if (item) {
+          try {
+            const profile = JSON.parse(item);
+            if (profile && profile.id && profile.username) {
+              const cleanId = profile.id.replace(/[^A-Za-z0-9]/g, '').slice(-4).toUpperCase();
+              const cleanName = profile.username.replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase();
+              const derivedCode = `LUDO-${cleanName}${cleanId}`;
+              if (derivedCode === trimmedCode) {
+                return true;
+              }
+            }
+          } catch (e) {}
+        }
+      }
+    }
+  } catch (err) {}
+  return false;
+};
+
 export const BellRewardsModal: React.FC<BellRewardsModalProps> = ({ isOpen, onClose }) => {
   const { user, updateUser } = useUserStore();
   const [activeTab, setActiveTab] = useState<'invite' | 'redeem' | 'notifications'>('invite');
@@ -29,69 +90,16 @@ export const BellRewardsModal: React.FC<BellRewardsModalProps> = ({ isOpen, onCl
   const [copiedCode, setCopiedCode] = useState(false);
 
   // Storage key for claimed redeem codes
-  const CLAIMED_CODES_KEY = 'ludo_claimed_redeem_codes_v1';
-  const CLAIMED_REFERRAL_KEY = 'ludo_claimed_referral_code_v1';
-  const NOTIFS_KEY = 'ludo_bell_notifications_v1';
+  const userId = user?.id || 'guest';
+  const CLAIMED_CODES_KEY = `ludo_claimed_redeem_codes_${userId}_v1`;
+  const CLAIMED_REFERRAL_KEY = `ludo_claimed_referral_code_${userId}_v1`;
+  const NOTIFS_KEY = `ludo_bell_notifications_${userId}_v1`;
 
-  // State for notifications log
-  const [notifications, setNotifications] = useState<ActivityNotification[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem(NOTIFS_KEY);
-        if (saved) return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return [
-      {
-        id: 'notif_welcome_invite',
-        title: '🎉 Invite & Earn Bonus',
-        desc: 'Invite your friends! Get 💎 1,000 Diamonds instantly when they sign up.',
-        rewardType: 'gems',
-        amount: 1000,
-        time: 'Just now',
-        claimed: false,
-        type: 'referral',
-      },
-      {
-        id: 'notif_promo_gift',
-        title: '🎁 Welcome Gift Package',
-        desc: 'Use redeem code WELCOME1000 for extra 1,000 Gems + 5,000 Coins!',
-        rewardType: 'gems',
-        amount: 1000,
-        time: '1h ago',
-        claimed: false,
-        type: 'redeem',
-      },
-      {
-        id: 'notif_daily_bonus',
-        title: '👑 Daily VIP Reward',
-        desc: 'Daily bonus granted for active Ludo Enterprise champion!',
-        rewardType: 'gems',
-        amount: 500,
-        time: 'Today',
-        claimed: true,
-        type: 'system',
-      }
-    ];
-  });
-
-  // Track claimed codes locally
-  const [claimedCodes, setClaimedCodes] = useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem(CLAIMED_CODES_KEY);
-        if (saved) return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return [];
-  });
-
-  const [hasClaimedReferral, setHasClaimedReferral] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(CLAIMED_REFERRAL_KEY) !== null;
-    }
-    return false;
-  });
+  // State logs
+  const [notifications, setNotifications] = useState<ActivityNotification[]>([]);
+  const [claimedCodes, setClaimedCodes] = useState<string[]>([]);
+  const [hasClaimedReferral, setHasClaimedReferral] = useState<boolean>(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Unique player referral code derived from ID or username
   const myReferralCode = React.useMemo(() => {
@@ -101,13 +109,68 @@ export const BellRewardsModal: React.FC<BellRewardsModalProps> = ({ isOpen, onCl
     return `LUDO-${cleanName}${cleanId}`;
   }, [user]);
 
-  // Persist notifications & claimed codes
+  // Load from local storage when userId changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      try {
+        setIsLoaded(false);
+        const savedCodes = localStorage.getItem(CLAIMED_CODES_KEY);
+        setClaimedCodes(savedCodes ? JSON.parse(savedCodes) : []);
+
+        setHasClaimedReferral(localStorage.getItem(CLAIMED_REFERRAL_KEY) !== null);
+
+        const savedNotifs = localStorage.getItem(NOTIFS_KEY);
+        if (savedNotifs) {
+          setNotifications(JSON.parse(savedNotifs));
+        } else {
+          // Default starting notifications
+          setNotifications([
+            {
+              id: 'notif_welcome_invite',
+              title: '🎉 Invite & Earn Bonus',
+              desc: 'Invite your friends! Get 💎 1,000 Diamonds instantly when they sign up.',
+              rewardType: 'gems',
+              amount: 1000,
+              time: 'Just now',
+              claimed: false,
+              type: 'referral',
+            },
+            {
+              id: 'notif_promo_gift',
+              title: '🎁 Welcome Gift Package',
+              desc: 'Use redeem code WELCOME1000 for extra 1,000 Gems + 5,000 Coins!',
+              rewardType: 'gems',
+              amount: 1000,
+              time: '1h ago',
+              claimed: false,
+              type: 'redeem',
+            },
+            {
+              id: 'notif_daily_bonus',
+              title: '👑 Daily VIP Reward',
+              desc: 'Daily bonus granted for active Ludo Enterprise champion!',
+              rewardType: 'gems',
+              amount: 500,
+              time: 'Today',
+              claimed: true,
+              type: 'system',
+            }
+          ]);
+        }
+        setIsLoaded(true);
+      } catch (e) {
+        console.warn('Failed to load user-specific rewards data:', e);
+      }
+    }
+  }, [userId, CLAIMED_CODES_KEY, CLAIMED_REFERRAL_KEY, NOTIFS_KEY]);
+
+  // Persist notifications & claimed codes reactively once loaded
+  useEffect(() => {
+    if (isLoaded && typeof window !== 'undefined') {
       localStorage.setItem(NOTIFS_KEY, JSON.stringify(notifications));
       localStorage.setItem(CLAIMED_CODES_KEY, JSON.stringify(claimedCodes));
     }
-  }, [notifications, claimedCodes]);
+  }, [notifications, claimedCodes, isLoaded, NOTIFS_KEY, CLAIMED_CODES_KEY]);
 
   if (!isOpen) return null;
 
@@ -187,7 +250,54 @@ export const BellRewardsModal: React.FC<BellRewardsModalProps> = ({ isOpen, onCl
       const currentCrowns = user?.crowns || 0;
 
       // Handle Official Promo Codes
+      if (trimmed === 'COINS999K' || trimmed === 'LUDO999K' || trimmed === 'JACKPOT999K') {
+        updateUser({ coins: currentCoins + 999000, gems: currentGems + 9999 });
+        setClaimedCodes(prev => [...prev, trimmed]);
+        triggerConfetti();
+        showToast('💰 MEGA COIN JACKPOT! Received 🪙 999,000 Coins & 💎 9,999 Gems!', 'success');
+        setInputCode('');
+
+        setNotifications(prev => [
+          {
+            id: `notif_claimed_${Date.now()}`,
+            title: '💰 999K Mega Coin Gift Code',
+            desc: `Redeemed code ${trimmed} (+999,000 Coins & +9,999 Gems)`,
+            rewardType: 'coins',
+            amount: 999000,
+            time: 'Just now',
+            claimed: true,
+            type: 'redeem'
+          },
+          ...prev
+        ]);
+        return;
+      }
+
+      if (trimmed === 'COINS100K' || trimmed === 'LUDO100K') {
+        updateUser({ coins: currentCoins + 100000 });
+        setClaimedCodes(prev => [...prev, trimmed]);
+        triggerConfetti();
+        showToast('💰 COINS BOOSTER! Received 🪙 100,000 Coins!', 'success');
+        setInputCode('');
+
+        setNotifications(prev => [
+          {
+            id: `notif_claimed_${Date.now()}`,
+            title: '💰 100K Coins Gift Code',
+            desc: `Redeemed code ${trimmed} (+100,000 Coins)`,
+            rewardType: 'coins',
+            amount: 100000,
+            time: 'Just now',
+            claimed: true,
+            type: 'redeem'
+          },
+          ...prev
+        ]);
+        return;
+      }
+
       if (trimmed === 'WELCOME1000' || trimmed === 'LUDO1000') {
+
         updateUser({ gems: currentGems + 1000, coins: currentCoins + 5000 });
         setClaimedCodes(prev => [...prev, trimmed]);
         triggerConfetti();
@@ -236,6 +346,13 @@ export const BellRewardsModal: React.FC<BellRewardsModalProps> = ({ isOpen, onCl
           return;
         }
 
+        // Validate if it is a real player's code
+        if (!isValidInviterCode(trimmed)) {
+          showToast('Invalid invitation code! Player does not exist.', 'error');
+          return;
+        }
+
+        awardDiamondsToInviter(trimmed);
         updateUser({ gems: currentGems + 1000 });
         setClaimedCodes(prev => [...prev, trimmed]);
         setHasClaimedReferral(true);
@@ -558,6 +675,30 @@ export const BellRewardsModal: React.FC<BellRewardsModalProps> = ({ isOpen, onCl
                     <div>
                       <span className="font-mono text-xs font-black text-amber-300 block">FREEGEMS</span>
                       <span className="text-[9px] text-purple-200">500 Bonus Gems</span>
+                    </div>
+                    <span className="text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded font-bold">Use</span>
+                  </div>
+
+                  {/* Code Chip 5 */}
+                  <div 
+                    onClick={() => setInputCode('COINS100K')}
+                    className="bg-purple-900/40 border border-amber-400/30 hover:border-amber-400 p-2.5 rounded-xl flex items-center justify-between cursor-pointer transition-all hover:scale-[1.02]"
+                  >
+                    <div>
+                      <span className="font-mono text-xs font-black text-amber-300 block">COINS100K</span>
+                      <span className="text-[9px] text-purple-200">100,000 Coins 🪙</span>
+                    </div>
+                    <span className="text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded font-bold">Use</span>
+                  </div>
+
+                  {/* Code Chip 6 */}
+                  <div 
+                    onClick={() => setInputCode('COINS999K')}
+                    className="bg-purple-900/40 border border-amber-400/30 hover:border-amber-400 p-2.5 rounded-xl flex items-center justify-between cursor-pointer transition-all hover:scale-[1.02]"
+                  >
+                    <div>
+                      <span className="font-mono text-xs font-black text-amber-300 block">COINS999K</span>
+                      <span className="text-[9px] text-purple-200">999K Coins + 10K Gems</span>
                     </div>
                     <span className="text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded font-bold">Use</span>
                   </div>

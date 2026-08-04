@@ -115,6 +115,18 @@ export class GameEngine {
         state: 'YARD',
       }));
 
+      // Resolve bot frame, dice, and token from player database if matching bot username
+      let equippedFrameId: string | undefined = undefined;
+      let equippedDiceId: string | undefined = undefined;
+      let equippedTokenId: string | undefined = undefined;
+
+      const dbEntry = GLOBAL_PLAYER_DATABASE.find(p => p.username === name);
+      if (dbEntry) {
+        equippedFrameId = dbEntry.equippedFrame;
+        equippedDiceId = "dice_classic"; // Fallback bot default
+        equippedTokenId = "token_default";
+      }
+
       return {
         id: `p_${color.toLowerCase()}`,
         name,
@@ -135,6 +147,9 @@ export class GameEngine {
         totalUndosUsed: 0,
         undosUsedThisTurn: 0,
         protectTurnsCount: 0,
+        equippedFrameId,
+        equippedDiceId,
+        equippedTokenId,
       };
     });
 

@@ -208,8 +208,8 @@ export const generatePlayerDatabase = (): PlayerDetailedStats[] => {
     if (level >= 150) achievements.push("Titan");
     if (level >= 200) achievements.push("Immortal");
 
-    // 14. Equippable Frame matches level rarity
-    const equippedFrame = FRAMES[i % FRAMES.length];
+    // 14. Equippable Frame matches level rarity -> Set to frame_vip for all bot profiles to show VIP Pass!
+    const equippedFrame = "frame_vip";
 
     return {
       playerId,
@@ -258,7 +258,8 @@ export const generatePlayerDatabase = (): PlayerDetailedStats[] => {
       currentLeague,
       signature,
       createdDate: new Date(Date.now() - (matchesPlayed * 2 * 3600 * 1000)).toISOString(),
-      lastLogin: new Date(Date.now() - (i % 5 === 0 ? 0 : (i % 24) * 3600 * 1000)).toISOString()
+      lastLogin: new Date(Date.now() - (i % 5 === 0 ? 0 : (i % 24) * 3600 * 1000)).toISOString(),
+      hasVipPass: true, // ✅ VIP Pass active for all 100 database players
     };
   });
 };

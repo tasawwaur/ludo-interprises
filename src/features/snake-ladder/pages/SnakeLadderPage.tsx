@@ -70,7 +70,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     const saved = localStorage.getItem("ludo_sl_botName");
     if (saved) return saved;
     const botProfile = GLOBAL_PLAYER_DATABASE[Math.floor(Math.random() * GLOBAL_PLAYER_DATABASE.length)];
-    const name = botProfile ? botProfile.username : "Rahul Sharma";
+    const name = botProfile ? botProfile.username : "𓆩𝐋𝐮𝐜𝐢𝐟𝐞𝐫𓆪";
     localStorage.setItem("ludo_sl_botName", name);
     return name;
   });
@@ -171,7 +171,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
 
     // Prevent duplicate profile metadata if opponent matches local user
     if (p2Name === playerName) {
-      p2Name = p2IsBot ? "Rahul Sharma" : "Opponent";
+      p2Name = p2IsBot ? "𓆩𝐋𝐮𝐜𝐢𝐟𝐞𝐫𓆪" : "Opponent";
       if (p2Avatar === userAvatar) {
         p2Avatar = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80";
       }
@@ -852,7 +852,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
   const resetGame = () => {
     localStorage.removeItem("ludo_sl_engine_state");
     const newBotProfile = GLOBAL_PLAYER_DATABASE[Math.floor(Math.random() * GLOBAL_PLAYER_DATABASE.length)];
-    const nameToUse = newBotProfile ? newBotProfile.username : "Rahul Sharma";
+    const nameToUse = newBotProfile ? newBotProfile.username : "𓆩𝐋𝐮𝐜𝐢𝐟𝐞𝐫𓆪";
     setBotName(nameToUse);
     localStorage.setItem("ludo_sl_botName", nameToUse);
 

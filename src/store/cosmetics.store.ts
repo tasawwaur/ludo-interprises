@@ -249,6 +249,10 @@ export const useCosmeticsStore = create<CosmeticsState>((set, get) => {
 
 export const getFrameFilter = (frameId: string | undefined): string => {
   if (!frameId || frameId === 'frame_default') return '';
+  if (frameId === 'frame_vip') {
+    // Beautiful golden-purple VIP glow!
+    return 'hue-rotate(280deg) saturate(2.5) brightness(1.2) drop-shadow(0 0 8px rgba(168, 85, 247, 0.95))';
+  }
   const num = parseInt(frameId.replace(/[^\d]/g, ''), 10) || 0;
   
   const hue = (num * 17) % 360;

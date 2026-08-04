@@ -4,6 +4,7 @@ import { useQueueStore } from "../queue/QueueStore";
 import { LudoPageBackground } from "../../../components/effects/LudoPageBackground";
 import { useUserStore } from "../../../user/user.store";
 import { getSocketUrl } from "../../../utils/socketUrl";
+import { GLOBAL_PLAYER_DATABASE } from "../../../store/player-database.store";
 
 interface MatchmakingPageProps {
   onCancel: () => void;
@@ -167,10 +168,12 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
               ? (swapColors ? "GREEN" : "BLUE")
               : (swapColors ? "YELLOW" : "RED");
 
+            const randomBot = GLOBAL_PLAYER_DATABASE[Math.floor(Math.random() * GLOBAL_PLAYER_DATABASE.length)];
+
             finalMyColor = myColor;
             finalOpponent = {
-              name: "Rahul Sharma",
-              avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80",
+              name: randomBot.username,
+              avatar: randomBot.avatarUrl,
               profileFrame: "/assets/images/icons/profile_frame_v3.png",
               nameBanner: "/assets/images/icons/name_banner_v2.png",
               color: oppColor,

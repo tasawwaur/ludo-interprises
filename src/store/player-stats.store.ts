@@ -94,6 +94,7 @@ export interface PlayerDetailedStats {
   signature: string;
   createdDate: string;
   lastLogin: string;
+  hasVipPass?: boolean;
 }
 
 interface PlayerStatsState {

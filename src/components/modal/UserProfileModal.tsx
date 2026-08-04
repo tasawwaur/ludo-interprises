@@ -21,6 +21,7 @@ export interface UserStats {
   titanBadgeCount: number;
   fourPlayerWins: number;
   killCount: number;
+  hasVipPass?: boolean;
 }
 
 interface UserProfileModalProps {
@@ -114,9 +115,16 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
             {/* Name and Country flag */}
             <div className="flex flex-col gap-1">
-              <h2 className="text-sm font-black text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.8)] tracking-wide">
-                {userStats.name}
-              </h2>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h2 className="text-sm font-black text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.8)] tracking-wide">
+                  {userStats.name}
+                </h2>
+                {(userStats.equippedFrame === 'frame_vip' || userStats.hasVipPass) && (
+                  <span className="px-1.5 py-0.5 text-[7px] font-black bg-gradient-to-r from-purple-600 to-indigo-700 border border-purple-400 text-white rounded-md uppercase tracking-wider flex items-center justify-center scale-95 shadow">
+                    👑 VIP
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-1.5 bg-black/35 border border-purple-500/20 px-2 py-0.5 rounded-lg w-max shadow-inner">
                 <span className="text-[10px] leading-none">{userStats.countryFlag}</span>
                 <span className="text-[7.5px] font-black text-purple-200 uppercase tracking-widest leading-none font-sans">

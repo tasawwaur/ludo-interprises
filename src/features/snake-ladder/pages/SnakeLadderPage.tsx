@@ -115,12 +115,12 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       sender: user?.displayName || user?.username || "Player 1",
       text: msg,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      color: "RED",
+      color: myColor,
     };
     setChatHistory((prev) => [...prev, newMsg]);
-    setActiveSpeechBubbles((prev) => ({ ...prev, RED: msg }));
+    setActiveSpeechBubbles((prev) => ({ ...prev, [myColor]: msg }));
     setTimeout(() => {
-      setActiveSpeechBubbles((prev) => ({ ...prev, RED: null }));
+      setActiveSpeechBubbles((prev) => ({ ...prev, [myColor]: null }));
     }, 3500);
 
     if (socketRef.current) {
@@ -338,12 +338,12 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
             sender: oppData.name || "Opponent",
             text: data.text,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            color: "GREEN",
+            color: oppColor,
           };
           setChatHistory((prev) => [...prev, newMsg]);
-          setActiveSpeechBubbles((prev) => ({ ...prev, GREEN: data.text }));
+          setActiveSpeechBubbles((prev) => ({ ...prev, [oppColor]: data.text }));
           setTimeout(() => {
-            setActiveSpeechBubbles((prev) => ({ ...prev, GREEN: null }));
+            setActiveSpeechBubbles((prev) => ({ ...prev, [oppColor]: null }));
           }, 3500);
         }
       });

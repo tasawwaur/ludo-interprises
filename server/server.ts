@@ -221,6 +221,8 @@ interface WaitingPlayer {
   avatar?: string;
   profileFrame?: string;
   nameBanner?: string;
+  mode: string;
+  entryFee: number;
 }
 
 const matchmakingQueue: WaitingPlayer[] = [];
@@ -429,8 +431,18 @@ io.on("connection", (socket) => {
   });
 
   // Player joins Matchmaking Queue
-  socket.on("join_queue", (playerData: { userId: string; name: string; avatar?: string; profileFrame?: string; nameBanner?: string }) => {
-    console.log(`[Queue] ${playerData.name} (${socket.id}) joined queue`);
+  socket.on("join_queue", (playerData: { 
+    userId: string; 
+    name: string; 
+    avatar?: string; 
+    profileFrame?: string; 
+    nameBanner?: string;
+    mode?: string;
+    entryFee?: number;
+  }) => {
+    const mode = playerData.mode || "2P Classic";
+    const entryFee = playerData.entryFee || 5000;
+    console.log(`[Queue] ${playerData.name} (${socket.id}) joined queue for [${mode}] at [${entryFee} coins]`);
 
     // Remove if already in queue
     const existingIdx = matchmakingQueue.findIndex((p) => p.socketId === socket.id);
@@ -443,12 +455,23 @@ io.on("connection", (socket) => {
       avatar: playerData.avatar,
       profileFrame: playerData.profileFrame,
       nameBanner: playerData.nameBanner,
+      mode,
+      entryFee,
     });
 
-    // Check if 2 real players are waiting in queue
-    if (matchmakingQueue.length >= 2) {
-      const player1 = matchmakingQueue.shift()!;
-      const player2 = matchmakingQueue.shift()!;
+    // Check if another player with the SAME mode and SAME entryFee is waiting in queue
+    const matchingIdx = matchmakingQueue.findIndex(
+      (p) => p.socketId !== socket.id && p.mode === mode && p.entryFee === entryFee
+    );
+
+    if (matchingIdx !== -1) {
+      const player1Idx = matchmakingQueue.findIndex(p => p.socketId === socket.id);
+      const player1 = matchmakingQueue[player1Idx];
+      const player2 = matchmakingQueue[matchingIdx];
+
+      // Remove both matching players from queue
+      matchmakingQueue.splice(Math.max(player1Idx, matchingIdx), 1);
+      matchmakingQueue.splice(Math.min(player1Idx, matchingIdx), 1);
       const roomCode = "ROOM_" + Math.random().toString(36).substring(2, 8).toUpperCase();
 
       // Snake & Ladders always uses RED (goes first) / GREEN (goes second).

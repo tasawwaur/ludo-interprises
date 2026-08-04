@@ -48,12 +48,17 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
       reconnection: true,
     });
 
+    const activeQueueMode = useQueueStore.getState().mode || "2P Classic";
+    const currentEntryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
+
     socket.emit("join_queue", {
       userId: user?.id || "usr_" + Math.floor(Math.random() * 100000),
       name: displayName,
       avatar: avatar,
       profileFrame: "/assets/images/icons/profile_frame_v3.png",
       nameBanner: "/assets/images/icons/name_banner_v2.png",
+      mode: activeQueueMode,
+      entryFee: currentEntryFee,
     });
 
     socket.on("match_found", (data: any) => {

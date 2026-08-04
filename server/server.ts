@@ -476,6 +476,8 @@ io.on("connection", (socket) => {
 
   // Join Room Game (multiplayer timer synchronization)
   socket.on("join_room_game", (data: { roomCode: string }) => {
+    // Tag this socket as an active gameplay socket for the room
+    (socket as any).data = { type: "gameplay", roomCode: data.roomCode };
     socket.join(data.roomCode);
     console.log(`[Socket] Player (${socket.id}) joined game room ${data.roomCode}`);
     const room = activeRooms.get(data.roomCode);
@@ -488,7 +490,7 @@ io.on("connection", (socket) => {
   });
 
   // Authoritative action update from client
-  socket.on("client_action", (data: { roomCode: string; actionType: 'ROLL' | 'MOVE' | 'UNDO'; nextColor?: string; isGameOver?: boolean; diceValue?: number; tokenId?: string; cost?: number }) => {
+  socket.on("client_action", (data: { roomCode: string; actionType: 'ROLL' | 'MOVE' | 'UNDO' | 'SL_STATE_SYNC' | 'SL_DICE_ROLLING'; nextColor?: string; isGameOver?: boolean; diceValue?: number; tokenId?: string; cost?: number; hasLegalMoves?: boolean }) => {
     const room = activeRooms.get(data.roomCode);
     if (!room) return;
 
@@ -534,12 +536,14 @@ io.on("connection", (socket) => {
       }
     }
 
-    // Stop active room timers if player disconnected
-    for (const [code, room] of activeRooms.entries()) {
-      if (room.p1SocketId === socket.id || room.p2SocketId === socket.id) {
+    // Stop active room timers ONLY if the active gameplay socket disconnected
+    const socketData = (socket as any).data;
+    if (socketData?.type === "gameplay" && socketData?.roomCode) {
+      const room = activeRooms.get(socketData.roomCode);
+      if (room) {
         if (room.intervalId) clearInterval(room.intervalId);
-        activeRooms.delete(code);
-        console.log(`[Authoritative Timer] Cleaned up room ${code} due to disconnect`);
+        activeRooms.delete(socketData.roomCode);
+        console.log(`[Authoritative Timer] Cleaned up room ${socketData.roomCode} due to gameplay disconnect`);
       }
     }
   });

@@ -271,6 +271,34 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           return;
         }
 
+        if (data.actionType === "SL_DICE_ROLLING") {
+          SoundEngine.play('DICE_ROLL');
+          if (data.rollingColor === "RED") {
+            setRedIsRolling(true);
+            let flashCount = 0;
+            const flashInterval = setInterval(() => {
+              setRedDiceValue(Math.ceil(Math.random() * 6));
+              flashCount++;
+              if (flashCount >= 10) {
+                clearInterval(flashInterval);
+                setRedIsRolling(false);
+              }
+            }, 80);
+          } else {
+            setGreenIsRolling(true);
+            let flashCount = 0;
+            const flashInterval = setInterval(() => {
+              setGreenDiceValue(Math.ceil(Math.random() * 6));
+              flashCount++;
+              if (flashCount >= 10) {
+                clearInterval(flashInterval);
+                setGreenIsRolling(false);
+              }
+            }, 80);
+          }
+          return;
+        }
+
         if (data.actionType === "SL_CHAT_MESSAGE") {
           const newMsg: ChatMessage = {
             id: "msg_" + Date.now(),
@@ -446,6 +474,21 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       engineState.phase !== "PLAYING" ||
       engineState.isWaitingForTokenChoice
     ) return;
+
+    // Broadcast rolling animation to opponent
+    const oppRaw = localStorage.getItem("ludo_sl_opponent");
+    if (socketRef.current && oppRaw) {
+      try {
+        const rc = JSON.parse(oppRaw).roomCode;
+        if (rc) {
+          socketRef.current.emit("client_action", {
+            roomCode: rc,
+            actionType: "SL_DICE_ROLLING",
+            rollingColor: myColor,
+          });
+        }
+      } catch (e) {}
+    }
 
     SoundEngine.play('DICE_ROLL');
     setMyIsRolling(true);

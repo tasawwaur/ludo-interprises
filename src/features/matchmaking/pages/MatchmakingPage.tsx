@@ -18,7 +18,7 @@ interface MatchmakingPageProps {
 
 export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMatchFound }) => {
   const { mode, setMatchFound } = useQueueStore();
-  const [seconds, setSeconds] = useState(10);
+  const [seconds, setSeconds] = useState(60);
   const user = useUserStore((s) => s.user);
 
   const displayName = user?.displayName || user?.username || "Player 1";
@@ -35,6 +35,7 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
   const [opponent, setOpponent] = useState<{ id?: string; name: string; avatar?: string; profileFrame?: string; nameBanner?: string; color?: string; roomCode?: string; isBot?: boolean } | null>(null);
   const [myAssignedColor, setMyAssignedColor] = useState<string | null>(null);
   const [matchConnected, setMatchConnected] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
   const [matchCountdown, setMatchCountdown] = useState(5);
   const [coinsDeducted, setCoinsDeducted] = useState(false);
   const [showDeductText, setShowDeductText] = useState(false);
@@ -46,6 +47,14 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
     const socket = io(socketUrl, {
       transports: ["websocket", "polling"],
       reconnection: true,
+    });
+
+    socket.on("connect", () => {
+      setSocketConnected(true);
+    });
+
+    socket.on("disconnect", () => {
+      setSocketConnected(false);
     });
 
     const activeQueueMode = useQueueStore.getState().mode || "2P Classic";
@@ -171,6 +180,18 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
               draggable={false}
             />
           )}
+        </div>
+
+        {/* Live Socket Server Connection Status Badge */}
+        <div className="w-full flex justify-center mt-3">
+          <div className={`px-4 py-1 rounded-full border text-[10px] font-black uppercase tracking-wider flex items-center gap-2 shadow-lg ${
+            socketConnected 
+              ? "bg-emerald-950/90 border-emerald-400 text-emerald-300" 
+              : "bg-amber-950/90 border-amber-400 text-amber-300 animate-pulse"
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${socketConnected ? "bg-emerald-400 animate-ping" : "bg-amber-400"}`} />
+            <span>{socketConnected ? "MULTIPLAYER SERVER: ONLINE" : "CONNECTING TO MULTIPLAYER SERVER..."}</span>
+          </div>
         </div>
 
         {/* Graphic & VS Emblem */}

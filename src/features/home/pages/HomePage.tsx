@@ -14,7 +14,9 @@ import { useGlobalModalStore } from "../../../store/global-modal.store";
 import { getFrameFilter } from "../../../store/cosmetics.store";
 import { getDefaultAvatar } from "../../../utils/avatar";
 import { InboxModal } from "../../../components/modal/InboxModal";
+import { BellRewardsModal } from "../../../components/modal/BellRewardsModal";
 import { GLOBAL_PLAYER_DATABASE } from "../../../store/player-database.store";
+
 import confetti from 'canvas-confetti';
 
 const formatCurrency = (val: number): string => {
@@ -97,6 +99,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
   const [activeNav, setActiveNav] = useState("home");
   const [showModeSelection, setShowModeSelection] = useState(false);
   const [showInboxModal, setShowInboxModal] = useState(false);
+  const [showBellRewardsModal, setShowBellRewardsModal] = useState(false);
+
 
   const handleAcceptGameInvite = (invite: any) => {
     const opp = GLOBAL_PLAYER_DATABASE.find(p => p.username === invite.senderName);
@@ -521,15 +525,19 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
           <img src="/assets/images/icons/luxury_mail.png" className="w-full h-full object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]" alt="Inbox" />
         </button>
 
-        {/* Notifications */}
+        {/* Notifications & Rewards Hub */}
         <button
-          onClick={() => triggerToast("Notifications: Sounds are active")}
-          className="w-[34px] h-[34px] p-0 border-0 outline-none bg-transparent hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+          onClick={() => setShowBellRewardsModal(true)}
+          className="w-[34px] h-[34px] p-0 border-0 outline-none bg-transparent hover:scale-110 active:scale-95 transition-transform cursor-pointer relative"
           style={{ WebkitTapHighlightColor: "transparent" }}
-          aria-label="Notifications"
+          aria-label="Notifications & Rewards"
         >
           <img src="/assets/images/icons/luxury_bell.png" className="w-full h-full object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]" alt="Notifications" />
+          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-gradient-to-r from-red-500 to-rose-600 rounded-full border border-yellow-300 text-[8px] font-black text-white flex items-center justify-center shadow-md animate-pulse">
+            !
+          </span>
         </button>
+
       </div>
 
 
@@ -1066,6 +1074,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
           </div>
         </div>
       )}
+
+      {/* Bell Rewards & Invitation Modal */}
+      <BellRewardsModal
+        isOpen={showBellRewardsModal}
+        onClose={() => setShowBellRewardsModal(false)}
+      />
     </div>
   );
 };
+

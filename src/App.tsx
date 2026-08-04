@@ -220,7 +220,7 @@ const MainApp: React.FC = () => {
       localStorage.setItem("ludo_active_match_session", "GAME_ARENA");
     } else if (currentView === "SNAKE_LADDER") {
       localStorage.setItem("ludo_active_match_session", "SNAKE_LADDER");
-    } else if (currentView !== "MATCHMAKING") {
+    } else if ((currentView as string) !== "MATCHMAKING") {
       localStorage.removeItem("ludo_active_match_session");
     }
   }, [currentView]);
@@ -242,6 +242,7 @@ const MainApp: React.FC = () => {
     const kills = isWinner ? 3 : 1;
     const passedTokens = localPlayer.tokens.filter(t => t.stepCount === 57).length;
     const xpReward = (passedTokens * 50) + (kills * 10);
+    const newXp = (user.xp || 0) + xpReward;
 
     const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
     const winReward = Math.round(entryFee * 1.9); // 2 * entryFee - 5% commission

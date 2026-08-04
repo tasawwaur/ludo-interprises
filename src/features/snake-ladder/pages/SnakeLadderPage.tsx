@@ -188,7 +188,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         ];
 
     const engine = new SnakeLadderEngine(playersConfig, {
-      tokensPerPlayer: 1,
+      tokensPerPlayer: 2,
       animationDelayMs: 300,
     });
 
@@ -199,7 +199,9 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         const hasOldState = parsed.players.some((p: any) =>
           p.tokens.some((t: any) => t.currentPosition === 0 || t.isUnlocked === undefined)
         );
-        if (hasOldState) {
+        // Also clear if saved state has wrong token count (e.g. old 1-token save)
+        const hasWrongTokenCount = parsed.players.some((p: any) => p.tokens.length !== 2);
+        if (hasOldState || hasWrongTokenCount) {
           localStorage.removeItem("ludo_sl_engine_state");
           savedData = null;
         } else {
@@ -470,7 +472,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
             ];
 
         const engine = new SnakeLadderEngine(playersConfig, {
-          tokensPerPlayer: 1,
+          tokensPerPlayer: 2,
           animationDelayMs: 300,
         });
 
@@ -871,7 +873,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     ];
 
     const engine = new SnakeLadderEngine(playersConfig, {
-      tokensPerPlayer: 1,
+      tokensPerPlayer: 2,
       animationDelayMs: 250,
     });
 

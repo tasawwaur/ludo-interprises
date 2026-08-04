@@ -36,62 +36,90 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
   const [myAssignedColor, setMyAssignedColor] = useState<string | null>(null);
   const [matchConnected, setMatchConnected] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
+  const [serverStatus, setServerStatus] = useState<"waking" | "online">("waking");
   const [matchCountdown, setMatchCountdown] = useState(5);
   const [coinsDeducted, setCoinsDeducted] = useState(false);
   const [showDeductText, setShowDeductText] = useState(false);
   const [isHost, setIsHost] = useState(true);
 
   useEffect(() => {
-    // Connect to live multiplayer server
     const socketUrl = getSocketUrl();
-    const socket = io(socketUrl, {
-      transports: ["websocket", "polling"],
-      reconnection: true,
-    });
-
-    socket.on("connect", () => {
-      setSocketConnected(true);
-    });
-
-    socket.on("disconnect", () => {
-      setSocketConnected(false);
-    });
-
     const activeQueueMode = useQueueStore.getState().mode || "2P Classic";
     const currentEntryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
 
-    socket.emit("join_queue", {
-      userId: user?.id || "usr_" + Math.floor(Math.random() * 100000),
-      name: displayName,
-      avatar: avatar,
-      profileFrame: "/assets/images/icons/profile_frame_v3.png",
-      nameBanner: "/assets/images/icons/name_banner_v2.png",
-      mode: activeQueueMode,
-      entryFee: currentEntryFee,
-    });
+    let socketRef: ReturnType<typeof io> | null = null;
+    let cancelled = false;
 
-    socket.on("match_found", (data: any) => {
-      console.log("Real match connected!", data);
-      if (data.opponent) {
-        setOpponent({ 
-          name: data.opponent.name, 
-          avatar: data.opponent.avatar,
-          profileFrame: data.opponent.profileFrame || "/assets/images/icons/profile_frame_v3.png",
-          nameBanner: data.opponent.nameBanner || "/assets/images/icons/name_banner_v2.png",
-          color: data.opponent.color,
-          roomCode: data.roomCode,
-          isBot: false, // Real matched player — disable auto-play
+    const wakeAndConnect = async () => {
+      // ✅ Step 1: Wake up Render server — HTTP ping (handles free-tier sleep)
+      setServerStatus("waking");
+      try {
+        const apiUrl = socketUrl.replace(/\/$/, "") + "/api/status";
+        await fetch(apiUrl, { method: "GET" });
+      } catch (_) { /* ignore — socket will retry */ }
+
+      if (cancelled) return;
+      setServerStatus("online");
+
+      // ✅ Step 2: Connect socket (server is now awake)
+      const socket = io(socketUrl, {
+        transports: ["polling", "websocket"], // polling first — more reliable on Render free tier
+        reconnection: true,
+        reconnectionAttempts: 15,
+        reconnectionDelay: 2000,
+        timeout: 30000,
+      });
+      socketRef = socket;
+
+      socket.on("connect", () => {
+        if (cancelled) return;
+        setSocketConnected(true);
+
+        // ✅ Step 3: join_queue ONLY after socket is confirmed connected
+        socket.emit("join_queue", {
+          userId: user?.id || "usr_" + Math.floor(Math.random() * 100000),
+          name: displayName,
+          avatar: avatar,
+          profileFrame: "/assets/images/icons/profile_frame_v3.png",
+          nameBanner: "/assets/images/icons/name_banner_v2.png",
+          mode: activeQueueMode,
+          entryFee: currentEntryFee,
         });
-      }
-      setMyAssignedColor(data.color);
-      setIsHost(data.isHost !== undefined ? data.isHost : true);
-      setMatchCountdown(1); // Fast 1-second launch when real match is found!
-      setMatchConnected(true);
-    });
+      });
+
+      socket.on("disconnect", () => {
+        if (!cancelled) setSocketConnected(false);
+      });
+
+      socket.on("match_found", (data: any) => {
+        if (cancelled) return;
+        console.log("Real match connected!", data);
+        if (data.opponent) {
+          setOpponent({
+            name: data.opponent.name,
+            avatar: data.opponent.avatar,
+            profileFrame: data.opponent.profileFrame || "/assets/images/icons/profile_frame_v3.png",
+            nameBanner: data.opponent.nameBanner || "/assets/images/icons/name_banner_v2.png",
+            color: data.opponent.color,
+            roomCode: data.roomCode,
+            isBot: false,
+          });
+        }
+        setMyAssignedColor(data.color);
+        setIsHost(data.isHost !== undefined ? data.isHost : true);
+        setMatchCountdown(1);
+        setMatchConnected(true);
+      });
+    };
+
+    wakeAndConnect();
 
     return () => {
-      socket.emit("leave_queue");
-      socket.disconnect();
+      cancelled = true;
+      if (socketRef) {
+        socketRef.emit("leave_queue");
+        socketRef.disconnect();
+      }
     };
   }, [user?.id, displayName, avatar]);
 
@@ -186,14 +214,17 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
         {/* Live Socket Server Connection Status Badge */}
         <div className="w-full flex justify-center mt-3">
           <div className={`px-4 py-1 rounded-full border text-[10px] font-black uppercase tracking-wider flex items-center gap-2 shadow-lg ${
-            socketConnected 
-              ? "bg-emerald-950/90 border-emerald-400 text-emerald-300" 
+            socketConnected
+              ? "bg-emerald-950/90 border-emerald-400 text-emerald-300"
+              : serverStatus === "waking"
+              ? "bg-purple-950/90 border-purple-400 text-purple-300 animate-pulse"
               : "bg-amber-950/90 border-amber-400 text-amber-300 animate-pulse"
           }`}>
-            <span className={`w-2 h-2 rounded-full ${socketConnected ? "bg-emerald-400 animate-ping" : "bg-amber-400"}`} />
-            <span>{socketConnected ? "MULTIPLAYER SERVER: ONLINE" : "CONNECTING TO MULTIPLAYER SERVER..."}</span>
+            <span className={`w-2 h-2 rounded-full ${socketConnected ? "bg-emerald-400 animate-ping" : serverStatus === "waking" ? "bg-purple-400" : "bg-amber-400"}`} />
+            <span>{socketConnected ? "🟢 MULTIPLAYER SERVER: ONLINE" : serverStatus === "waking" ? "⏳ SERVER STARTING UP..." : "🔄 CONNECTING TO SERVER..."}</span>
           </div>
         </div>
+
 
         {/* Graphic & VS Emblem */}
         <div className="flex flex-col items-center text-center my-auto relative">

@@ -367,7 +367,20 @@ export const FriendsPage: React.FC<FriendsPageProps> = ({ onBack, onInviteFriend
       updateUser({ gems: userGems - amount });
     }
 
-    confetti({ particleCount: 40, spread: 50, colors: ['#9333EA', '#FFD700'] });
+    const socket = globalSocket.socket;
+    if (socket && socket.connected) {
+      socket.emit("send_gift", {
+        senderName: user?.displayName || user?.username || "TASAVVUR",
+        targetId: selectedFriendProfile.id,
+        targetName: selectedFriendProfile.name,
+        giftType: giftType,
+        amount: amount
+      });
+    }
+
+    try {
+      confetti({ particleCount: 40, spread: 50, colors: ['#9333EA', '#FFD700'] });
+    } catch (e) {}
     triggerToast(`🎁 Gifted ${amount.toLocaleString()} ${giftType} to ${selectedFriendProfile.name}!`);
     setSelectedFriendProfile(null);
   };

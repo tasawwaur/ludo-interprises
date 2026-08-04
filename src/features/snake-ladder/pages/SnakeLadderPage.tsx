@@ -11,6 +11,7 @@ import { UserProfileModal, UserStats } from "../../../components/modal/UserProfi
 import { SoundEngine } from "../../../game/sound/SoundEngine";
 import confetti from "canvas-confetti";
 import { ChatModal, ChatMessage } from "../../chat/ChatModal";
+import { globalSocket } from "../../../multiplayer/socket/SocketClient";
 
 // ─── Import Authoritative Rule Engine ────────────────────────────────────────
 import { SnakeLadderEngine } from "../engine/SnakeLadderEngine";
@@ -1492,6 +1493,39 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           isMe={selectedProfile.id === (user?.id || "guest_123")}
           onClose={() => setSelectedProfile(null)}
           onAddFriend={() => handleAddFriend(selectedProfile.id)}
+          onSendGift={(type, amount) => {
+            const currentCoins = user?.coins || 0;
+            const currentGems = user?.gems || 0;
+            if (type === "COINS" && currentCoins < amount) {
+              alert("❌ Insufficient Coins!");
+              return;
+            }
+            if (type === "GEMS" && currentGems < amount) {
+              alert("❌ Insufficient Gems!");
+              return;
+            }
+            if (type === "COINS") {
+              updateUser({ coins: currentCoins - amount });
+            } else {
+              updateUser({ gems: currentGems - amount });
+            }
+
+            const socket = globalSocket.socket;
+            if (socket && socket.connected) {
+              socket.emit("send_gift", {
+                senderName: playerName,
+                targetId: selectedProfile.id,
+                targetName: selectedProfile.name,
+                giftType: type,
+                amount: amount,
+              });
+            }
+
+            try {
+              confetti({ particleCount: 40, spread: 50, colors: ['#9333EA', '#FFD700'] });
+            } catch (e) {}
+            setSelectedProfile(null);
+          }}
         />
       )}
 

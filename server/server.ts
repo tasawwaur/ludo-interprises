@@ -400,6 +400,34 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("send_gift", (data: { 
+    senderName: string; 
+    targetId?: string;
+    targetName: string; 
+    giftType: "COINS" | "GEMS";
+    amount: number;
+  }) => {
+    console.log(`[Gift] From ${data.senderName} to ${data.targetName} (${data.targetId}): ${data.amount} ${data.giftType}`);
+    let targetSocketId = null;
+    if (data.targetId) {
+      targetSocketId = connectedUsers.get(data.targetId.toLowerCase())?.socketId;
+    }
+    if (!targetSocketId) {
+      targetSocketId = connectedUsers.get(data.targetName.toLowerCase())?.socketId;
+    }
+
+    if (targetSocketId) {
+      io.to(targetSocketId).emit("incoming_gift", {
+        senderName: data.senderName,
+        giftType: data.giftType,
+        amount: data.amount,
+      });
+      socket.emit("gift_status", { success: true, message: `Gift sent to ${data.targetName}!` });
+    } else {
+      socket.emit("gift_status", { success: false, message: `${data.targetName} is offline.` });
+    }
+  });
+
   // Player joins Matchmaking Queue
   socket.on("join_queue", (playerData: { userId: string; name: string; avatar?: string; profileFrame?: string; nameBanner?: string }) => {
     console.log(`[Queue] ${playerData.name} (${socket.id}) joined queue`);

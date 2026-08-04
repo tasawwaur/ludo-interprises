@@ -183,11 +183,28 @@ const MainApp: React.FC = () => {
       triggerGlobalToast(`💬 ${data.senderName}: ${data.text}`);
     });
 
+    // Listen for incoming gifts
+    socket.on("incoming_gift", (data: { senderName: string; giftType: "COINS" | "GEMS"; amount: number }) => {
+      const currentUser = useUserStore.getState().user;
+      if (currentUser) {
+        if (data.giftType === "COINS") {
+          useUserStore.getState().updateUser({ coins: (currentUser.coins || 0) + data.amount });
+        } else {
+          useUserStore.getState().updateUser({ gems: (currentUser.gems || 0) + data.amount });
+        }
+        triggerGlobalToast(`🎁 Received ${data.amount.toLocaleString()} ${data.giftType} from ${data.senderName}!`);
+        try {
+          confetti({ particleCount: 50, spread: 60, colors: ['#FFD700', '#10B981'] });
+        } catch (e) {}
+      }
+    });
+
     return () => {
       socket.off("incoming_friend_request");
       socket.off("incoming_game_invite");
       socket.off("friend_request_accepted");
       socket.off("incoming_dm");
+      socket.off("incoming_gift");
     };
   }, [user]);
 
@@ -727,6 +744,43 @@ const MainApp: React.FC = () => {
                     });
                     triggerGlobalToast(`Added ${profile.name} to buddies.`);
                   }
+                }}
+                onSendGift={(type, amount) => {
+                  if (!user) return;
+                  const currentCoins = user.coins || 0;
+                  const currentGems = user.gems || 0;
+
+                  if (type === "COINS" && currentCoins < amount) {
+                    triggerGlobalToast("❌ Insufficient Coins!");
+                    return;
+                  }
+                  if (type === "GEMS" && currentGems < amount) {
+                    triggerGlobalToast("❌ Insufficient Gems!");
+                    return;
+                  }
+
+                  if (type === "COINS") {
+                    updateUser({ coins: currentCoins - amount });
+                  } else {
+                    updateUser({ gems: currentGems - amount });
+                  }
+
+                  const socket = globalSocket.socket;
+                  if (socket && socket.connected) {
+                    socket.emit("send_gift", {
+                      senderName: user.displayName || user.username || "TASAVVUR",
+                      targetId: profile.id,
+                      targetName: profile.name,
+                      giftType: type,
+                      amount: amount
+                    });
+                  }
+
+                  try {
+                    confetti({ particleCount: 40, spread: 50, colors: ['#9333EA', '#FFD700'] });
+                  } catch (e) {}
+                  triggerGlobalToast(`🎁 Gifted ${amount.toLocaleString()} ${type} to ${profile.name}!`);
+                  closeProfile();
                 }}
               />
             );

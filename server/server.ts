@@ -459,9 +459,9 @@ io.on("connection", (socket) => {
       entryFee,
     });
 
-    // Check if another player with the SAME mode and SAME entryFee is waiting in queue
+    // Check if another player with the SAME mode is waiting in queue (match regardless of bet/entryFee)
     const matchingIdx = matchmakingQueue.findIndex(
-      (p) => p.socketId !== socket.id && p.mode === mode && p.entryFee === entryFee
+      (p) => p.socketId !== socket.id && p.mode === mode
     );
 
     if (matchingIdx !== -1) {

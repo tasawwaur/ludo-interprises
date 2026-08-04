@@ -300,6 +300,59 @@ const MainApp: React.FC = () => {
       setCurrentView("SNAKE_LADDER");
       return;
     }
+
+    // Direct auto-match check via URL Link
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const isAutoMatch = urlParams.get("join") === "true" || urlParams.get("play") === "true" || urlParams.get("autoMatch") === "true";
+      if (isAutoMatch) {
+        const mode = urlParams.get("mode") || "Snake & Ladders";
+        const entryFee = parseInt(urlParams.get("entryFee") || "5000");
+        localStorage.setItem("ludo_current_entry_fee", entryFee.toString());
+
+        let currentUser = useUserStore.getState().user;
+        const authStatus = useUserStore.getState().isAuthenticated;
+
+        if (!currentUser || !authStatus) {
+          // Register as Guest automatically
+          const guestNum = Math.floor(1000 + Math.random() * 9000);
+          const finalName = `PLAYER_${guestNum}`;
+          currentUser = {
+            id: "usr_guest_" + Math.floor(Math.random() * 1000000),
+            username: finalName,
+            displayName: finalName,
+            email: `${finalName.toLowerCase()}@ludo.enterprise`,
+            avatar: "/assets/images/icons/icon_club_crown.png",
+            country: "🇮🇳",
+            rank: 1,
+            coins: Math.max(20000, entryFee),
+            gems: 100,
+            level: 5,
+            xp: 850,
+            nextLevelXp: 1000,
+            loginProvider: 'guest',
+          };
+          useUserStore.getState().setUser(currentUser);
+        } else if (currentUser.coins < entryFee) {
+          // Guarantee entry fee affordability
+          useUserStore.getState().updateUser({ coins: entryFee });
+        }
+
+        // Wait brief moment for globalSocket connect state to complete
+        setTimeout(() => {
+          startQueue(mode);
+          setCurrentView("QUEUE");
+        }, 1200);
+
+        // Clear query parameters to avoid infinite queue loops on manual page reloads
+        try {
+          const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+          window.history.replaceState({ path: cleanUrl }, "", cleanUrl);
+        } catch (e) {}
+        return;
+      }
+    }
+
     if (isAuthenticated) {
       setCurrentView("HOME");
     } else {

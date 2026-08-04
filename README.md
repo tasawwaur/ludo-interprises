@@ -2,6 +2,13 @@
 
 A high-performance, enterprise-grade Ludo multiplayer platform built with **React 19 + TypeScript**, **Vite**, **HTML5 Canvas Engine**, **Socket.IO**, and **Express Backend**.
 
+## 🌐 One-Click Deploy
+
+Deploy the platform instantly to Vercel (Frontend) and Render (Backend):
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Ftasawwaur%2Fludo-interprises)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2Ftasawwaur%2Fludo-interprises)
+
 ## 🚀 Quick Start
 
 1. Install dependencies:

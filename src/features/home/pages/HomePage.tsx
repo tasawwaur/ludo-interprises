@@ -251,6 +251,32 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
     setShowNameEdit(true);
   };
 
+  const copyInviteLink = (mode: string | null, fee: number) => {
+    if (!mode) return;
+    const host = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const inviteUrl = `${host}/?join=true&mode=${encodeURIComponent(mode)}&entryFee=${fee}`;
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(inviteUrl)
+        .then(() => triggerToast("📋 Play Link Copied! Send to friend!"))
+        .catch(() => triggerToast("Failed to copy link"));
+    } else {
+      const textarea = document.createElement("textarea");
+      textarea.value = inviteUrl;
+      textarea.style.position = "fixed";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      try {
+        document.execCommand("copy");
+        triggerToast("📋 Play Link Copied! Send to friend!");
+      } catch (err) {
+        triggerToast("Failed to copy link");
+      }
+      document.body.removeChild(textarea);
+    }
+  };
+
   return (
     <div className="w-full h-full flex flex-col relative overflow-hidden select-none font-sans bg-[#0F041C] text-white">
 
@@ -1135,6 +1161,28 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
                   </button>
                 );
               })}
+            </div>
+
+            {/* Invite Friend via Link Section */}
+            <div className="border-t border-amber-500/20 pt-3 mt-1 flex flex-col gap-2">
+              <span className="text-[9px] font-black text-amber-200 uppercase tracking-widest">
+                🔗 SHARE PLAY LINK
+              </span>
+              <div className="grid grid-cols-3 gap-1">
+                {[
+                  { fee: 5000, label: "5K" },
+                  { fee: 10000, label: "10K" },
+                  { fee: 50000, label: "50K" },
+                ].map((tier) => (
+                  <button
+                    key={tier.fee}
+                    onClick={() => copyInviteLink(selectedModeForEntry, tier.fee)}
+                    className="py-1.5 rounded-lg bg-gradient-to-b from-purple-900 to-indigo-950 border border-purple-500/30 text-[9px] font-black text-amber-300 hover:border-amber-400 active:scale-95 transition-all cursor-pointer"
+                  >
+                    {tier.label} LINK
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Cancel Button */}

@@ -411,27 +411,24 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
           />
         </button>
 
-        {/* VIP Club Button */}
+        {/* VIP Club Button (Locked) */}
         <button
           onClick={() => {
-            confetti({
-              particleCount: 15,
-              spread: 30,
-              colors: ['#FFD700', '#FFA500'],
-              scalar: 0.8,
-            });
-            onOpenView?.("CLUB");
+            triggerToast("🔒 VIP Club is under maintenance!");
           }}
-          className="w-[30px] h-[30px] p-0 border-0 outline-none bg-transparent hover:scale-110 active:scale-[0.96] transition-transform cursor-pointer"
+          className="w-[30px] h-[30px] p-0 border-0 outline-none bg-transparent hover:scale-110 active:scale-[0.96] transition-transform cursor-pointer relative"
           style={{ WebkitTapHighlightColor: "transparent" }}
           aria-label="VIP Club"
         >
           <img
             src="/assets/images/icons/icon_club_crown.png"
             alt="VIP Club"
-            className="w-full h-full object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]"
+            className="w-full h-full object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] opacity-60 grayscale-[50%]"
             draggable={false}
           />
+          <span className="absolute -top-1 -right-1 text-[8px] bg-slate-900 border border-amber-400 text-amber-300 rounded-full w-3.5 h-3.5 flex items-center justify-center font-black">
+            🔒
+          </span>
         </button>
 
         {/* Golden Dice Button */}
@@ -587,16 +584,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
           )}
           <GameModeGrid
             onSelectMode={(modeKey) => {
-              if (modeKey === "Tournament") {
-                onOpenView?.("TOURNAMENT");
-              } else if (modeKey === "VIP Lounge" || modeKey === "VIP Room") {
-                onOpenView?.("SHOP");
-              } else if (modeKey === "Streak Stars") {
-                onOpenView?.("REWARDS");
-              } else {
-                triggerToast(`Joining ${modeKey}...`);
-                onSelectMode?.(modeKey);
-              }
+              triggerToast(`🔒 ${modeKey} is under maintenance. Play Snake & Ladders!`);
             }}
           />
         </div>
@@ -946,23 +934,32 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
 
           {/* Modes List */}
           <div className="w-full max-w-[390px] relative z-10 flex flex-col gap-4">
-            {/* Mode 1: Quick Classic */}
+            {/* Mode 1: Snake & Ladders (UNLOCKED & FEATURED) */}
             <button
-              onClick={() => setSelectedModeForEntry("Quick Classic")}
-              className="w-full rounded-[24px] border border-amber-500/30 bg-gradient-to-r from-slate-950/90 via-purple-950/50 to-slate-950/90 p-3.5 flex items-center gap-4 text-left shadow-[0_8px_20px_rgba(0,0,0,0.65)] hover:border-amber-400/60 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer relative"
+              onClick={() => setSelectedModeForEntry("Snake & Ladders")}
+              className="w-full rounded-[24px] border-2 border-amber-400 bg-gradient-to-r from-amber-950/90 via-purple-950/80 to-amber-950/90 p-3.5 flex items-center gap-4 text-left shadow-[0_0_25px_rgba(245,158,11,0.6)] hover:scale-[1.03] active:scale-[0.97] transition-all outline-none duration-300 cursor-pointer relative overflow-hidden"
             >
-              <img 
-                src="/assets/images/icons/quick_classic_icon.jpg" 
-                alt="Quick Classic" 
-                className="w-16 h-16 rounded-[16px] object-cover border-2 border-amber-400/40 shadow-inner" 
-              />
+              <div className="relative">
+                <img 
+                  src="/assets/images/icons/snake_ladder_luxury_icon.jpg" 
+                  alt="Snakes & Ladders" 
+                  className="w-16 h-16 rounded-[16px] object-cover border-2 border-amber-400 shadow-md" 
+                />
+                <span className="absolute -top-1.5 -right-1.5 bg-emerald-500 text-slate-950 text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter shadow-md animate-pulse">
+                  LIVE
+                </span>
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-black text-amber-200 tracking-wide">QUICK CLASSIC</h3>
-                  <span className="text-[9px] bg-purple-950/80 border border-amber-400/40 text-amber-300 px-2.5 py-0.5 rounded-full font-black uppercase shadow">1 TOKEN</span>
+                  <h3 className="text-sm font-black text-amber-200 tracking-wide leading-tight flex items-center gap-2">
+                    <span>SNAKES &amp; LADDERS</span>
+                  </h3>
+                  <span className="text-[9px] bg-gradient-to-r from-emerald-500 to-teal-500 border border-emerald-300 text-slate-950 px-2.5 py-0.5 rounded-full font-black uppercase shadow">
+                    🔥 ACTIVE 1V1
+                  </span>
                 </div>
-                <p className="text-[10px] text-purple-200/80 mt-1 leading-snug">
-                  1-Token combat. Reach center to win instantly. Fast-paced &amp; action-packed!
+                <p className="text-[10px] text-amber-100/90 mt-1 leading-snug">
+                  Roll dice, climb golden ladders &amp; dodge deadly snakes. First to reach cell 100 wins!
                 </p>
                 <div className="flex items-center gap-1.5 mt-2.5">
                   <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-md border border-amber-500/30 uppercase flex items-center gap-1">
@@ -972,104 +969,90 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
               </div>
             </button>
 
-            {/* Mode 2: Unique Classic */}
-            <button
-              onClick={() => setSelectedModeForEntry("Unique Classic")}
-              className="w-full rounded-[24px] border border-amber-500/30 bg-gradient-to-r from-slate-950/90 via-purple-950/50 to-slate-950/90 p-3.5 flex items-center gap-4 text-left shadow-[0_8px_20px_rgba(0,0,0,0.65)] hover:border-amber-400/60 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer relative"
-            >
-              <img 
-                src="/assets/images/icons/unique_classic_icon.jpg" 
-                alt="Unique Classic" 
-                className="w-16 h-16 rounded-[16px] object-cover border-2 border-amber-400/40 shadow-inner" 
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-black text-amber-200 tracking-wide">UNIQUE CLASSIC</h3>
-                  <span className="text-[9px] bg-purple-950/80 border border-amber-400/40 text-amber-300 px-2.5 py-0.5 rounded-full font-black uppercase shadow">COSMETICS</span>
-                </div>
-                <p className="text-[10px] text-purple-200/80 mt-1 leading-snug">
-                  Show off equipped luxury dice, profile frames, board themes, and custom pawns!
-                </p>
-                <div className="flex items-center gap-1.5 mt-2.5">
-                  <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-md border border-amber-500/30 uppercase flex items-center gap-1">
-                    ENTRY: 5K - 10M COINS <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline" alt="coin" />
-                  </span>
-                </div>
-              </div>
-            </button>
-
-            {/* Mode 3: Normal Classic */}
-            <button
-              onClick={() => setSelectedModeForEntry("Normal Classic")}
-              className="w-full rounded-[24px] border border-amber-500/30 bg-gradient-to-r from-slate-950/90 via-purple-950/50 to-slate-950/90 p-3.5 flex items-center gap-4 text-left shadow-[0_8px_20px_rgba(0,0,0,0.65)] hover:border-amber-400/60 hover:scale-[1.02] active:scale-[0.98] transition-all outline-none duration-350 cursor-pointer relative"
-            >
-              <img 
-                src="/assets/images/icons/normal_classic_icon.jpg" 
-                alt="Normal Classic" 
-                className="w-16 h-16 rounded-[16px] object-cover border-2 border-amber-400/40 shadow-inner" 
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-black text-amber-200 tracking-wide">NORMAL CLASSIC</h3>
-                  <span className="text-[9px] bg-purple-950/80 border border-amber-400/40 text-amber-300 px-2.5 py-0.5 rounded-full font-black uppercase shadow">STANDARD</span>
-                </div>
-                <p className="text-[10px] text-purple-200/80 mt-1 leading-snug">
-                  Play standard classic rules. Enforces default styles (standard dice, pawns &amp; classic board).
-                </p>
-                <div className="flex items-center gap-1.5 mt-2.5">
-                  <span className="text-[9px] font-black tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-md border border-amber-500/30 uppercase flex items-center gap-1">
-                    ENTRY: 5K - 10M COINS <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline" alt="coin" />
-                  </span>
-                </div>
-              </div>
-            </button>
-
-            {/* Divider: OTHER GAMES */}
+            {/* Divider: OTHER MODES (LOCKED FOR MAINTENANCE) */}
             <div className="flex items-center gap-2 my-0.5">
               <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent via-amber-500/40 to-amber-500/20" />
-              <div className="text-[9px] font-black text-amber-300 tracking-[0.2em] uppercase flex items-center gap-1">
-                <span className="text-amber-400 text-xs">♦</span> OTHER GAMES <span className="text-amber-400 text-xs">♦</span>
+              <div className="text-[9px] font-black text-amber-300/60 tracking-[0.2em] uppercase flex items-center gap-1">
+                <span className="text-amber-500/60 text-xs">🔒</span> LUDO MODES (MAINTENANCE) <span className="text-amber-500/60 text-xs">🔒</span>
               </div>
               <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent via-amber-500/40 to-amber-500/20" />
             </div>
 
-            {/* Mode 4: Snake & Ladders (Locked) */}
+            {/* Mode 2: Quick Classic (Locked) */}
             <button
-              onClick={() => {
-                triggerToast("🔒 Snakes & Ladders mode is locked (NO ENTRY ANY AI)");
-              }}
+              onClick={() => triggerToast("🔒 Quick Classic is under maintenance. Play Snake & Ladders!")}
               className="w-full rounded-[24px] border-2 border-slate-700/60 bg-gradient-to-r from-slate-950/95 via-slate-900/80 to-slate-950/95 p-3.5 flex items-center gap-4 text-left shadow-lg opacity-60 cursor-not-allowed relative overflow-hidden"
             >
-              {/* Lock Badge Overlay */}
               <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-[1px] flex items-center justify-center z-20">
                 <span className="bg-slate-900/95 border border-amber-400/80 text-amber-300 text-[10px] font-black px-3.5 py-1 rounded-full uppercase tracking-widest shadow-2xl flex items-center gap-1.5">
-                  🔒 LOCKED • NO ENTRY ANY AI
+                  🔒 UNDER MAINTENANCE
                 </span>
               </div>
               <img 
-                src="/assets/images/icons/snake_ladder_luxury_icon.jpg" 
-                alt="Snakes & Ladders" 
+                src="/assets/images/icons/quick_classic_icon.jpg" 
+                alt="Quick Classic" 
                 className="w-16 h-16 rounded-[16px] object-cover border-2 border-slate-600/60 grayscale" 
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-black text-slate-400 tracking-wide leading-tight flex flex-col">
-                    <span>SNAKES &amp;</span>
-                    <span>LADDERS</span>
-                  </h3>
-                  <div className="w-10 h-10 rounded-full border-2 border-slate-700 bg-slate-950 flex flex-col items-center justify-center shadow">
-                    <span className="text-[9px] font-black text-slate-500 leading-none">1 vs</span>
-                    <span className="text-[10px] font-black text-slate-500 leading-none">1</span>
-                  </div>
+                  <h3 className="text-sm font-black text-slate-400 tracking-wide">QUICK CLASSIC</h3>
+                  <span className="text-[9px] bg-slate-800 text-slate-400 px-2.5 py-0.5 rounded-full font-black uppercase">1 TOKEN</span>
                 </div>
                 <p className="text-[10px] text-slate-400/80 mt-1 leading-snug">
-                  Roll dice, climb golden ladders &amp; dodge deadly snakes. First to reach 100 wins!
+                  1-Token combat. Reach center to win instantly.
                 </p>
-                <div className="flex items-center gap-1.5 mt-2.5">
-                  <span className="text-[9px] font-black tracking-wider text-slate-400 bg-slate-800/40 px-2.5 py-0.5 rounded-md border border-slate-700/50 uppercase flex items-center gap-1">
-                    ENTRY: NO ENTRY <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline grayscale" alt="coin" />
-                  </span>
+              </div>
+            </button>
+
+            {/* Mode 3: Unique Classic (Locked) */}
+            <button
+              onClick={() => triggerToast("🔒 Unique Classic is under maintenance. Play Snake & Ladders!")}
+              className="w-full rounded-[24px] border-2 border-slate-700/60 bg-gradient-to-r from-slate-950/95 via-slate-900/80 to-slate-950/95 p-3.5 flex items-center gap-4 text-left shadow-lg opacity-60 cursor-not-allowed relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-[1px] flex items-center justify-center z-20">
+                <span className="bg-slate-900/95 border border-amber-400/80 text-amber-300 text-[10px] font-black px-3.5 py-1 rounded-full uppercase tracking-widest shadow-2xl flex items-center gap-1.5">
+                  🔒 UNDER MAINTENANCE
+                </span>
+              </div>
+              <img 
+                src="/assets/images/icons/unique_classic_icon.jpg" 
+                alt="Unique Classic" 
+                className="w-16 h-16 rounded-[16px] object-cover border-2 border-slate-600/60 grayscale" 
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-slate-400 tracking-wide">UNIQUE CLASSIC</h3>
+                  <span className="text-[9px] bg-slate-800 text-slate-400 px-2.5 py-0.5 rounded-full font-black uppercase">COSMETICS</span>
                 </div>
+                <p className="text-[10px] text-slate-400/80 mt-1 leading-snug">
+                  Show off equipped luxury dice, profile frames, and board themes!
+                </p>
+              </div>
+            </button>
+
+            {/* Mode 4: Normal Classic (Locked) */}
+            <button
+              onClick={() => triggerToast("🔒 Normal Classic is under maintenance. Play Snake & Ladders!")}
+              className="w-full rounded-[24px] border-2 border-slate-700/60 bg-gradient-to-r from-slate-950/95 via-slate-900/80 to-slate-950/95 p-3.5 flex items-center gap-4 text-left shadow-lg opacity-60 cursor-not-allowed relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-[1px] flex items-center justify-center z-20">
+                <span className="bg-slate-900/95 border border-amber-400/80 text-amber-300 text-[10px] font-black px-3.5 py-1 rounded-full uppercase tracking-widest shadow-2xl flex items-center gap-1.5">
+                  🔒 UNDER MAINTENANCE
+                </span>
+              </div>
+              <img 
+                src="/assets/images/icons/normal_classic_icon.jpg" 
+                alt="Normal Classic" 
+                className="w-16 h-16 rounded-[16px] object-cover border-2 border-slate-600/60 grayscale" 
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-slate-400 tracking-wide">NORMAL CLASSIC</h3>
+                  <span className="text-[9px] bg-slate-800 text-slate-400 px-2.5 py-0.5 rounded-full font-black uppercase">STANDARD</span>
+                </div>
+                <p className="text-[10px] text-slate-400/80 mt-1 leading-snug">
+                  Play standard classic rules. Enforces default styles.
+                </p>
               </div>
             </button>
           </div>

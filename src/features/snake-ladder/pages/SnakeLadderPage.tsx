@@ -511,6 +511,9 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           const tXP = kXP + lXP + wXP;
           const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
           const winReward = Math.round(entryFee * 1.9); // 2 * entryFee - 5% commission
+          const currentUser = useUserStore.getState().user;
+          const cCoins = currentUser?.coins || 0;
+          const cXP = currentUser?.xp || 0;
           updateUser({ coins: isWin ? cCoins + winReward : cCoins, xp: cXP + tXP });
           if (isWin) {
             SoundEngine.play('WIN');
@@ -647,11 +650,13 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       const winXP = isWinner ? 200 : 20;
       const totalXP = killsXP + laddersXP + winXP;
 
-      const currentCoins = user?.coins || 0;
-      const currentXP = user?.xp || 0;
+      const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
+      const winReward = Math.round(entryFee * 1.9); // 2 * entryFee - 5% commission
+      const currentCoins = useUserStore.getState().user?.coins || 0;
+      const currentXP = useUserStore.getState().user?.xp || 0;
 
       updateUser({
-        coins: isWinner ? currentCoins + 9500 : currentCoins,
+        coins: isWinner ? currentCoins + winReward : currentCoins,
         xp: currentXP + totalXP,
       });
 

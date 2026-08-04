@@ -352,6 +352,9 @@ export class SnakeLadderEngine {
         tokenId,
         message: `${activePlayer.name} won the match by reaching 100!`,
       });
+      this.emit("STATE_UPDATE", { state: this.state });
+      this.handlePostLanding(token, tokenId, finalPos, rolled);
+      return;
     }
     // Snake Head Landing — Slide down to tail (punch)
     else if (SNAKES[finalPos] !== undefined) {

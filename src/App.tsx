@@ -69,6 +69,7 @@ const MainApp: React.FC = () => {
     if (typeof window !== "undefined") {
       const savedMatch = localStorage.getItem("ludo_active_match_session");
       if (savedMatch === "GAME_ARENA") return "GAME_ARENA";
+      if (savedMatch === "SNAKE_LADDER") return "SNAKE_LADDER";
     }
     return "SPLASH";
   });
@@ -217,7 +218,9 @@ const MainApp: React.FC = () => {
   useEffect(() => {
     if (currentView === "GAME_ARENA") {
       localStorage.setItem("ludo_active_match_session", "GAME_ARENA");
-    } else {
+    } else if (currentView === "SNAKE_LADDER") {
+      localStorage.setItem("ludo_active_match_session", "SNAKE_LADDER");
+    } else if (currentView !== "MATCHMAKING") {
       localStorage.removeItem("ludo_active_match_session");
     }
   }, [currentView]);

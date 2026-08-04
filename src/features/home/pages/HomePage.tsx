@@ -322,9 +322,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
         </button>
 
         {/* Rejoin Active Game Button */}
-        {typeof window !== 'undefined' && localStorage.getItem("ludo_active_match_session") === "GAME_ARENA" && (
+        {typeof window !== 'undefined' && !!localStorage.getItem("ludo_active_match_session") && (
           <button
-            onClick={() => onOpenView?.("GAME_ARENA")}
+            onClick={() => {
+              const activeSession = localStorage.getItem("ludo_active_match_session");
+              if (activeSession === "SNAKE_LADDER") onOpenView?.("SNAKE_LADDER");
+              else onOpenView?.("GAME_ARENA");
+            }}
             className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 font-black text-sm uppercase rounded-2xl border-2 border-yellow-200 shadow-[0_0_20px_rgba(255,215,0,0.8)] hover:scale-105 active:scale-95 transition-all flex items-center justify-between animate-bounce cursor-pointer mb-2"
           >
             <span className="flex items-center gap-2">
@@ -548,9 +552,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
       <div className="relative z-20 w-full flex justify-center px-3 pb-0 translate-y-[24px]">
         <div className="w-full max-w-[420px] relative">
           {/* 2 Player Mode Custom Graphic Overlay or REJOIN MATCH Banner */}
-          {typeof window !== 'undefined' && localStorage.getItem("ludo_active_match_session") === "GAME_ARENA" ? (
+          {typeof window !== 'undefined' && !!localStorage.getItem("ludo_active_match_session") ? (
             <button
-              onClick={() => onOpenView?.("GAME_ARENA")}
+              onClick={() => {
+                const activeSession = localStorage.getItem("ludo_active_match_session");
+                if (activeSession === "SNAKE_LADDER") onOpenView?.("SNAKE_LADDER");
+                else onOpenView?.("GAME_ARENA");
+              }}
               className="absolute top-[-96px] left-0 right-0 h-[88px] z-30 cursor-pointer border-2 border-amber-300 rounded-[18px] p-3 bg-gradient-to-r from-purple-900 via-amber-600 to-purple-900 flex items-center justify-between shadow-[0_0_25px_rgba(245,158,11,0.9)] hover:scale-[1.02] active:scale-[0.96] transition-transform animate-pulse"
             >
               <div className="flex items-center gap-2">

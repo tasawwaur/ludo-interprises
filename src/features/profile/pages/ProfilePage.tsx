@@ -289,7 +289,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   {/* Dynamic circular avatar */}
-                  <div className="w-20 h-20 relative flex-shrink-0 cursor-pointer" onClick={() => setShowStatsCard(true)}>
+                  <div className="w-20 h-20 relative flex-shrink-0 cursor-pointer hover:scale-105 active:scale-95 transition-transform" onClick={handleAvatarClick}>
                     <div
                       className="absolute rounded-full overflow-hidden bg-slate-950 border border-purple-950 z-10"
                       style={{ top: '15%', left: '15%', right: '15%', bottom: '26%' }}
@@ -309,12 +309,23 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
                       style={{ filter: getFrameFilter(user?.equippedFrame) }}
                       draggable={false}
                     />
+                    {/* Small edit icon badge overlay */}
+                    <div className="absolute bottom-1 right-1 w-[18px] h-[18px] bg-amber-500 rounded-full border border-yellow-300 flex items-center justify-center text-[8px] z-30 shadow-md">
+                      ✏️
+                    </div>
                   </div>
 
                   {/* Name and country */}
                   <div className="flex flex-col gap-1">
-                    <h2 className="text-sm font-black text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.8)] tracking-wide">
+                    <h2 
+                      className="text-sm font-black text-white drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.8)] tracking-wide flex items-center gap-1.5 cursor-pointer hover:text-amber-300 transition-colors"
+                      onClick={() => {
+                        setNewName(playerName);
+                        setShowEditName(true);
+                      }}
+                    >
                       {playerName}
+                      <span className="text-[9px] opacity-75">✏️</span>
                     </h2>
                     <div className="flex items-center gap-1.5 bg-black/35 border border-purple-500/20 px-2 py-0.5 rounded-lg w-max shadow-inner">
                       <span className="text-[10px] leading-none">{stats.countryFlag}</span>

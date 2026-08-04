@@ -141,7 +141,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     const saved = localStorage.getItem("ludo_sent_friend_requests");
     return saved ? JSON.parse(saved) : [];
   });
-
+  const [friendRequestNotification, setFriendRequestNotification] = useState<{ senderName: string; senderAvatar?: string } | null>(null);
   // Initialize or restore the authoritative rule engine
   const [engineState, setEngineState] = useState<GameState>(() => {
     const userAvatar = user?.avatar || "/assets/images/icons/icon_club_crown.png";
@@ -296,6 +296,30 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
               }
             }, 80);
           }
+          return;
+        }
+
+        if (data.actionType === "SL_FRIEND_REQUEST") {
+          // Add to local Friends Store
+          useFriendsStore.getState().addFriendRequest({
+            id: "req_" + Date.now(),
+            senderName: data.senderName,
+            senderAvatar: data.senderAvatar,
+            senderLevel: data.senderLevel || 1,
+            senderFrame: data.senderFrame || "frame_default",
+            time: "Just now",
+          });
+          
+          // Show top banner notification
+          setFriendRequestNotification({
+            senderName: data.senderName,
+            senderAvatar: data.senderAvatar,
+          });
+          
+          // Auto-hide after 4 seconds
+          setTimeout(() => {
+            setFriendRequestNotification(null);
+          }, 4000);
           return;
         }
 
@@ -635,7 +659,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     const p = engineState.players.find((x) => x.color === playerColor);
     if (!p) return;
 
-    if (playerColor === "RED") {
+    if (playerColor === myColor) {
       const stats: UserStats = {
         id: user?.id || "guest_123",
         name: p.name,
@@ -658,28 +682,34 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       };
       setSelectedProfile(stats);
     } else {
-      const botProfile = GLOBAL_PLAYER_DATABASE.find((x) => x.username === p.name);
-      const isRequested = sentFriendRequests.includes(botProfile?.playerId || "bot_456");
+      const savedOpponentRaw = localStorage.getItem("ludo_sl_opponent");
+      const opponentData = savedOpponentRaw ? (() => { try { return JSON.parse(savedOpponentRaw); } catch { return null; } })() : null;
+      const isRealOpponent = opponentData && opponentData.name === p.name;
+
+      const profileId = isRealOpponent ? `real_${p.name}` : (GLOBAL_PLAYER_DATABASE.find((x) => x.username === p.name)?.playerId || "bot_456");
+      const isRequested = sentFriendRequests.includes(profileId);
+
+      const botProfile = !isRealOpponent ? GLOBAL_PLAYER_DATABASE.find((x) => x.username === p.name) : null;
 
       const stats: UserStats = {
-        id: botProfile?.playerId || "bot_456",
+        id: profileId,
         name: p.name,
         avatarUrl: p.avatar,
         equippedFrame: p.equippedFrameId || "frame_default",
-        level: botProfile?.level || 12,
-        country: botProfile?.country || "INDIA",
-        countryFlag: botProfile?.countryFlag || "🇮🇳",
-        totalEarning: botProfile?.totalEarning || "1.2 M",
-        currentGold: botProfile?.currentCoins || 50000,
-        currentLeague: botProfile?.currentLeague || "Bronze",
-        gamesWon: botProfile?.matchesWon || 15,
-        gamesPlayed: botProfile?.matchesPlayed || 30,
-        teamWins: botProfile?.teamWins || 4,
-        winStreak: botProfile?.currentWinStreak || 1,
-        twoPlayerWins: botProfile?.twoPlayerWins || 6,
-        titanBadgeCount: botProfile?.titanBadgeCount || 0,
-        fourPlayerWins: botProfile?.fourPlayerWins || 5,
-        killCount: botProfile?.killCount || 22,
+        level: isRealOpponent ? 4 : (botProfile?.level || 12),
+        country: isRealOpponent ? "INDIA" : (botProfile?.country || "INDIA"),
+        countryFlag: isRealOpponent ? "🇮🇳" : (botProfile?.countryFlag || "🇮🇳"),
+        totalEarning: isRealOpponent ? "35 K" : (botProfile?.totalEarning || "1.2 M"),
+        currentGold: isRealOpponent ? 25000 : (botProfile?.currentCoins || 50000),
+        currentLeague: isRealOpponent ? "Silver" : (botProfile?.currentLeague || "Bronze"),
+        gamesWon: isRealOpponent ? 15 : (botProfile?.matchesWon || 15),
+        gamesPlayed: isRealOpponent ? 32 : (botProfile?.matchesPlayed || 30),
+        teamWins: isRealOpponent ? 4 : (botProfile?.teamWins || 4),
+        winStreak: isRealOpponent ? 2 : (botProfile?.currentWinStreak || 1),
+        twoPlayerWins: isRealOpponent ? 8 : (botProfile?.twoPlayerWins || 6),
+        titanBadgeCount: isRealOpponent ? 0 : (botProfile?.titanBadgeCount || 0),
+        fourPlayerWins: isRealOpponent ? 7 : (botProfile?.fourPlayerWins || 5),
+        killCount: isRealOpponent ? 18 : (botProfile?.killCount || 22),
       };
 
       (stats as any).isFriendRequested = isRequested;
@@ -695,18 +725,45 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       return updated;
     });
 
-    const targetPlayer = GLOBAL_PLAYER_DATABASE.find(p => p.playerId === friendId);
-    if (targetPlayer) {
-      useFriendsStore.getState().addFriend({
-        id: targetPlayer.playerId,
-        name: targetPlayer.username,
-        status: "Online",
-        isOnline: true,
-        isFB: false,
-        avatarUrl: targetPlayer.avatarUrl,
-        coins: targetPlayer.currentCoins,
-        level: targetPlayer.level
-      });
+    // Update local modal button state instantly to "Requested"
+    setSelectedProfile((prev) => prev ? { ...prev, isFriendRequested: true } as any : null);
+
+    if (friendId.startsWith("real_")) {
+      // Real matched opponent! Send friend request via socket
+      const oppRaw = localStorage.getItem("ludo_sl_opponent");
+      if (socketRef.current && oppRaw) {
+        try {
+          const rc = JSON.parse(oppRaw).roomCode;
+          if (rc) {
+            const senderAvatar = user?.avatar || "/assets/images/icons/icon_club_crown.png";
+            const senderFrame = useCosmeticsStore.getState().equippedFrameId || "frame_default";
+
+            socketRef.current.emit("client_action", {
+              roomCode: rc,
+              actionType: "SL_FRIEND_REQUEST",
+              senderName: playerName,
+              senderAvatar: senderAvatar,
+              senderLevel: user?.level || 1,
+              senderFrame: senderFrame,
+            });
+          }
+        } catch (e) {}
+      }
+    } else {
+      // Bot profile fallback
+      const targetPlayer = GLOBAL_PLAYER_DATABASE.find(p => p.playerId === friendId);
+      if (targetPlayer) {
+        useFriendsStore.getState().addFriend({
+          id: targetPlayer.playerId,
+          name: targetPlayer.username,
+          status: "Online",
+          isOnline: true,
+          isFB: false,
+          avatarUrl: targetPlayer.avatarUrl,
+          coins: targetPlayer.currentCoins,
+          level: targetPlayer.level
+        });
+      }
     }
   };
 
@@ -932,6 +989,29 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           <div className="px-6 py-3 rounded-2xl bg-gradient-to-r from-red-600 via-rose-700 to-amber-600 border-2 border-yellow-300 text-white font-black text-xs md:text-sm tracking-wider shadow-[0_0_25px_rgba(239,68,68,0.95)] flex items-center gap-2">
             <span className="text-base">⚔️</span>
             <span>{killBanner}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Top Banner Notification for Friend Request */}
+      {friendRequestNotification && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 animate-bounce max-w-[90%] pointer-events-none">
+          <div className="bg-slate-900/95 border-2 border-amber-400/90 text-amber-200 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-amber-500/50 bg-slate-950 flex-shrink-0">
+              {friendRequestNotification.senderAvatar ? (
+                <img src={friendRequestNotification.senderAvatar} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="w-full h-full flex items-center justify-center text-sm font-black bg-slate-950 text-amber-200">
+                  {friendRequestNotification.senderName.charAt(0)}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider">Friend Request</span>
+              <span className="text-[9px] text-gray-200 font-bold leading-none">
+                {friendRequestNotification.senderName} sent you a friend request!
+              </span>
+            </div>
           </div>
         </div>
       )}

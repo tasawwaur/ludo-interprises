@@ -85,6 +85,7 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
       }
       setMyAssignedColor(data.color);
       setIsHost(data.isHost !== undefined ? data.isHost : true);
+      setMatchCountdown(1); // Fast 1-second launch when real match is found!
       setMatchConnected(true);
     });
 

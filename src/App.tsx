@@ -99,6 +99,14 @@ const MainApp: React.FC = () => {
     senderLevel: number;
   } | null>(null);
 
+  const [activeLiveQueueInvite, setActiveLiveQueueInvite] = useState<{
+    userId: string;
+    name: string;
+    avatar?: string;
+    mode: string;
+    entryFee: number;
+  } | null>(null);
+
   const [globalToast, setGlobalToast] = useState<string | null>(null);
   const triggerGlobalToast = (msg: string) => {
     setGlobalToast(msg);
@@ -124,6 +132,23 @@ const MainApp: React.FC = () => {
       avatar: user.avatar,
       equippedFrame: user.equippedFrame,
       level: user.level || 1
+    });
+
+    // Listen for live queue alert broadcast
+    socket.on("live_queue_alert", (data: any) => {
+      if (data && data.userId !== user.id) {
+        setActiveLiveQueueInvite({
+          userId: data.userId,
+          name: data.name,
+          avatar: data.avatar,
+          mode: data.mode || "Snake & Ladders",
+          entryFee: data.entryFee || 5000,
+        });
+      }
+    });
+
+    socket.on("live_queue_cleared", () => {
+      setActiveLiveQueueInvite(null);
     });
 
     // Listen for incoming friend request
@@ -860,6 +885,35 @@ const MainApp: React.FC = () => {
               </div>
             </div>
           )}
+          {/* Live Queue Floating Request Banner */}
+          {activeLiveQueueInvite && currentView !== "QUEUE" && currentView !== "SNAKE_LADDER" && currentView !== "GAME_ARENA" && (
+            <div className="absolute top-[12px] left-1/2 -translate-x-1/2 z-[9999] w-[94%] max-w-[390px] bg-gradient-to-r from-amber-950 via-purple-950 to-amber-950 border-2 border-amber-400 rounded-2xl p-3 shadow-[0_0_30px_rgba(245,158,11,0.9)] flex items-center justify-between animate-bounce">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="w-3 h-3 bg-emerald-400 rounded-full animate-ping flex-shrink-0" />
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[11px] font-black text-amber-200 uppercase tracking-wider truncate">
+                    ⚡ {activeLiveQueueInvite.name} IS WAITING!
+                  </span>
+                  <span className="text-[9px] font-bold text-emerald-300 uppercase">
+                    {activeLiveQueueInvite.mode} • {activeLiveQueueInvite.entryFee >= 1000 ? activeLiveQueueInvite.entryFee / 1000 + "K" : activeLiveQueueInvite.entryFee} Coins
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  localStorage.setItem("ludo_current_entry_fee", activeLiveQueueInvite.entryFee.toString());
+                  const modeToJoin = activeLiveQueueInvite.mode;
+                  setActiveLiveQueueInvite(null);
+                  startQueue(modeToJoin);
+                  setCurrentView("QUEUE");
+                }}
+                className="bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 font-black text-[10px] uppercase px-3 py-2 rounded-xl shadow-lg border border-yellow-200 hover:scale-105 active:scale-95 transition-transform flex-shrink-0 cursor-pointer"
+              >
+                PLAY NOW ➜
+              </button>
+            </div>
+          )}
+
           {/* Global Toast */}
           {globalToast && (
             <div className="absolute top-[85px] left-1/2 -translate-x-1/2 bg-purple-950/95 border-2 border-purple-500/80 px-5 py-3 rounded-2xl text-[10px] text-amber-200 font-black shadow-[0_4px_20px_rgba(0,0,0,0.85)] z-[9999] animate-bounce uppercase tracking-widest text-center min-w-[200px]">

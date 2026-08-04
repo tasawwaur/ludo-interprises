@@ -525,6 +525,28 @@ io.on("connection", (socket) => {
         color: p2Color,
         isHost: false,
       });
+
+      // Clear live queue broadcast banner across all clients
+      io.emit("live_queue_cleared", { userIds: [player1.userId, player2.userId] });
+    } else {
+      // Broadcast live queue alert to all other online connected devices
+      socket.broadcast.emit("live_queue_alert", {
+        socketId: socket.id,
+        userId: playerData.userId,
+        name: playerData.name,
+        avatar: playerData.avatar,
+        mode,
+        entryFee,
+      });
+    }
+  });
+
+  socket.on("leave_queue", () => {
+    const idx = matchmakingQueue.findIndex((p) => p.socketId === socket.id);
+    if (idx !== -1) {
+      const p = matchmakingQueue[idx];
+      matchmakingQueue.splice(idx, 1);
+      io.emit("live_queue_cleared", { userIds: [p.userId] });
     }
   });
 

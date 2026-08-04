@@ -55,7 +55,7 @@ export const ClubPage: React.FC<ClubPageProps> = ({ onBack }) => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Home states
-  const [clubName, setClubName] = useState("ROYAL LUXE 🏰");
+  const [clubName, setClubName] = useState("LUDO ENTERPRISE");
   const [clubAnn, setClubAnn] = useState("🏆 Let's climb to Top 10 globally! Play daily matches & donate coins.");
   const [clubDesc, setClubDesc] = useState("Premium club for elite Ludo players. Weekly tournaments, active chatting & generous gifting!");
   const [clubPrivacy, setClubPrivacy] = useState<"PUBLIC" | "PRIVATE">("PUBLIC");
@@ -271,9 +271,14 @@ export const ClubPage: React.FC<ClubPageProps> = ({ onBack }) => {
           </button>
           
           <div className="flex flex-col items-center">
-            <h1 className="text-sm font-black tracking-widest bg-gradient-to-r from-purple-200 via-fuchsia-400 to-indigo-300 bg-clip-text text-transparent uppercase glow-purple-text flex items-center gap-1.5 leading-none">
-              🏰 {clubName}
-            </h1>
+            <div className="flex items-center gap-1.5">
+              <h1 className="text-sm font-black tracking-widest bg-gradient-to-r from-purple-200 via-fuchsia-400 to-indigo-300 bg-clip-text text-transparent uppercase glow-purple-text flex items-center gap-1.5 leading-none">
+                🏰 {clubName}
+              </h1>
+              <span className="text-[7px] bg-blue-500 text-white font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5 uppercase tracking-wide shadow-md shadow-blue-500/20 leading-none">
+                OFFICIAL ✓
+              </span>
+            </div>
             <span className="text-[9px] font-bold text-purple-300/80 mt-1">Lv. {clubLevel} • {clubId}</span>
           </div>
 
@@ -333,7 +338,12 @@ export const ClubPage: React.FC<ClubPageProps> = ({ onBack }) => {
                     <div className="w-full h-full bg-[#1C0830] rounded-[14px] flex items-center justify-center text-3xl">🏰</div>
                   </div>
                   <div>
-                    <h2 className="text-lg font-black text-white leading-tight">{clubName}</h2>
+                    <div className="flex items-center gap-1.5">
+                      <h2 className="text-lg font-black text-white leading-tight">{clubName}</h2>
+                      <span className="text-[8px] bg-blue-500 text-white font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5 uppercase tracking-wide shadow-md shadow-blue-500/20 leading-none">
+                        OFFICIAL ✓
+                      </span>
+                    </div>
                     <p className="text-[10px] text-amber-300 font-bold mt-0.5">Lv. {clubLevel} • Elite Royal League</p>
                   </div>
                 </div>

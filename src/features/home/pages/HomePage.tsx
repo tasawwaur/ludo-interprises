@@ -437,10 +437,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
           />
         </button>
 
-        {/* VIP Club Button (Locked) */}
+        {/* VIP Club Button (Official Leader Mode) */}
         <button
           onClick={() => {
-            triggerToast("🔒 VIP Club is under maintenance!");
+            onOpenView?.("CLUB");
           }}
           className="w-[30px] h-[30px] p-0 border-0 outline-none bg-transparent hover:scale-110 active:scale-[0.96] transition-transform cursor-pointer relative"
           style={{ WebkitTapHighlightColor: "transparent" }}
@@ -449,12 +449,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
           <img
             src="/assets/images/icons/icon_club_crown.png"
             alt="VIP Club"
-            className="w-full h-full object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] opacity-60 grayscale-[50%]"
+            className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(245,158,11,0.85)] animate-pulse"
+            style={{ animationDuration: '3s' }}
             draggable={false}
           />
-          <span className="absolute -top-1 -right-1 text-[8px] bg-slate-900 border border-amber-400 text-amber-300 rounded-full w-3.5 h-3.5 flex items-center justify-center font-black">
-            🔒
-          </span>
         </button>
 
         {/* Golden Dice Button */}

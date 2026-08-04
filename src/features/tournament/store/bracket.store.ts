@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { RoundStructure, BracketMatch } from '../types/bracket.types';
-import { INITIAL_8P_BRACKET } from '../constants/bracket.constants';
+import { INITIAL_16P_BRACKET } from '../constants/bracket.constants';
 
 interface BracketState {
   rounds: RoundStructure[];
@@ -22,7 +22,7 @@ const getInitialBrackets = (): RoundStructure[] => {
       } catch (e) {}
     }
   }
-  return INITIAL_8P_BRACKET;
+  return INITIAL_16P_BRACKET;
 };
 
 export const useBracketStore = create<BracketState>((set) => ({
@@ -87,9 +87,9 @@ export const useBracketStore = create<BracketState>((set) => ({
   },
 
   resetBracket: () => {
-    set({ rounds: INITIAL_8P_BRACKET });
+    set({ rounds: INITIAL_16P_BRACKET });
     if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_BRACKETS_KEY, JSON.stringify(INITIAL_8P_BRACKET));
+      localStorage.setItem(STORAGE_BRACKETS_KEY, JSON.stringify(INITIAL_16P_BRACKET));
     }
   },
 }));

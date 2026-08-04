@@ -2,19 +2,19 @@ import { TournamentItem } from '../types/tournament.types';
 
 export const INITIAL_TOURNAMENTS: TournamentItem[] = [
   {
-    id: 'tour_312_league',
-    name: '312 LEAGUE GRAND',
-    description: 'The supreme championship for elite Ludo tacticians. Test your skill against 120 global grandmasters!',
+    id: 'tour_16p_championship',
+    name: '16-PLAYER CHAMPIONSHIP',
+    description: 'High stakes tournament. 16 players, 4 rounds of single-elimination battles. 2-Player mode.',
     status: 'REGISTERING',
-    entryCost: { coins: 500 },
-    prizePool: '🪙 50,000 + 👑 10',
-    totalParticipants: 128,
-    maxParticipants: 128,
-    registeredCount: 96,
+    entryCost: { coins: 10000 },
+    prizePool: '🪙 80,000 + 👑 5',
+    totalParticipants: 16,
+    maxParticipants: 16,
+    registeredCount: 15, // So the user will be the 16th and it will start!
     currentRound: 1,
-    totalRounds: 7, // 128 players -> 7 rounds (128, 64, 32, 16, 8, 4, 2)
-    startTime: new Date(Date.now() + 15 * 60 * 1000).toISOString(), // starts in 15 mins
-    endTime: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+    totalRounds: 4, // 16 players -> 4 rounds (Round of 16, Quarterfinals, Semifinals, Finals)
+    startTime: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+    endTime: new Date(Date.now() + 2 * 3600 * 1000).toISOString(),
   },
   {
     id: 'tour_weekend_masters',

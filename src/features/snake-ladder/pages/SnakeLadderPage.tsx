@@ -227,6 +227,23 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
   // Socket ref for real-time live multiplayer synchronization
   const socketRef = useRef<any>(null);
 
+  // Helper: explicitly send current engine state to opponent (used after local actions)
+  const syncStateToOpponent = () => {
+    if (!socketRef.current || !engineRef.current) return;
+    const oppRaw = localStorage.getItem("ludo_sl_opponent");
+    if (!oppRaw) return;
+    try {
+      const rc = JSON.parse(oppRaw).roomCode;
+      if (rc) {
+        socketRef.current.emit("client_action", {
+          roomCode: rc,
+          actionType: "SL_STATE_SYNC",
+          engineState: engineRef.current.getGameState(),
+        });
+      }
+    } catch (e) {}
+  };
+
   useEffect(() => {
     const savedOpponentRaw = localStorage.getItem("ludo_sl_opponent");
     if (!savedOpponentRaw) return;
@@ -315,6 +332,9 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       isTokenAnimating.current = false;
       setEngineState({ ...payload.state });
       localStorage.setItem("ludo_sl_engine_state", JSON.stringify(payload.state));
+      if (!isSyncingFromRemote.current) {
+        syncStateToOpponent();
+      }
     });
 
     // Sync rolling state on roll start
@@ -415,22 +435,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     return () => window.removeEventListener('pointerdown', unlock);
   }, []);
 
-  // Helper: explicitly send current engine state to opponent (used after local actions)
-  const syncStateToOpponent = () => {
-    if (!socketRef.current || !engineRef.current) return;
-    const oppRaw = localStorage.getItem("ludo_sl_opponent");
-    if (!oppRaw) return;
-    try {
-      const rc = JSON.parse(oppRaw).roomCode;
-      if (rc) {
-        socketRef.current.emit("client_action", {
-          roomCode: rc,
-          actionType: "SL_STATE_SYNC",
-          engineState: engineRef.current.getGameState(),
-        });
-      }
-    } catch (e) {}
-  };
+
 
   const handleRoll = () => {
     if (

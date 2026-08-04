@@ -610,7 +610,17 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
           )}
           <GameModeGrid
             onSelectMode={(modeKey) => {
-              triggerToast(`🔒 ${modeKey} is under maintenance. Play Snake & Ladders!`);
+              if (modeKey === "Streak Stars") {
+                onSelectMode?.("Streak Stars");
+              } else if (modeKey === "VIP Lounge") {
+                onSelectMode?.("VIP Lounge");
+              } else if (modeKey === "Tournament") {
+                onSelectMode?.("Tournament");
+              } else if (modeKey === "4P Classic") {
+                setSelectedModeForEntry("Classic 4 Player");
+              } else {
+                triggerToast(`🔒 ${modeKey} is under maintenance. Play Snake & Ladders!`);
+              }
             }}
           />
         </div>

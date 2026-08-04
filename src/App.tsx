@@ -10,6 +10,7 @@ import { GameArenaPage } from "./features/gameplay/pages/GameArenaPage";
 import { MatchResultScreen } from "./features/gameplay/pages/MatchResultScreen";
 import { SnakeLadderPage } from "./features/snake-ladder/pages/SnakeLadderPage";
 import { VIPLoungePage } from "./features/vip-room/pages/VIPHomePage";
+import { StreakStarsPage } from "./features/streak-stars/pages/StreakStarsPage";
 import { GLOBAL_PLAYER_DATABASE } from "./store/player-database.store";
 import { TournamentPage } from "./features/tournament/pages/TournamentPage";
 import { LeaderboardPage } from "./features/leaderboard/pages/LeaderboardPage";
@@ -64,7 +65,8 @@ export type AppView =
   | "REWARD_CENTER"
   | "ADS_SETTINGS"
   | "SNAKE_LADDER"
-  | "VIP_LOUNGE";
+  | "VIP_LOUNGE"
+  | "STREAK_STARS";
 
 const MainApp: React.FC = () => {
   // Load persisted view if game in progress
@@ -406,6 +408,10 @@ const MainApp: React.FC = () => {
       setCurrentView("VIP_LOUNGE");
       return;
     }
+    if (selectedMode === "Streak Stars") {
+      setCurrentView("STREAK_STARS");
+      return;
+    }
     // Check entry fee (5,000 Coins)
     const userCoins = user?.coins ?? 0;
     if (userCoins < 5000) {
@@ -662,6 +668,13 @@ const MainApp: React.FC = () => {
             onSpectateMatch={() => {
               setCurrentView("GAME_ARENA");
             }}
+          />
+        );
+
+      case "STREAK_STARS":
+        return (
+          <StreakStarsPage
+            onBack={() => setCurrentView("HOME")}
           />
         );
 

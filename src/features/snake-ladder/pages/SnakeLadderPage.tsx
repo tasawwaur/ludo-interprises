@@ -1094,7 +1094,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       {/* Top Right Corner Player Avatar (Player 2 / Bot) */}
       <div
         className="absolute top-10 right-4 z-20 cursor-pointer transition-transform hover:scale-105 active:scale-95"
-        onClick={() => handleProfileClick("GREEN")}
+        onClick={() => handleProfileClick(oppColor)}
       >
         <CornerPlayerAvatar
           player={engineState.players[oppPlayerIndex] as any}
@@ -1129,7 +1129,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       {/* Bottom Left Corner Player Avatar (Player 1 / You) */}
       <div
         className="absolute bottom-10 left-4 z-20 cursor-pointer transition-transform hover:scale-105 active:scale-95"
-        onClick={() => handleProfileClick("RED")}
+        onClick={() => handleProfileClick(myColor)}
       >
         <CornerPlayerAvatar
           player={engineState.players[myPlayerIndex] as any}

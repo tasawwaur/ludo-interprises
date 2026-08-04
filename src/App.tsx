@@ -10,6 +10,7 @@ import { GameArenaPage } from "./features/gameplay/pages/GameArenaPage";
 import { MatchResultScreen } from "./features/gameplay/pages/MatchResultScreen";
 import { SnakeLadderPage } from "./features/snake-ladder/pages/SnakeLadderPage";
 import { VIPLoungePage } from "./features/vip-room/pages/VIPHomePage";
+import { GLOBAL_PLAYER_DATABASE } from "./store/player-database.store";
 import { TournamentPage } from "./features/tournament/pages/TournamentPage";
 import { LeaderboardPage } from "./features/leaderboard/pages/LeaderboardPage";
 import { ProfilePage } from "./features/profile/pages/ProfilePage";
@@ -515,6 +516,72 @@ const MainApp: React.FC = () => {
                 }
                 localStorage.removeItem("ludo_sl_engine_state");
                 setCurrentView("SNAKE_LADDER");
+                return;
+              }
+
+              if (opponent && (opponent as any).is4PlayerBotMatch) {
+                // 4-Player Bot Match Fallback — Spawn 3 unique VIP bots from GLOBAL_PLAYER_DATABASE
+                const botPool = [...GLOBAL_PLAYER_DATABASE];
+                const selectedBots: any[] = [];
+                for (let i = 0; i < 3; i++) {
+                  const idx = Math.floor(Math.random() * botPool.length);
+                  selectedBots.push(botPool[idx]);
+                  botPool.splice(idx, 1);
+                }
+
+                // Create a 4-Player room with Host as RED, Bots as GREEN, YELLOW, BLUE
+                const code = createRoom(
+                  activeQueueMode,
+                  4, // Max players is 4
+                  hostName,
+                  hostAvatar,
+                  "/assets/images/icons/profile_frame_v3.png",
+                  "/assets/images/icons/name_banner_v2.png",
+                  "RED"
+                );
+
+                // Join Bot 1 (GREEN)
+                useRoomStore.getState().joinRoom(
+                  code,
+                  selectedBots[0].username,
+                  selectedBots[0].avatarUrl,
+                  "/assets/images/icons/profile_frame_v3.png",
+                  "/assets/images/icons/name_banner_v2.png",
+                  "GREEN",
+                  true
+                );
+
+                // Join Bot 2 (YELLOW)
+                useRoomStore.getState().joinRoom(
+                  code,
+                  selectedBots[1].username,
+                  selectedBots[1].avatarUrl,
+                  "/assets/images/icons/profile_frame_v3.png",
+                  "/assets/images/icons/name_banner_v2.png",
+                  "YELLOW",
+                  true
+                );
+
+                // Join Bot 3 (BLUE)
+                useRoomStore.getState().joinRoom(
+                  code,
+                  selectedBots[2].username,
+                  selectedBots[2].avatarUrl,
+                  "/assets/images/icons/profile_frame_v3.png",
+                  "/assets/images/icons/name_banner_v2.png",
+                  "BLUE",
+                  true
+                );
+
+                // ✅ Persist Room details
+                localStorage.setItem("ludo_classic_room_code", code);
+                localStorage.setItem("ludo_classic_members", JSON.stringify(useRoomStore.getState().members));
+                localStorage.setItem("ludo_classic_mode", activeQueueMode);
+                localStorage.setItem("ludo_classic_my_color", "RED");
+
+                useGameStore.getState().resetMatch();
+                localStorage.removeItem("ludo_classic_engine_state");
+                setCurrentView("GAME_ARENA");
                 return;
               }
 

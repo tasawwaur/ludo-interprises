@@ -158,30 +158,42 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
           let finalOpponent = opponent;
 
           if (!finalOpponent) {
-            // Local bot fallback match -> Randomly select Pair A (BLUE vs GREEN) or Pair B (RED vs YELLOW)
-            const selectedPair = Math.random() < 0.5 ? "PAIR_A" : "PAIR_B";
-            const swapColors = Math.random() < 0.5;
-            const myColor = selectedPair === "PAIR_A"
-              ? (swapColors ? "BLUE" : "GREEN")
-              : (swapColors ? "RED" : "YELLOW");
-            const oppColor = selectedPair === "PAIR_A"
-              ? (swapColors ? "GREEN" : "BLUE")
-              : (swapColors ? "YELLOW" : "RED");
+            const activeQueueMode = useQueueStore.getState().mode || "2P Classic";
+            
+            if (activeQueueMode === "Classic 4 Player") {
+              finalMyColor = "RED";
+              finalOpponent = {
+                name: "Bot Pool",
+                color: "GREEN",
+                isBot: true,
+                is4PlayerBotMatch: true, // Special flag for 4-player bot match!
+              } as any;
+            } else {
+              // Local bot fallback match -> Randomly select Pair A (BLUE vs GREEN) or Pair B (RED vs YELLOW)
+              const selectedPair = Math.random() < 0.5 ? "PAIR_A" : "PAIR_B";
+              const swapColors = Math.random() < 0.5;
+              const myColor = selectedPair === "PAIR_A"
+                ? (swapColors ? "BLUE" : "GREEN")
+                : (swapColors ? "RED" : "YELLOW");
+              const oppColor = selectedPair === "PAIR_A"
+                ? (swapColors ? "GREEN" : "BLUE")
+                : (swapColors ? "YELLOW" : "RED");
 
-            const randomBot = GLOBAL_PLAYER_DATABASE[Math.floor(Math.random() * GLOBAL_PLAYER_DATABASE.length)];
+              const randomBot = GLOBAL_PLAYER_DATABASE[Math.floor(Math.random() * GLOBAL_PLAYER_DATABASE.length)];
 
-            finalMyColor = myColor;
-            finalOpponent = {
-              name: randomBot.username,
-              avatar: randomBot.avatarUrl,
-              profileFrame: "/assets/images/icons/profile_frame_v3.png",
-              nameBanner: "/assets/images/icons/name_banner_v2.png",
-              color: oppColor,
-              isBot: true, // Bot fallback — auto-play enabled
-            };
+              finalMyColor = myColor;
+              finalOpponent = {
+                name: randomBot.username,
+                avatar: randomBot.avatarUrl,
+                profileFrame: "/assets/images/icons/profile_frame_v3.png",
+                nameBanner: "/assets/images/icons/name_banner_v2.png",
+                color: oppColor,
+                isBot: true, // Bot fallback — auto-play enabled
+              };
+            }
           }
 
-          onMatchFound(finalOpponent, finalMyColor || "GREEN", isHost);
+          onMatchFound(finalOpponent || undefined, finalMyColor || "GREEN", isHost);
           return 0;
         }
         return prev - 1;

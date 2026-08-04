@@ -25,7 +25,8 @@ export interface RoomState {
     avatar?: string,
     profileFrame?: string,
     nameBanner?: string,
-    assignedColor?: "RED" | "GREEN" | "YELLOW" | "BLUE"
+    assignedColor?: "RED" | "GREEN" | "YELLOW" | "BLUE",
+    forcedRoomCode?: string
   ) => string;
   joinRoom: (
     code: string,
@@ -47,8 +48,8 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   maxPlayers: 2,
   members: [],
   isGameStarting: false,
-  createRoom: (mode, maxPlayers, hostName, avatar, profileFrame, nameBanner, assignedColor) => {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+  createRoom: (mode, maxPlayers, hostName, avatar, profileFrame, nameBanner, assignedColor, forcedRoomCode) => {
+    const code = forcedRoomCode || Math.random().toString(36).substring(2, 8).toUpperCase();
     const host: RoomMember = { 
       id: "m_1", 
       name: hostName, 

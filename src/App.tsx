@@ -293,6 +293,17 @@ const MainApp: React.FC = () => {
   const handleSplashFinish = () => {
     const activeMatch = localStorage.getItem("ludo_active_match_session");
     if (activeMatch === "GAME_ARENA") {
+      const savedCode = localStorage.getItem("ludo_classic_room_code");
+      const savedMembers = localStorage.getItem("ludo_classic_members");
+      const savedMode = localStorage.getItem("ludo_classic_mode");
+      if (savedCode && savedMembers) {
+        useRoomStore.setState({
+          roomCode: savedCode,
+          members: JSON.parse(savedMembers),
+          mode: savedMode || "2P Classic",
+          maxPlayers: 2
+        });
+      }
       setCurrentView("GAME_ARENA");
       return;
     }
@@ -479,7 +490,7 @@ const MainApp: React.FC = () => {
               setCurrentView("HOME");
             }}
             onMatchFound={(
-              opponent?: { name: string; avatar?: string; profileFrame?: string; nameBanner?: string; color?: string; isBot?: boolean },
+              opponent?: { name: string; avatar?: string; profileFrame?: string; nameBanner?: string; color?: string; isBot?: boolean; roomCode?: string },
               myColor?: string,
               isHost?: boolean
             ) => {
@@ -514,6 +525,7 @@ const MainApp: React.FC = () => {
               const actualGuestAvatar = isHost ? (opponent?.avatar || "/assets/images/icons/icon_club_crown.png") : hostAvatar;
               const actualGuestColor = isHost ? (opponent?.color as "RED" | "GREEN" | "YELLOW" | "BLUE" || "GREEN") : (myColor as "RED" | "GREEN" | "YELLOW" | "BLUE");
 
+              // ✅ Pass the matchmaking-assigned server roomCode to ensure both clients join the same room!
               const code = createRoom(
                 activeQueueMode,
                 2,
@@ -521,7 +533,8 @@ const MainApp: React.FC = () => {
                 actualHostAvatar,
                 "/assets/images/icons/profile_frame_v3.png",
                 "/assets/images/icons/name_banner_v2.png",
-                actualHostColor
+                actualHostColor,
+                opponent?.roomCode
               );
               
               useRoomStore.getState().joinRoom(
@@ -534,8 +547,15 @@ const MainApp: React.FC = () => {
                 opponent ? opponent.isBot : false
               );
 
+              // ✅ Persist Classic Room details for seamless page refresh recovery
+              localStorage.setItem("ludo_classic_room_code", code);
+              localStorage.setItem("ludo_classic_members", JSON.stringify(useRoomStore.getState().members));
+              localStorage.setItem("ludo_classic_mode", activeQueueMode);
+              localStorage.setItem("ludo_classic_my_color", myColor || "RED");
+
               // Clear any stale persisted game state so fresh colors from matchmaking are used
               useGameStore.getState().resetMatch();
+              localStorage.removeItem("ludo_classic_engine_state");
               setCurrentView("GAME_ARENA");
             }}
           />
@@ -561,7 +581,18 @@ const MainApp: React.FC = () => {
         );
 
       case "GAME_ARENA":
-        return <GameArenaPage onLeaveGame={() => setCurrentView("MATCH_RESULT")} />;
+        return (
+          <GameArenaPage
+            onLeaveGame={() => {
+              localStorage.removeItem("ludo_active_match_session");
+              localStorage.removeItem("ludo_classic_room_code");
+              localStorage.removeItem("ludo_classic_members");
+              localStorage.removeItem("ludo_classic_mode");
+              localStorage.removeItem("ludo_classic_my_color");
+              setCurrentView("MATCH_RESULT");
+            }}
+          />
+        );
 
       case "MATCH_RESULT": {
         const gState = useGameStore.getState().gameState;

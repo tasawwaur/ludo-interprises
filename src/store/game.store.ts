@@ -58,6 +58,30 @@ export const useGameStore = create<GameStoreState>()(
       cheatNextRollValue: null,
 
       startMatch: (mode, hostName) => {
+        // ✅ Restore state from localStorage on refresh
+        const savedStateRaw = localStorage.getItem("ludo_classic_engine_state");
+        if (savedStateRaw) {
+          try {
+            const parsed = JSON.parse(savedStateRaw);
+            const localUser = useUserStore.getState().user;
+            const localPlayer = parsed.players.find((p: any) => p.name === localUser?.username || p.name === localUser?.displayName) || parsed.players[0];
+            
+            const recorder = new ReplayRecorder();
+            set({
+              gameState: parsed,
+              localPlayerColor: localPlayer.color as PlayerColor,
+              replayRecorder: recorder,
+              activeHoverTokenId: null,
+              selectedTokenId: null,
+              turnTimerSeconds: 15,
+              isAutoMode: false,
+            });
+            return;
+          } catch (e) {
+            localStorage.removeItem("ludo_classic_engine_state");
+          }
+        }
+
         set({ gameState: null });
 
         const members = useRoomStore.getState().members;
@@ -101,6 +125,8 @@ export const useGameStore = create<GameStoreState>()(
           turnTimerSeconds: 15,
           isAutoMode: false,
         });
+
+        localStorage.setItem("ludo_classic_engine_state", JSON.stringify(initialState));
 
         setTimeout(() => {
           get().triggerAiMoveIfNeeded();
@@ -224,6 +250,7 @@ export const useGameStore = create<GameStoreState>()(
             actionType: 'ROLL',
             diceValue: nextState.diceValue,
             hasLegalMoves,
+            gameState: nextState, // ✅ Attach full state
           });
         }
       }
@@ -236,7 +263,8 @@ export const useGameStore = create<GameStoreState>()(
         turnTimerSeconds: nextState.gameStatus === 'ROLL_WAIT' ? 15 : (hasLegalMoves ? 10 : 5),
       } as any);
 
-
+      // ✅ Persist state
+      localStorage.setItem("ludo_classic_engine_state", JSON.stringify(nextState));
 
       setTimeout(() => {
         get().triggerAiMoveIfNeeded();
@@ -314,15 +342,20 @@ export const useGameStore = create<GameStoreState>()(
             tokenId,
             nextColor: nextState.currentTurnColor,
             isGameOver: nextState.gameStatus === 'GAME_OVER',
+            gameState: nextState, // ✅ Attach full state
           });
         }
 
+        const finalState = { ...nextState, animatingToken: null };
         set({
-          gameState: { ...nextState, animatingToken: null },
+          gameState: finalState,
           activeHoverTokenId: null,
           selectedTokenId: null,
           turnTimerSeconds: isAutoMode ? 5 : 15,
         });
+
+        // ✅ Persist state
+        localStorage.setItem("ludo_classic_engine_state", JSON.stringify(finalState));
 
         setTimeout(() => {
           get().triggerAiMoveIfNeeded();
@@ -399,6 +432,9 @@ export const useGameStore = create<GameStoreState>()(
       _isRolling: false,
     });
 
+    // ✅ Persist state
+    localStorage.setItem("ludo_classic_engine_state", JSON.stringify(nextState));
+
     SoundEngine.play('GAME_START');
 
     // Emit UNDO action to server
@@ -408,6 +444,7 @@ export const useGameStore = create<GameStoreState>()(
         roomCode,
         actionType: 'UNDO',
         cost,
+        gameState: nextState, // ✅ Attach full state
       });
     }
   },
@@ -635,46 +672,34 @@ export const useGameStore = create<GameStoreState>()(
 
       const { gameState } = get();
       if (gameState) {
-        // If timed-out player is in MOVE_WAIT state and has legal moves: auto-move best token!
-        if (gameState.gameStatus === 'MOVE_WAIT' && gameState.movableTokens.length > 0) {
-          const moves = [...gameState.movableTokens];
-          moves.sort((a, b) => {
-            if (a.isCapture !== b.isCapture) return a.isCapture ? -1 : 1;
-            if (a.isHome !== b.isHome) return a.isHome ? -1 : 1;
-            if (a.fromStep === 0 !== (b.fromStep === 0)) return a.fromStep === 0 ? -1 : 1;
-            return b.toStep - a.toStep;
-          });
-          const bestTokenId = moves[0].tokenId;
-          // Execute AI-driven best move locally (with isRemote = true to prevent infinite socket loops)
-          get().moveToken(bestTokenId, true);
-        } else if (gameState.gameStatus === 'ROLL_WAIT' && !gameState.isDiceRolled) {
-          // Auto roll on timeout if it's the local player's turn to roll!
-          const activePlayer = gameState.players[gameState.activePlayerIndex];
-          const localPlayer = gameState.players.find((p) => p.color === get().localPlayerColor) || gameState.players[0];
+        // ✅ Authoritative turn transition to nextColor from server
+        const nextPlayerIndex = gameState.players.findIndex(p => p.color === data.nextColor);
+        if (nextPlayerIndex !== -1) {
+          const resetUndosPlayers = gameState.players.map((p) => ({
+            ...p,
+            undosUsedThisTurn: 0,
+          }));
 
-          if (activePlayer.color === localPlayer.color && !activePlayer.isAi) {
-            get().rollDice();
-          } else {
-            // Otherwise forfeit/skip turn as normal
-            const nextState = GameEngine.skipTurn(gameState);
-            set({
-              gameState: nextState,
-              turnTimerSeconds: 15,
-              isAutoMode: false,
-            });
+          const nextState = {
+            ...gameState,
+            players: resetUndosPlayers,
+            activePlayerIndex: nextPlayerIndex,
+            currentTurnColor: data.nextColor as PlayerColor,
+            gameStatus: 'ROLL_WAIT' as const,
+            isDiceRolled: false,
+            diceValue: null,
+            movableTokens: [],
+            lastActionSummary: `Timeout! Turn passed to ${data.nextColor}.`,
+          };
 
-            setTimeout(() => {
-              get().triggerAiMoveIfNeeded();
-            }, 800);
-          }
-        } else {
-          // Otherwise forfeit/skip turn as normal
-          const nextState = GameEngine.skipTurn(gameState);
           set({
             gameState: nextState,
             turnTimerSeconds: 15,
             isAutoMode: false,
+            _isRolling: false,
           });
+
+          localStorage.setItem("ludo_classic_engine_state", JSON.stringify(nextState));
 
           setTimeout(() => {
             get().triggerAiMoveIfNeeded();
@@ -683,7 +708,7 @@ export const useGameStore = create<GameStoreState>()(
       }
     });
 
-    socket.on("server_action", (data: { actionType: 'ROLL' | 'MOVE' | 'UNDO' | 'CHAT'; diceValue?: number; tokenId?: string; nextColor?: string; cost?: number; text?: string; senderName?: string; color?: string }) => {
+    socket.on("server_action", (data: { actionType: 'ROLL' | 'MOVE' | 'UNDO' | 'CHAT'; diceValue?: number; tokenId?: string; nextColor?: string; cost?: number; text?: string; senderName?: string; color?: string; gameState?: any; hasLegalMoves?: boolean }) => {
       const { gameState } = get();
       if (!gameState) return;
 
@@ -697,58 +722,84 @@ export const useGameStore = create<GameStoreState>()(
       }
 
       if (data.actionType === 'ROLL' && data.diceValue !== undefined) {
-        // Opponent rolled the dice, sync their rolled value
-        const activePlayer = gameState.players[gameState.activePlayerIndex];
-        const newState = {
-          ...gameState,
-          diceValue: data.diceValue,
-          lastDiceValue: data.diceValue,
-          isDiceRolled: true,
-          gameStatus: 'MOVE_WAIT' as const,
-        };
+        if (data.gameState) {
+          // ✅ Sync full state received from active rolling client
+          set({
+            gameState: data.gameState,
+            _isRolling: false,
+            turnTimerSeconds: data.hasLegalMoves !== false ? 10 : 5,
+          });
+          localStorage.setItem("ludo_classic_engine_state", JSON.stringify(data.gameState));
+        } else {
+          // Opponent rolled the dice, sync their rolled value
+          const activePlayer = gameState.players[gameState.activePlayerIndex];
+          const newState = {
+            ...gameState,
+            diceValue: data.diceValue,
+            lastDiceValue: data.diceValue,
+            isDiceRolled: true,
+            gameStatus: 'MOVE_WAIT' as const,
+          };
 
-        const legalMoves = RuleValidator.getLegalMoves(newState, data.diceValue);
-        const hasLegalMoves = legalMoves.length > 0;
+          const legalMoves = RuleValidator.getLegalMoves(newState, data.diceValue);
+          const hasLegalMoves = legalMoves.length > 0;
 
-        set({
-          gameState: {
+          const finalState = {
             ...newState,
             movableTokens: legalMoves,
             lastActionSummary: `${activePlayer.name} rolled ${data.diceValue}!`,
-          },
-          _isRolling: false,
-          turnTimerSeconds: hasLegalMoves ? 10 : 5,
-        });
+          };
+
+          set({
+            gameState: finalState,
+            _isRolling: false,
+            turnTimerSeconds: hasLegalMoves ? 10 : 5,
+          });
+
+          localStorage.setItem("ludo_classic_engine_state", JSON.stringify(finalState));
+        }
 
         SoundEngine.play('DICE_STOP');
       } else if (data.actionType === 'MOVE' && data.tokenId) {
+        if (data.gameState) {
+          // ✅ Persist state immediately to local storage to support refresh,
+          // but let the local move animation complete normally.
+          localStorage.setItem("ludo_classic_engine_state", JSON.stringify(data.gameState));
+        }
         // Opponent moved a token, sync token movement
         get().moveToken(data.tokenId, true);
       } else if (data.actionType === 'UNDO') {
-        // Sync opponent's protect undo
-        const activePlayer = gameState.players[gameState.activePlayerIndex];
-        const totalUndosUsed = activePlayer.totalUndosUsed || 0;
-        const undosUsedThisTurn = activePlayer.undosUsedThisTurn || 0;
-        const protectTurnsCount = activePlayer.protectTurnsCount || 0;
-        const cost = data.cost || 0;
+        if (data.gameState) {
+          set({
+            gameState: data.gameState,
+            turnTimerSeconds: 15,
+            _isRolling: false,
+          });
+          localStorage.setItem("ludo_classic_engine_state", JSON.stringify(data.gameState));
+        } else {
+          // Sync opponent's protect undo
+          const activePlayer = gameState.players[gameState.activePlayerIndex];
+          const totalUndosUsed = activePlayer.totalUndosUsed || 0;
+          const undosUsedThisTurn = activePlayer.undosUsedThisTurn || 0;
+          const protectTurnsCount = activePlayer.protectTurnsCount || 0;
+          const cost = data.cost || 0;
 
-        const nextProtectTurnsCount = undosUsedThisTurn === 0 ? protectTurnsCount + 1 : protectTurnsCount;
+          const nextProtectTurnsCount = undosUsedThisTurn === 0 ? protectTurnsCount + 1 : protectTurnsCount;
 
-        const updatedPlayers = gameState.players.map((p, idx) => {
-          if (idx === gameState.activePlayerIndex) {
-            return {
-              ...p,
-              gems: Math.max(0, p.gems - cost),
-              totalUndosUsed: totalUndosUsed + 1,
-              undosUsedThisTurn: undosUsedThisTurn + 1,
-              protectTurnsCount: nextProtectTurnsCount,
-            };
-          }
-          return p;
-        });
+          const updatedPlayers = gameState.players.map((p, idx) => {
+            if (idx === gameState.activePlayerIndex) {
+              return {
+                ...p,
+                gems: Math.max(0, p.gems - cost),
+                totalUndosUsed: totalUndosUsed + 1,
+                undosUsedThisTurn: undosUsedThisTurn + 1,
+                protectTurnsCount: nextProtectTurnsCount,
+              };
+            }
+            return p;
+          });
 
-        set({
-          gameState: {
+          const finalState = {
             ...gameState,
             players: updatedPlayers,
             isDiceRolled: false,
@@ -756,10 +807,16 @@ export const useGameStore = create<GameStoreState>()(
             gameStatus: 'ROLL_WAIT' as const,
             movableTokens: [],
             lastActionSummary: `${activePlayer.name} used Protect (Undo) for ${cost} Diamonds!`,
-          },
-          turnTimerSeconds: 15,
-          _isRolling: false,
-        });
+          };
+
+          set({
+            gameState: finalState,
+            turnTimerSeconds: 15,
+            _isRolling: false,
+          });
+
+          localStorage.setItem("ludo_classic_engine_state", JSON.stringify(finalState));
+        }
 
         SoundEngine.play('GAME_START');
       }

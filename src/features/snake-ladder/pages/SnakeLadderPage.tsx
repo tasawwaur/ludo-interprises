@@ -271,35 +271,40 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           isSyncingFromRemote.current = true;
           engineRef.current.setGameState(data.engineState);
           setEngineState({ ...data.engineState });
+          if (data.engineState.diceValue !== null && data.engineState.diceValue !== undefined) {
+            const activeColor = data.engineState.players[data.engineState.activePlayerIndex]?.color;
+            if (activeColor === "RED") {
+              setRedDiceValue(data.engineState.diceValue);
+            } else if (activeColor === "GREEN") {
+              setGreenDiceValue(data.engineState.diceValue);
+            }
+          }
           isSyncingFromRemote.current = false;
           return;
         }
 
         if (data.actionType === "SL_DICE_ROLLING") {
           SoundEngine.play('DICE_ROLL');
-          if (data.rollingColor === "RED") {
-            setRedIsRolling(true);
-            let flashCount = 0;
-            const flashInterval = setInterval(() => {
-              setRedDiceValue(Math.ceil(Math.random() * 6));
-              flashCount++;
-              if (flashCount >= 10) {
-                clearInterval(flashInterval);
+          const isRed = data.rollingColor === "RED";
+          if (isRed) setRedIsRolling(true);
+          else setGreenIsRolling(true);
+
+          let flashCount = 0;
+          const flashInterval = setInterval(() => {
+            if (isRed) setRedDiceValue(Math.ceil(Math.random() * 6));
+            else setGreenDiceValue(Math.ceil(Math.random() * 6));
+            flashCount++;
+            if (flashCount >= 10) {
+              clearInterval(flashInterval);
+              if (isRed) {
                 setRedIsRolling(false);
-              }
-            }, 80);
-          } else {
-            setGreenIsRolling(true);
-            let flashCount = 0;
-            const flashInterval = setInterval(() => {
-              setGreenDiceValue(Math.ceil(Math.random() * 6));
-              flashCount++;
-              if (flashCount >= 10) {
-                clearInterval(flashInterval);
+                if (data.diceValue) setRedDiceValue(data.diceValue);
+              } else {
                 setGreenIsRolling(false);
+                if (data.diceValue) setGreenDiceValue(data.diceValue);
               }
-            }, 80);
-          }
+            }
+          }, 80);
           return;
         }
 
@@ -555,6 +560,14 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     engine.addEventListener("STATE_UPDATE", (payload) => {
       isTokenAnimating.current = false;
       setEngineState({ ...payload.state });
+      if (payload.state.diceValue !== null && payload.state.diceValue !== undefined) {
+        const activeColor = payload.state.players[payload.state.activePlayerIndex]?.color;
+        if (activeColor === "RED") {
+          setRedDiceValue(payload.state.diceValue);
+        } else if (activeColor === "GREEN") {
+          setGreenDiceValue(payload.state.diceValue);
+        }
+      }
       localStorage.setItem("ludo_sl_engine_state", JSON.stringify(payload.state));
       if (!isSyncingFromRemote.current) {
         syncStateToOpponent();
@@ -673,7 +686,12 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       engineState.isWaitingForTokenChoice
     ) return;
 
-    // Broadcast rolling animation to opponent
+    SoundEngine.play('DICE_ROLL');
+    setMyIsRolling(true);
+
+    const rolled = engineRef.current!.roll();
+
+    // Broadcast rolling animation + exact rolled value to opponent
     const oppRaw = localStorage.getItem("ludo_sl_opponent");
     if (socketRef.current && oppRaw) {
       try {
@@ -683,13 +701,12 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
             roomCode: rc,
             actionType: "SL_DICE_ROLLING",
             rollingColor: myColor,
+            diceValue: rolled,
           });
         }
       } catch (e) {}
     }
 
-    SoundEngine.play('DICE_ROLL');
-    setMyIsRolling(true);
     let flashCount = 0;
     const flashInterval = setInterval(() => {
       setMyDiceValue(Math.ceil(Math.random() * 6));
@@ -697,7 +714,6 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       if (flashCount >= 10) {
         clearInterval(flashInterval);
         setMyIsRolling(false);
-        const rolled = engineRef.current!.roll();
         setMyDiceValue(rolled);
         
         if (isTimeout) {

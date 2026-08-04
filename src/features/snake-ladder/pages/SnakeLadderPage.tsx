@@ -91,6 +91,9 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
   const [killBanner, setKillBanner] = useState<string | null>(null);
   // Exit confirmation modal state
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  // Rematch states
+  const [waitingForRematch, setWaitingForRematch] = useState(false);
+  const [rematchNotification, setRematchNotification] = useState<string | null>(null);
   // Menu & Audio states
   const [showMenu, setShowMenu] = useState(false);
   const [isMuted, setIsMuted] = useState(() => SoundEngine.getMuteState());
@@ -339,6 +342,174 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         }
       });
 
+      // 🏆 Opponent disconnected — local player wins by forfeit with 9,500 coin reward
+      socket.on("opponent_disconnected", () => {
+        console.log("[Opponent Disconnected] Opponent left the match — declaring local player as WINNER!");
+        if (!engineRef.current) return;
+
+        const state = engineRef.current.getGameState();
+        state.phase = "FINISHED";
+
+        // Determine local vs opponent player index based on myColor
+        const localIdx = myColor === "RED" ? 0 : 1;
+        const remoteIdx = myColor === "RED" ? 1 : 0;
+
+        state.players[localIdx].winnerRank = 1;  // Local player = WINNER
+        state.players[remoteIdx].winnerRank = 2; // Opponent = LOSER (disconnected)
+        state.logMessage = `🏆 ${state.players[remoteIdx].name} disconnected! You win by forfeit!`;
+
+        engineRef.current.setGameState(state);
+        setEngineState({ ...state });
+
+        // Award 9,500 coins + XP to the winner
+        const localPlayer = state.players[localIdx];
+        const killsXP = (localPlayer.killCount || 0) * 50;
+        const laddersXP = (localPlayer.ladderCount || 0) * 70;
+        const winXP = 200;
+        const totalXP = killsXP + laddersXP + winXP;
+
+        const currentCoins = user?.coins || 0;
+        const currentXP = user?.xp || 0;
+        updateUser({
+          coins: currentCoins + 9500,
+          xp: currentXP + totalXP,
+        });
+
+        SoundEngine.play('WIN');
+        try {
+          confetti({
+            particleCount: 120,
+            spread: 80,
+            origin: { y: 0.6 },
+            colors: ['#FFD700', '#FFA500', '#10B981', '#3B82F6', '#EF4444'],
+          });
+        } catch (e) {}
+
+        localStorage.removeItem("ludo_active_match_session");
+        localStorage.removeItem("ludo_sl_engine_state");
+      });
+
+      // 🔄 Opponent wants rematch notification
+      socket.on("opponent_wants_rematch", (data: { name: string }) => {
+        console.log(`[Rematch] ${data.name} wants a rematch!`);
+        setRematchNotification(`${data.name} wants a rematch!`);
+        setTimeout(() => setRematchNotification(null), 5000);
+      });
+
+      // 🔄 Rematch found — both players agreed, start new game
+      socket.on("rematch_found", (data: any) => {
+        console.log("[Rematch] Rematch found!", data);
+        setWaitingForRematch(false);
+        setRematchNotification(null);
+
+        // Update opponent data in localStorage for the new room
+        const newOpponentData = {
+          name: data.opponent.name,
+          avatar: data.opponent.avatar,
+          profileFrame: data.opponent.profileFrame,
+          nameBanner: data.opponent.nameBanner,
+          color: data.opponent.color,
+          roomCode: data.roomCode,
+          myColor: data.color,
+          isBot: false,
+        };
+        localStorage.setItem("ludo_sl_opponent", JSON.stringify(newOpponentData));
+        localStorage.removeItem("ludo_sl_engine_state");
+
+        // Leave old room and join new room
+        socket.emit("join_room_game", { roomCode: data.roomCode });
+
+        // Reset engine with same opponent but fresh state
+        const userAvatar = user?.avatar || "/assets/images/icons/icon_club_crown.png";
+        let userFrame = "frame_default";
+        try {
+          const cosmetics = useCosmeticsStore.getState();
+          userFrame = cosmetics.equippedFrameId || "frame_default";
+        } catch (e) {}
+
+        const newMyColor = data.color as PlayerColor;
+        const playersConfig = newMyColor === "RED"
+          ? [
+              { id: "RED",   name: playerName,         color: "RED"   as PlayerColor, isBot: false, avatar: userAvatar,           equippedFrameId: userFrame },
+              { id: "GREEN", name: data.opponent.name,  color: "GREEN" as PlayerColor, isBot: false, avatar: data.opponent.avatar, equippedFrameId: data.opponent.profileFrame || "frame_default" },
+            ]
+          : [
+              { id: "RED",   name: data.opponent.name,  color: "RED"   as PlayerColor, isBot: false, avatar: data.opponent.avatar, equippedFrameId: data.opponent.profileFrame || "frame_default" },
+              { id: "GREEN", name: playerName,          color: "GREEN" as PlayerColor, isBot: false, avatar: userAvatar,           equippedFrameId: userFrame },
+            ];
+
+        const engine = new SnakeLadderEngine(playersConfig, {
+          tokensPerPlayer: 2,
+          animationDelayMs: 300,
+        });
+
+        engineRef.current = engine;
+        setRedDiceValue(null);
+        setGreenDiceValue(null);
+        setRedIsRolling(false);
+        setGreenIsRolling(false);
+        setEngineState(engine.getGameState());
+
+        // Re-bind engine event listeners
+        engine.addEventListener("STATE_UPDATE", (payload) => {
+          isTokenAnimating.current = false;
+          setEngineState({ ...payload.state });
+          localStorage.setItem("ludo_sl_engine_state", JSON.stringify(payload.state));
+          if (!isSyncingFromRemote.current) {
+            syncStateToOpponent();
+          }
+        });
+        engine.addEventListener("DICE_ROLL_START", (payload) => {
+          SoundEngine.play('DICE_ROLL');
+          if (payload.activePlayerColor === "RED") setRedIsRolling(true);
+          else setGreenIsRolling(true);
+        });
+        engine.addEventListener("DICE_ROLL_COMPLETE", (payload) => {
+          SoundEngine.play('DICE_STOP');
+          if (payload.activePlayerColor === "RED") { setRedIsRolling(false); if (payload.diceValue !== undefined) setRedDiceValue(payload.diceValue); }
+          else { setGreenIsRolling(false); if (payload.diceValue !== undefined) setGreenDiceValue(payload.diceValue); }
+        });
+        engine.addEventListener("TOKEN_MOVE_STEP", (payload) => {
+          isTokenAnimating.current = true;
+          SoundEngine.play('TOKEN_STEP');
+          setEngineState({ ...payload.state });
+        });
+        engine.addEventListener("SNAKE_SLIDE", () => { isTokenAnimating.current = true; SoundEngine.play('CAPTURE'); });
+        engine.addEventListener("TOKEN_KILL", (payload) => {
+          isTokenAnimating.current = true;
+          SoundEngine.play('CAPTURE');
+          setKillBanner(payload.message || "⚔️ TOKEN KILLED!");
+          setTimeout(() => setKillBanner(null), 2500);
+        });
+        engine.addEventListener("LADDER_CLIMB", (payload) => {
+          isTokenAnimating.current = true;
+          SoundEngine.play('HOME_ENTRY');
+          const from = payload.ladderStart!;
+          const to = payload.ladderEnd!;
+          setLadderAnim({ from, to, active: true });
+          const steps = to - from;
+          setTimeout(() => setLadderAnim(null), steps * 300 + 1000);
+        });
+        engine.addEventListener("GAME_OVER", (payload) => {
+          const localPlayerIdx = newMyColor === "RED" ? 0 : 1;
+          const localPlayer = payload.state.players[localPlayerIdx];
+          const isWin = localPlayer.winnerRank === 1;
+          const kXP = (localPlayer.killCount || 0) * 50;
+          const lXP = (localPlayer.ladderCount || 0) * 70;
+          const wXP = isWin ? 200 : 20;
+          const tXP = kXP + lXP + wXP;
+          const cCoins = useUserStore.getState().user?.coins || 0;
+          const cXP = useUserStore.getState().user?.xp || 0;
+          updateUser({ coins: isWin ? cCoins + 9500 : cCoins, xp: cXP + tXP });
+          if (isWin) {
+            SoundEngine.play('WIN');
+            try { confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['#FFD700', '#FFA500', '#10B981', '#3B82F6', '#EF4444'] }); } catch (e) {}
+          }
+        });
+
+        localStorage.setItem("ludo_active_match_session", "SNAKE_LADDER");
+      });
+
       socketRef.current = socket;
 
       return () => {
@@ -445,10 +616,12 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
 
     // Win event — reward 9,500 coins + XP calculation (1 kill = 50 XP, 1 ladder = 70 XP, Win = 200 XP) + sound
     engine.addEventListener("GAME_OVER", (payload) => {
-      const redPlayer = payload.state.players[0];
-      const isWinner = redPlayer.winnerRank === 1;
-      const killsXP = (redPlayer.killCount || 0) * 50;
-      const laddersXP = (redPlayer.ladderCount || 0) * 70;
+      // Use local player's perspective (myPlayerIndex) instead of hardcoded players[0]
+      const localPlayerIdx = myColor === "RED" ? 0 : 1;
+      const localPlayer = payload.state.players[localPlayerIdx];
+      const isWinner = localPlayer.winnerRank === 1;
+      const killsXP = (localPlayer.killCount || 0) * 50;
+      const laddersXP = (localPlayer.ladderCount || 0) * 70;
       const winXP = isWinner ? 200 : 20;
       const totalXP = killsXP + laddersXP + winXP;
 
@@ -599,9 +772,9 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     if (engineRef.current && engineState.phase === "PLAYING") {
       const state = engineRef.current.getGameState();
       state.phase = "FINISHED";
-      state.players[0].winnerRank = 2; // Local player RED is Loser
-      state.players[1].winnerRank = 1; // Opponent GREEN is Winner
-      state.logMessage = `🚪 Match Forfeited! ${state.players[0].name} quit the match.`;
+      state.players[myPlayerIndex].winnerRank = 2;  // Local player is Loser (quitting)
+      state.players[oppPlayerIndex].winnerRank = 1;  // Opponent is Winner
+      state.logMessage = `🚪 Match Forfeited! ${state.players[myPlayerIndex].name} quit the match.`;
       engineRef.current.setGameState(state);
 
       // Deduct 5,000 Coins penalty for quitting match
@@ -653,6 +826,30 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       setEngineState(payload.state);
       localStorage.setItem("ludo_sl_engine_state", JSON.stringify(payload.state));
     });
+  };
+
+  // 🔄 Play Again handler — sends rematch request for real opponents, local reset for bots
+  const handlePlayAgain = () => {
+    const savedOpponentRaw = localStorage.getItem("ludo_sl_opponent");
+    const savedOpp = savedOpponentRaw ? (() => { try { return JSON.parse(savedOpponentRaw); } catch { return null; } })() : null;
+    const isRealOpponent = savedOpp && savedOpp.isBot === false && savedOpp.roomCode;
+
+    if (isRealOpponent && socketRef.current) {
+      // Real multiplayer opponent — send rematch request
+      setWaitingForRematch(true);
+      socketRef.current.emit("request_rematch", {
+        roomCode: savedOpp.roomCode,
+        userId: user?.id || "usr_" + Math.floor(Math.random() * 100000),
+        name: playerName,
+        avatar: user?.avatar,
+        profileFrame: "/assets/images/icons/profile_frame_v3.png",
+        nameBanner: "/assets/images/icons/name_banner_v2.png",
+        color: myColor,
+      });
+    } else {
+      // Bot opponent — local reset
+      resetGame();
+    }
   };
 
   const handleProfileClick = (playerColor: PlayerColor) => {
@@ -993,6 +1190,16 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         </div>
       )}
 
+      {/* 🔄 Rematch Notification Banner */}
+      {rematchNotification && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 animate-bounce max-w-[90%] pointer-events-none">
+          <div className="bg-slate-900/95 border-2 border-emerald-400/90 text-emerald-200 px-5 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2">
+            <span className="text-base animate-spin">🔄</span>
+            <span className="text-[11px] font-black tracking-wider uppercase">{rematchNotification}</span>
+          </div>
+        </div>
+      )}
+
       {/* Top Banner Notification for Friend Request */}
       {friendRequestNotification && (
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 animate-bounce max-w-[90%] pointer-events-none">
@@ -1264,10 +1471,15 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         <div className="h-[64px] flex items-center justify-center">
           {engineState.phase === "FINISHED" && (
             <button
-              onClick={resetGame}
-              className="px-6 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-[11px] uppercase tracking-widest shadow-lg hover:scale-102 active:scale-97 cursor-pointer border-0 outline-none transition-transform"
+              onClick={handlePlayAgain}
+              disabled={waitingForRematch}
+              className={`px-6 py-2 rounded-xl text-white font-black text-[11px] uppercase tracking-widest shadow-lg hover:scale-102 active:scale-97 cursor-pointer border-0 outline-none transition-transform ${
+                waitingForRematch
+                  ? 'bg-gradient-to-r from-amber-500 to-yellow-600 animate-pulse'
+                  : 'bg-gradient-to-r from-emerald-500 to-teal-600'
+              }`}
             >
-              🔄 Play Again
+              {waitingForRematch ? '⏳ Waiting for Opponent...' : '🔄 Play Again'}
             </button>
           )}
         </div>
@@ -1322,10 +1534,12 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
 
       {/* 🏆 Match Result Victory / Defeat Modal Overlay */}
       {engineState.phase === "FINISHED" && (() => {
-        const redPlayer = engineState.players[0];
-        const isWinner = redPlayer.winnerRank === 1;
-        const kills = redPlayer.killCount || 0;
-        const ladders = redPlayer.ladderCount || 0;
+        // Use local player's perspective instead of hardcoded players[0]
+        const localPlayer = engineState.players[myPlayerIndex];
+        const oppPlayer = engineState.players[oppPlayerIndex];
+        const isWinner = localPlayer.winnerRank === 1;
+        const kills = localPlayer.killCount || 0;
+        const ladders = localPlayer.ladderCount || 0;
         const killsXP = kills * 50;
         const laddersXP = ladders * 70;
         const winXP = isWinner ? 200 : 20;
@@ -1345,7 +1559,10 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
                   {isWinner ? "VICTORY!" : "MATCH ENDED"}
                 </h2>
                 <p className="text-xs text-slate-400 font-medium mt-1">
-                  {isWinner ? "Congratulations! You reached Cell 100 first!" : `${engineState.players[1].name} reached Cell 100!`}
+                  {isWinner
+                    ? (engineState.logMessage?.includes("disconnected") ? `${oppPlayer.name} disconnected! You win!` : "Congratulations! You reached Cell 100 first!")
+                    : `${oppPlayer.name} reached Cell 100!`
+                  }
                 </p>
               </div>
 
@@ -1407,10 +1624,15 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
               {/* Action Buttons */}
               <div className="flex w-full gap-2">
                 <button
-                  onClick={resetGame}
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs uppercase tracking-wider shadow-lg hover:scale-102 active:scale-95 transition-all border-0 outline-none cursor-pointer"
+                  onClick={handlePlayAgain}
+                  disabled={waitingForRematch}
+                  className={`flex-1 py-3 rounded-xl text-white font-black text-xs uppercase tracking-wider shadow-lg hover:scale-102 active:scale-95 transition-all border-0 outline-none cursor-pointer ${
+                    waitingForRematch
+                      ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 animate-pulse'
+                      : 'bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600'
+                  }`}
                 >
-                  🔄 Play Again
+                  {waitingForRematch ? '⏳ Waiting...' : '🔄 Play Again'}
                 </button>
                 <button
                   onClick={onLeave}

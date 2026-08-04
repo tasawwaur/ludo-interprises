@@ -224,6 +224,18 @@ interface WaitingPlayer {
 }
 
 const matchmakingQueue: WaitingPlayer[] = [];
+
+// Rematch system: tracks players who want to play again in the same room
+interface RematchRequest {
+  socketId: string;
+  userId: string;
+  name: string;
+  avatar?: string;
+  profileFrame?: string;
+  nameBanner?: string;
+  color: string;
+}
+const rematchRequests = new Map<string, RematchRequest[]>();  // oldRoomCode -> players wanting rematch
 interface OnlineUser {
   socketId: string;
   userId: string;
@@ -465,6 +477,93 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Request Rematch — both players must request for rematch to start
+  socket.on("request_rematch", (data: { roomCode: string; userId: string; name: string; avatar?: string; profileFrame?: string; nameBanner?: string; color: string }) => {
+    console.log(`[Rematch] ${data.name} (${socket.id}) requested rematch in room ${data.roomCode}`);
+
+    if (!rematchRequests.has(data.roomCode)) {
+      rematchRequests.set(data.roomCode, []);
+    }
+
+    const requests = rematchRequests.get(data.roomCode)!;
+
+    // Remove duplicate requests from the same socket
+    const existingIdx = requests.findIndex((r) => r.socketId === socket.id);
+    if (existingIdx !== -1) requests.splice(existingIdx, 1);
+
+    requests.push({
+      socketId: socket.id,
+      userId: data.userId,
+      name: data.name,
+      avatar: data.avatar,
+      profileFrame: data.profileFrame,
+      nameBanner: data.nameBanner,
+      color: data.color,
+    });
+
+    // Notify the opponent that this player wants a rematch
+    socket.to(data.roomCode).emit("opponent_wants_rematch", { name: data.name });
+
+    // Check if both players have requested rematch
+    if (requests.length >= 2) {
+      const player1 = requests[0];
+      const player2 = requests[1];
+      const newRoomCode = "ROOM_" + Math.random().toString(36).substring(2, 8).toUpperCase();
+
+      // Swap colors for the rematch — player who was RED becomes GREEN and vice versa
+      const p1NewColor = player1.color === "RED" ? "GREEN" : "RED";
+      const p2NewColor = player2.color === "RED" ? "GREEN" : "RED";
+
+      // Register the new room state for authoritative turn timers
+      const roomState: RoomTimerState = {
+        roomCode: newRoomCode,
+        p1SocketId: p1NewColor === "RED" ? player1.socketId : player2.socketId,
+        p2SocketId: p1NewColor === "GREEN" ? player1.socketId : player2.socketId,
+        p1Color: "RED",
+        p2Color: "GREEN",
+        activeColor: "RED",
+        gameStatus: 'ROLL_WAIT',
+        secondsRemaining: 15,
+      };
+      activeRooms.set(newRoomCode, roomState);
+
+      console.log(`[Rematch] Match Created: ${player1.name} (${p1NewColor}) vs ${player2.name} (${p2NewColor}) in ${newRoomCode}`);
+
+      // Notify Player 1
+      io.to(player1.socketId).emit("rematch_found", {
+        roomCode: newRoomCode,
+        opponent: {
+          id: player2.userId,
+          name: player2.name,
+          avatar: player2.avatar,
+          profileFrame: player2.profileFrame,
+          nameBanner: player2.nameBanner,
+          color: p2NewColor,
+        },
+        color: p1NewColor,
+        isHost: p1NewColor === "RED",
+      });
+
+      // Notify Player 2
+      io.to(player2.socketId).emit("rematch_found", {
+        roomCode: newRoomCode,
+        opponent: {
+          id: player1.userId,
+          name: player1.name,
+          avatar: player1.avatar,
+          profileFrame: player1.profileFrame,
+          nameBanner: player1.nameBanner,
+          color: p1NewColor,
+        },
+        color: p2NewColor,
+        isHost: p2NewColor === "RED",
+      });
+
+      // Cleanup old rematch requests
+      rematchRequests.delete(data.roomCode);
+    }
+  });
+
   // Leave Matchmaking Queue
   socket.on("leave_queue", () => {
     const idx = matchmakingQueue.findIndex((p) => p.socketId === socket.id);
@@ -529,6 +628,15 @@ io.on("connection", (socket) => {
     if (idx !== -1) matchmakingQueue.splice(idx, 1);
     console.log("Player disconnected:", socket.id);
 
+    // Clean up rematch requests for this player
+    for (const [roomCode, requests] of rematchRequests.entries()) {
+      const rIdx = requests.findIndex((r) => r.socketId === socket.id);
+      if (rIdx !== -1) {
+        requests.splice(rIdx, 1);
+        if (requests.length === 0) rematchRequests.delete(roomCode);
+      }
+    }
+
     // Clean up registered user
     for (const [key, value] of connectedUsers.entries()) {
       if (value.socketId === socket.id) {
@@ -542,6 +650,14 @@ io.on("connection", (socket) => {
       const room = activeRooms.get(socketData.roomCode);
       if (room) {
         if (room.intervalId) clearInterval(room.intervalId);
+
+        // Notify the remaining player that their opponent disconnected — they win by forfeit
+        socket.to(socketData.roomCode).emit("opponent_disconnected", {
+          disconnectedSocketId: socket.id,
+          roomCode: socketData.roomCode,
+        });
+        console.log(`[Opponent Disconnect] Notified remaining player in room ${socketData.roomCode}`);
+
         activeRooms.delete(socketData.roomCode);
         console.log(`[Authoritative Timer] Cleaned up room ${socketData.roomCode} due to gameplay disconnect`);
       }

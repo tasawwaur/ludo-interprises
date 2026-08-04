@@ -130,9 +130,9 @@ export const BellRewardsModal: React.FC<BellRewardsModalProps> = ({ isOpen, onCl
               title: '🎉 Invite & Earn Bonus',
               desc: 'Invite your friends! Get 💎 1,000 Diamonds instantly when they sign up.',
               rewardType: 'gems',
-              amount: 1000,
+              amount: 0,
               time: 'Just now',
-              claimed: false,
+              claimed: true,
               type: 'referral',
             },
             {
@@ -140,9 +140,9 @@ export const BellRewardsModal: React.FC<BellRewardsModalProps> = ({ isOpen, onCl
               title: '🎁 Welcome Gift Package',
               desc: 'Use redeem code WELCOME1000 for extra 1,000 Gems + 5,000 Coins!',
               rewardType: 'gems',
-              amount: 1000,
+              amount: 0,
               time: '1h ago',
-              claimed: false,
+              claimed: true,
               type: 'redeem',
             },
             {
@@ -743,7 +743,11 @@ export const BellRewardsModal: React.FC<BellRewardsModalProps> = ({ isOpen, onCl
                       </div>
                     </div>
 
-                    {notif.claimed ? (
+                    {notif.amount <= 0 ? (
+                      <span className="text-[10px] font-bold text-amber-400 bg-amber-950/60 px-2 py-1 rounded-lg border border-amber-500/30 flex-shrink-0">
+                        📢 Active
+                      </span>
+                    ) : notif.claimed ? (
                       <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-2 py-1 rounded-lg border border-emerald-500/30 flex-shrink-0">
                         ✓ Claimed
                       </span>

@@ -11,6 +11,7 @@ import { MatchResultScreen } from "./features/gameplay/pages/MatchResultScreen";
 import { SnakeLadderPage } from "./features/snake-ladder/pages/SnakeLadderPage";
 import { VIPLoungePage } from "./features/vip-room/pages/VIPHomePage";
 import { StreakStarsPage } from "./features/streak-stars/pages/StreakStarsPage";
+import { SocialRoomHubPage } from "./features/chat-rooms/pages/SocialRoomHubPage";
 import { GLOBAL_PLAYER_DATABASE } from "./store/player-database.store";
 import { TournamentPage } from "./features/tournament/pages/TournamentPage";
 import { LeaderboardPage } from "./features/leaderboard/pages/LeaderboardPage";
@@ -66,7 +67,8 @@ export type AppView =
   | "ADS_SETTINGS"
   | "SNAKE_LADDER"
   | "VIP_LOUNGE"
-  | "STREAK_STARS";
+  | "STREAK_STARS"
+  | "SOCIAL_ROOMS";
 
 const MainApp: React.FC = () => {
   // Load persisted view if game in progress
@@ -412,6 +414,10 @@ const MainApp: React.FC = () => {
       setCurrentView("STREAK_STARS");
       return;
     }
+    if (selectedMode === "Private Table" || selectedMode === "Social Rooms") {
+      setCurrentView("SOCIAL_ROOMS");
+      return;
+    }
     // Check entry fee (5,000 Coins)
     const userCoins = user?.coins ?? 0;
     if (userCoins < 5000) {
@@ -674,6 +680,13 @@ const MainApp: React.FC = () => {
       case "STREAK_STARS":
         return (
           <StreakStarsPage
+            onBack={() => setCurrentView("HOME")}
+          />
+        );
+
+      case "SOCIAL_ROOMS":
+        return (
+          <SocialRoomHubPage
             onBack={() => setCurrentView("HOME")}
           />
         );

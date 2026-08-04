@@ -616,6 +616,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
                 onSelectMode?.("Tournament");
               } else if (modeKey === "4P Classic") {
                 setSelectedModeForEntry("Classic 4 Player");
+              } else if (modeKey === "Private Table") {
+                onSelectMode?.("Private Table");
               } else {
                 triggerToast(`🔒 ${modeKey} is under maintenance. Play Snake & Ladders!`);
               }

@@ -162,10 +162,18 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     // If local player is GREEN, their name goes into GREEN slot; RED (opponent) goes first.
     const myColorInit = (opponentData?.myColor as PlayerColor) || "RED";
     const botProfile = GLOBAL_PLAYER_DATABASE.find((p) => p.username === botName);
-    const p2Name = opponentData?.name || botName;
-    const p2Avatar = opponentData?.avatar || (botProfile ? botProfile.avatarUrl : "/assets/images/icons/icon_club_crown.png");
-    const p2Frame = opponentData?.profileFrame || (botProfile ? botProfile.equippedFrame || "frame_default" : "frame_default");
+    let p2Name = opponentData?.name || botName;
+    let p2Avatar = opponentData?.avatar || (botProfile ? botProfile.avatarUrl : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80");
+    let p2Frame = opponentData?.profileFrame || (botProfile ? botProfile.equippedFrame || "frame_default" : "frame_default");
     const p2IsBot = opponentData ? (opponentData.isBot ?? false) : true;
+
+    // Prevent duplicate profile metadata if opponent matches local user
+    if (p2Name === playerName) {
+      p2Name = p2IsBot ? "Rahul Sharma" : "Opponent";
+      if (p2Avatar === userAvatar) {
+        p2Avatar = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80";
+      }
+    }
 
     const playersConfig = myColorInit === "RED"
       ? [
@@ -269,14 +277,27 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         if (data.actionType === "SL_STATE_SYNC") {
           // Full authoritative state from opponent — apply directly, no echo
           isSyncingFromRemote.current = true;
-          engineRef.current.setGameState(data.engineState);
-          setEngineState({ ...data.engineState });
-          if (data.engineState.diceValue !== null && data.engineState.diceValue !== undefined) {
-            const activeColor = data.engineState.players[data.engineState.activePlayerIndex]?.color;
+          
+          // Preserve local player names & avatars so remote state updates never overwrite profiles
+          const currentPlayers = engineRef.current.getGameState().players;
+          const incomingState = data.engineState;
+          if (incomingState && incomingState.players) {
+            incomingState.players = incomingState.players.map((p: any, idx: number) => ({
+              ...p,
+              name: currentPlayers[idx]?.name || p.name,
+              avatar: currentPlayers[idx]?.avatar || p.avatar,
+              equippedFrameId: currentPlayers[idx]?.equippedFrameId || p.equippedFrameId,
+            }));
+          }
+
+          engineRef.current.setGameState(incomingState);
+          setEngineState({ ...incomingState });
+          if (incomingState.diceValue !== null && incomingState.diceValue !== undefined) {
+            const activeColor = incomingState.players[incomingState.activePlayerIndex]?.color;
             if (activeColor === "RED") {
-              setRedDiceValue(data.engineState.diceValue);
+              setRedDiceValue(incomingState.diceValue);
             } else if (activeColor === "GREEN") {
-              setGreenDiceValue(data.engineState.diceValue);
+              setGreenDiceValue(incomingState.diceValue);
             }
           }
           isSyncingFromRemote.current = false;

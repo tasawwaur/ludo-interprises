@@ -337,7 +337,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
             if (engineState.isWaitingForTokenChoice && engineState.movableTokenIds.length > 0) {
               handleSelectToken(engineState.movableTokenIds[0]);
             } else {
-              handleRoll();
+              handleRoll(true);
             }
           }
           return 0;
@@ -465,7 +465,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
 
 
 
-  const handleRoll = () => {
+  const handleRoll = (isTimeout: boolean = false) => {
     if (
       !engineRef.current ||
       engineState.currentTurnColor !== myColor ||
@@ -501,6 +501,19 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         setMyIsRolling(false);
         const rolled = engineRef.current!.roll();
         setMyDiceValue(rolled);
+        
+        if (isTimeout) {
+          // If it was a timeout roll, check if the engine is waiting for token choice.
+          // If so, immediately auto-select the first token to make the move.
+          const latestState = engineRef.current!.getGameState();
+          if (latestState.isWaitingForTokenChoice && latestState.movableTokenIds.length > 0) {
+            setTimeout(() => {
+              handleSelectToken(latestState.movableTokenIds[0]);
+            }, 400);
+            return;
+          }
+        }
+        
         // Explicitly sync engine state to opponent after a short settle delay
         setTimeout(syncStateToOpponent, 150);
       }
@@ -1047,7 +1060,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           turnTimerSeconds={turnTimerSeconds}
           isAutoMode={false}
           chatBubbleMessage={activeSpeechBubbles[myColor]}
-          onRollDice={handleRoll}
+          onRollDice={() => handleRoll(false)}
           position="bottom-left"
           isLocalPlayer={true}
         />
@@ -1103,7 +1116,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       {engineState.phase !== "FINISHED" && (
         <div className="absolute bottom-[60px] left-[118px] z-20">
           <button
-            onClick={handleRoll}
+            onClick={() => handleRoll(false)}
             disabled={myIsRolling || engineState.currentTurnColor !== myColor || engineState.isWaitingForTokenChoice}
             className={`relative bg-transparent border-0 outline-none p-1 rounded-2xl transition-all active:scale-90 hover:scale-105 ${
               myIsRolling || engineState.currentTurnColor !== myColor || engineState.isWaitingForTokenChoice

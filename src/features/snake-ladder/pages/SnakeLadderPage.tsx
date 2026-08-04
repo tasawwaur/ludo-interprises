@@ -178,7 +178,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         ];
 
     const engine = new SnakeLadderEngine(playersConfig, {
-      tokensPerPlayer: 2,
+      tokensPerPlayer: 1,
       animationDelayMs: 300,
     });
 
@@ -447,7 +447,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
             ];
 
         const engine = new SnakeLadderEngine(playersConfig, {
-          tokensPerPlayer: 2,
+          tokensPerPlayer: 1,
           animationDelayMs: 300,
         });
 
@@ -831,7 +831,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     ];
 
     const engine = new SnakeLadderEngine(playersConfig, {
-      tokensPerPlayer: 2,
+      tokensPerPlayer: 1,
       animationDelayMs: 250,
     });
 

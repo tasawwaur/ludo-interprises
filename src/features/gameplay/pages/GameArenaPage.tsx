@@ -331,28 +331,30 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                   BLUE: '/assets/images/icons/token_blue_3d.png',
                 };
 
-                // 4 Yard spot offsets for each House (Correct color alignment with background board yards)
+                const isSingleTokenMode = player.tokens.length === 1;
+
+                // Yard spot offsets for each House (Correct color alignment with background board yards)
                 const houseOffsets: Record<string, Array<{ top: string; left: string }>> = {
                   RED: [
-                    { top: '27.26%', left: '20.04%' },
+                    isSingleTokenMode ? { top: '30.3%', left: '24.3%' } : { top: '27.26%', left: '20.04%' },
                     { top: '27.26%', left: '28.56%' },
                     { top: '33.32%', left: '20.04%' },
                     { top: '33.32%', left: '28.56%' },
                   ],
                   GREEN: [
-                    { top: '27.26%', left: '70.86%' },
+                    isSingleTokenMode ? { top: '30.3%', left: '75.1%' } : { top: '27.26%', left: '70.86%' },
                     { top: '27.26%', left: '79.38%' },
                     { top: '33.32%', left: '70.86%' },
                     { top: '33.32%', left: '79.97%' },
                   ],
                   YELLOW: [
-                    { top: '61.30%', left: '70.86%' },
+                    isSingleTokenMode ? { top: '64.5%', left: '75.1%' } : { top: '61.30%', left: '70.86%' },
                     { top: '61.69%', left: '79.38%' },
                     { top: '67.56%', left: '70.86%' },
                     { top: '66.98%', left: '79.97%' },
                   ],
                   BLUE: [
-                    { top: '61.30%', left: '20.04%' },
+                    isSingleTokenMode ? { top: '64.5%', left: '24.3%' } : { top: '61.30%', left: '20.04%' },
                     { top: '61.69%', left: '28.56%' },
                     { top: '67.56%', left: '20.04%' },
                     { top: '66.98%', left: '29.14%' },

@@ -3,7 +3,7 @@
  * Both Vercel (frontend) and Render (frontend+backend) must point here.
  * Change this once and it updates everywhere.
  */
-const RENDER_BACKEND_URL = 'https://ludo-enterprise.onrender.com';
+const RENDER_BACKEND_URL = 'https://ludo-interprises.onrender.com';
 
 /**
  * Returns the correct Socket.IO backend URL based on environment.

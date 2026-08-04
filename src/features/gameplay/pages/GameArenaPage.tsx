@@ -480,67 +480,71 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
             </>
           )}
 
-          {/* Top Center Royal Frame & Opponent 3D Dice */}
-          <div className="absolute -top-[90px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] z-50 flex items-center justify-center pointer-events-auto">
-            <img
-              src={getFrameImage(opponentPlayer?.color)}
-              alt="Opponent Royal Frame"
-              className="w-full h-full object-contain filter drop-shadow-[0_6px_14px_rgba(0,0,0,0.95)] pointer-events-none"
-            />
-            {/* 3D Dice inside Green Frame */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-auto z-50">
-              <Royal3DDice
-                value={opponentPlayer && gameState.currentTurnColor === opponentPlayer.color ? gameState.diceValue : null}
-                isActiveTurn={opponentPlayer && gameState.currentTurnColor === opponentPlayer.color}
-                canRoll={false}
-                size={54}
-                playerColor={opponentPlayer?.color}
-                badgePosition="left"
-                diceId={opponentPlayer?.equippedDiceId}
-              />
-            </div>
-          </div>
+          {gameState.players.length === 2 && (
+            <>
+              {/* Top Center Royal Frame & Opponent 3D Dice */}
+              <div className="absolute -top-[90px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] z-50 flex items-center justify-center pointer-events-auto">
+                <img
+                  src={getFrameImage(opponentPlayer?.color)}
+                  alt="Opponent Royal Frame"
+                  className="w-full h-full object-contain filter drop-shadow-[0_6px_14px_rgba(0,0,0,0.95)] pointer-events-none"
+                />
+                {/* 3D Dice inside Green Frame */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-auto z-50">
+                  <Royal3DDice
+                    value={opponentPlayer && gameState.currentTurnColor === opponentPlayer.color ? gameState.diceValue : null}
+                    isActiveTurn={opponentPlayer && gameState.currentTurnColor === opponentPlayer.color}
+                    canRoll={false}
+                    size={54}
+                    playerColor={opponentPlayer?.color}
+                    badgePosition="left"
+                    diceId={opponentPlayer?.equippedDiceId}
+                  />
+                </div>
+              </div>
 
-          {/* 🛡️ PROTECT BUTTON — Centered between bottom-left profile & bottom-center dice */}
-          <div
-            className="absolute z-50 pointer-events-auto"
-            style={{
-              bottom: '-74px',
-              left: '35%',
-              transform: 'translateX(-50%) scale(0.42)',
-              transformOrigin: 'center center',
-            }}
-          >
-            <ProtectButton localPlayer={localPlayer} gameState={gameState} />
-          </div>
+              {/* 🛡️ PROTECT BUTTON — Centered between bottom-left profile & bottom-center dice */}
+              <div
+                className="absolute z-50 pointer-events-auto"
+                style={{
+                  bottom: '-74px',
+                  left: '35%',
+                  transform: 'translateX(-50%) scale(0.42)',
+                  transformOrigin: 'center center',
+                }}
+              >
+                <ProtectButton localPlayer={localPlayer} gameState={gameState} />
+              </div>
 
-          {/* Bottom Center Royal Frame & Local User 3D Dice */}
-          <div className="absolute -bottom-[100px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] z-50 flex items-center justify-center pointer-events-auto">
-            <img
-              src={getFrameImage(localPlayer?.color)}
-              alt="Local Royal Frame"
-              className="w-full h-full object-contain filter drop-shadow-[0_6px_14px_rgba(0,0,0,0.95)] pointer-events-none"
-            />
-            {/* 3D Dice inside Cyan Frame */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-auto z-50">
-              <Royal3DDice
-                value={localPlayer && gameState.currentTurnColor === localPlayer.color ? gameState.diceValue : null}
-                isActiveTurn={localPlayer && gameState.currentTurnColor === localPlayer.color}
-                canRoll={
-                  !isSpectatorMode && // ✅ Disables manual rolling in spectator mode
-                  !!(localPlayer &&
-                  gameState.currentTurnColor === localPlayer.color &&
-                  gameState.gameStatus === 'ROLL_WAIT' &&
-                  !gameState.isDiceRolled)
-                }
-                onRoll={rollDice}
-                size={54}
-                playerColor={localPlayer?.color}
-                badgePosition="right"
-                diceId={localPlayer?.equippedDiceId}
-              />
-            </div>
-          </div>
+              {/* Bottom Center Royal Frame & Local User 3D Dice */}
+              <div className="absolute -bottom-[100px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] z-50 flex items-center justify-center pointer-events-auto">
+                <img
+                  src={getFrameImage(localPlayer?.color)}
+                  alt="Local Royal Frame"
+                  className="w-full h-full object-contain filter drop-shadow-[0_6px_14px_rgba(0,0,0,0.95)] pointer-events-none"
+                />
+                {/* 3D Dice inside Cyan Frame */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-auto z-50">
+                  <Royal3DDice
+                    value={localPlayer && gameState.currentTurnColor === localPlayer.color ? gameState.diceValue : null}
+                    isActiveTurn={localPlayer && gameState.currentTurnColor === localPlayer.color}
+                    canRoll={
+                      !isSpectatorMode &&
+                      !!(localPlayer &&
+                      gameState.currentTurnColor === localPlayer.color &&
+                      gameState.gameStatus === 'ROLL_WAIT' &&
+                      !gameState.isDiceRolled)
+                    }
+                    onRoll={rollDice}
+                    size={54}
+                    playerColor={localPlayer?.color}
+                    badgePosition="right"
+                    diceId={localPlayer?.equippedDiceId}
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
         </div>
       </div>

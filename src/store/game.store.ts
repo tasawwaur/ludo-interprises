@@ -60,7 +60,9 @@ export const useGameStore = create<GameStoreState>()(
         set({ gameState: null });
 
         const members = useRoomStore.getState().members;
-        const localColor = members[0]?.color || "BLUE";
+        const localUser = useUserStore.getState().user;
+        const localMember = members.find(m => m.name === localUser?.username || m.name === localUser?.displayName);
+        const localColor = localMember?.color || members[0]?.color || "BLUE";
         const roomMode = useRoomStore.getState().mode || "2P Classic";
         const initialState = GameEngine.createInitialState(mode, hostName, members, roomMode);
         

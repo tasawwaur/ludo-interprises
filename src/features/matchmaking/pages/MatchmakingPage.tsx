@@ -8,7 +8,8 @@ interface MatchmakingPageProps {
   onCancel: () => void;
   onMatchFound: (
     opponent?: { name: string; avatar?: string; profileFrame?: string; nameBanner?: string; color?: string; isBot?: boolean },
-    myColor?: string
+    myColor?: string,
+    isHost?: boolean
   ) => void;
 }
 
@@ -36,6 +37,7 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
   const [matchCountdown, setMatchCountdown] = useState(5);
   const [coinsDeducted, setCoinsDeducted] = useState(false);
   const [showDeductText, setShowDeductText] = useState(false);
+  const [isHost, setIsHost] = useState(true);
 
   useEffect(() => {
     // Connect to live multiplayer server
@@ -68,6 +70,7 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
         });
       }
       setMyAssignedColor(data.color);
+      setIsHost(data.isHost !== undefined ? data.isHost : true);
       setMatchConnected(true);
     });
 
@@ -132,7 +135,7 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
             };
           }
 
-          onMatchFound(finalOpponent, finalMyColor || "GREEN");
+          onMatchFound(finalOpponent, finalMyColor || "GREEN", isHost);
           return 0;
         }
         return prev - 1;

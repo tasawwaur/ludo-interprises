@@ -716,7 +716,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           {/* Player tokens */}
           <div className={`${containerClass} max-w-full max-h-full p-[1px]`}>
             {redTokensHere.map((t) => {
-              const isMovable = engineState.currentTurnColor === "RED" && engineState.isWaitingForTokenChoice && engineState.movableTokenIds.includes(t.tokenId);
+              const isMovable = myColor === "RED" && engineState.currentTurnColor === "RED" && engineState.isWaitingForTokenChoice && engineState.movableTokenIds.includes(t.tokenId);
               return (
                 <button
                   key={`red-${t.tokenId}-${t.currentPosition}`}
@@ -748,21 +748,52 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
               );
             })}
 
-            {greenTokensHere.map((t) => (
-              <div
-                key={`green-${t.tokenId}-${t.currentPosition}`}
-                style={{ width: `${sizePx}px`, height: `${sizePx}px` }}
-                className={`relative z-10 ${t.isMoving ? "token-hop" : ""}`}
-                title={`Green Token ${t.tokenId + 1}`}
-              >
-                <img
-                  src={`/assets/images/icons/luxury_token_green.png?v=${ASSET_VERSION}`}
-                  alt="GREEN"
-                  className="w-full h-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]"
-                  draggable={false}
-                />
-              </div>
-            ))}
+            {greenTokensHere.map((t) => {
+              const isMovable = myColor === "GREEN" && engineState.currentTurnColor === "GREEN" && engineState.isWaitingForTokenChoice && engineState.movableTokenIds.includes(t.tokenId);
+              return isMovable ? (
+                <button
+                  key={`green-${t.tokenId}-${t.currentPosition}`}
+                  disabled={!isMovable}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSelectToken(t.tokenId);
+                  }}
+                  style={{ width: `${sizePx}px`, height: `${sizePx}px` }}
+                  className={`p-0 bg-transparent border-0 outline-none relative ${
+                    t.isMoving
+                      ? "token-hop z-30"
+                      : isMovable
+                      ? `cursor-pointer scale-110 drop-shadow-[0_0_6px_rgba(251,191,36,0.95)] ${animationClass} z-30`
+                      : "z-10 transition-transform"
+                  }`}
+                  title="Click to move this Green Token"
+                >
+                  <img
+                    src={`/assets/images/icons/luxury_token_green.png?v=${ASSET_VERSION}`}
+                    alt="GREEN"
+                    className="w-full h-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]"
+                    draggable={false}
+                  />
+                  {isMovable && (
+                    <div className="absolute inset-0 border-[1px] border-yellow-400 rounded-full animate-ping" />
+                  )}
+                </button>
+              ) : (
+                <div
+                  key={`green-${t.tokenId}-${t.currentPosition}`}
+                  style={{ width: `${sizePx}px`, height: `${sizePx}px` }}
+                  className={`relative z-10 ${t.isMoving ? "token-hop" : ""}`}
+                  title={`Green Token ${t.tokenId + 1}`}
+                >
+                  <img
+                    src={`/assets/images/icons/luxury_token_green.png?v=${ASSET_VERSION}`}
+                    alt="GREEN"
+                    className="w-full h-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]"
+                    draggable={false}
+                  />
+                </div>
+              );
+            })}
           </div>
 
           {/* Ladder Start Highlight Ring */}

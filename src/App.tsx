@@ -378,7 +378,11 @@ const MainApp: React.FC = () => {
               cancelQueue();
               setCurrentView("HOME");
             }}
-            onMatchFound={(opponent, myColor) => {
+            onMatchFound={(
+              opponent?: { name: string; avatar?: string; profileFrame?: string; nameBanner?: string; color?: string; isBot?: boolean },
+              myColor?: string,
+              isHost?: boolean
+            ) => {
               // Deduct 5,000 coins entry fee for 2P Match
               const currentCoins = user?.coins || 20000;
               updateUser({ coins: Math.max(0, currentCoins - 5000) });
@@ -400,27 +404,35 @@ const MainApp: React.FC = () => {
                 return;
               }
 
+              // Determine the room members in a consistent order on both screens (real host first, guest second)
+              const actualHostName = isHost ? hostName : (opponent?.name || "Player 1");
+              const actualHostAvatar = isHost ? hostAvatar : (opponent?.avatar || "/assets/images/icons/icon_club_crown.png");
+              const actualHostColor = isHost ? (myColor as "RED" | "GREEN" | "YELLOW" | "BLUE") : (opponent?.color as "RED" | "GREEN" | "YELLOW" | "BLUE" || "RED");
+
+              const actualGuestName = isHost ? (opponent?.name || "Player 2") : hostName;
+              const actualGuestAvatar = isHost ? (opponent?.avatar || "/assets/images/icons/icon_club_crown.png") : hostAvatar;
+              const actualGuestColor = isHost ? (opponent?.color as "RED" | "GREEN" | "YELLOW" | "BLUE" || "GREEN") : (myColor as "RED" | "GREEN" | "YELLOW" | "BLUE");
+
               const code = createRoom(
                 activeQueueMode,
                 2,
-                hostName,
-                hostAvatar,
+                actualHostName,
+                actualHostAvatar,
                 "/assets/images/icons/profile_frame_v3.png",
                 "/assets/images/icons/name_banner_v2.png",
-                myColor as "RED" | "GREEN" | "YELLOW" | "BLUE"
+                actualHostColor
               );
               
-              if (opponent) {
-                useRoomStore.getState().joinRoom(
-                  code,
-                  opponent.name,
-                  opponent.avatar,
-                  opponent.profileFrame,
-                  opponent.nameBanner,
-                  opponent.color as "RED" | "GREEN" | "YELLOW" | "BLUE",
-                  opponent.isBot ?? true // true = bot (auto-play), false = real player
-                );
-              }
+              useRoomStore.getState().joinRoom(
+                code,
+                actualGuestName,
+                actualGuestAvatar,
+                "/assets/images/icons/profile_frame_v3.png",
+                "/assets/images/icons/name_banner_v2.png",
+                actualGuestColor,
+                opponent ? opponent.isBot : false
+              );
+
               // Clear any stale persisted game state so fresh colors from matchmaking are used
               useGameStore.getState().resetMatch();
               setCurrentView("GAME_ARENA");

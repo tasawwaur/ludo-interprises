@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getFrameFilter } from '../../store/cosmetics.store';
+import { formatPlayerUID } from '../../utils/uuid';
 
 export interface UserStats {
   id: string;
@@ -177,7 +178,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             {/* Player ID Box */}
             <div className="bg-black/30 border border-purple-900/35 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
               <span className="text-[7.5px] font-black uppercase text-purple-200 tracking-wider">Player ID</span>
-              <span className="text-[9.5px] font-bold text-gray-200 select-all font-mono">{userStats.id}</span>
+              <span className="text-[9.5px] font-bold text-gray-200 select-all font-mono">
+                {formatPlayerUID({ id: userStats.id, username: userStats.name })}
+              </span>
             </div>
           </div>
 

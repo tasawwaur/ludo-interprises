@@ -70,20 +70,22 @@ export const useGameStore = create<GameStoreState>()(
         const cosmetics = useCosmeticsStore.getState();
         const dice = useDiceStore.getState();
 
-        const isNormalClassic = roomMode === "Normal Classic";
+        // ✅ Always use user's real profile data (avatar, dice, frame) — same as Snake & Ladders board
+        const localUserAvatar = localUser?.avatar || "/assets/images/icons/icon_club_crown.png";
 
         // Enrich host player with their equipped frame, token, and dice
         initialState.players = initialState.players.map((p) => {
           return {
             ...p,
-            equippedFrameId: isNormalClassic ? 'frame_default' : (p.isHost ? (cosmetics.equippedFrameId || 'frame_default') : (p.equippedFrameId || 'frame_default')),
-            equippedTokenId: isNormalClassic ? 'token_default' : (p.isHost ? (cosmetics.equippedTokenId || 'token_default') : (p.equippedTokenId || 'token_default')),
-            equippedDiceId: isNormalClassic ? 'dice_classic' : (p.isHost ? (dice.equippedDiceId || 'dice_classic') : (p.equippedDiceId || 'dice_classic')),
-            profileFrame: isNormalClassic ? "/assets/images/icons/profile_frame_v3.png" : (p.isHost ? (cosmetics.frames.find((f) => f.id === cosmetics.equippedFrameId)?.imgUrl || p.profileFrame) : p.profileFrame),
+            avatar: p.isHost ? localUserAvatar : (p.avatar || "/assets/images/icons/icon_club_crown.png"),
+            equippedFrameId: p.isHost ? (cosmetics.equippedFrameId || 'frame_default') : (p.equippedFrameId || 'frame_default'),
+            equippedTokenId: p.isHost ? (cosmetics.equippedTokenId || 'token_default') : (p.equippedTokenId || 'token_default'),
+            equippedDiceId: p.isHost ? (dice.equippedDiceId || 'dice_classic') : (p.equippedDiceId || 'dice_classic'),
+            profileFrame: p.isHost ? (cosmetics.frames.find((f) => f.id === cosmetics.equippedFrameId)?.imgUrl || p.profileFrame) : p.profileFrame,
           };
         });
 
-        initialState.equippedBoardId = isNormalClassic ? 'board_default' : (cosmetics.equippedBoardId || 'board_default');
+        initialState.equippedBoardId = cosmetics.equippedBoardId || 'board_default';
 
         const recorder = new ReplayRecorder();
         recorder.recordEvent('TURN_CHANGE', initialState.currentTurnColor, { mode, hostName });

@@ -300,17 +300,7 @@ export const usePlayerStatsStore = create<PlayerStatsState>((set, get) => {
         const finalLucky = prev.luckyRolls + matchData.luckyRolls;
         const finalUnlucky = prev.unluckyRolls + matchData.unluckyRolls;
 
-        // 6. Update Rank / Signature Title based on Level
-        let signature = "ROOKIE - I";
-        if (finalLevel >= 180) signature = "EMPEROR - III";
-        else if (finalLevel >= 150) signature = "EMPEROR - II";
-        else if (finalLevel >= 120) signature = "EMPEROR - I";
-        else if (finalLevel >= 90) signature = "KING - III";
-        else if (finalLevel >= 70) signature = "KING - I";
-        else if (finalLevel >= 50) signature = "WARRIOR - III";
-        else if (finalLevel >= 30) signature = "WARRIOR - I";
-
-        // 7. Calculate League Tiers based on win points:
+        // 6. Calculate League Tiers based on win points:
         // Points = wins * 12 - losses * 6
         const points = Math.max(0, finalWins * 12 - finalLosses * 6);
         let league = "Bronze";
@@ -324,6 +314,20 @@ export const usePlayerStatsStore = create<PlayerStatsState>((set, get) => {
         else if (points >= 500) league = "Platinum";
         else if (points >= 250) league = "Gold";
         else if (points >= 100) league = "Silver";
+
+        // Derive signature from league/rank
+        const cleanLg = league.toUpperCase();
+        let signature = "ROOKIE - I";
+        if (cleanLg.includes("IMMORTAL")) signature = "IMMORTAL - I";
+        else if (cleanLg.includes("TITAN")) signature = "TITAN - I";
+        else if (cleanLg.includes("LEGEND")) signature = "LEGEND - I";
+        else if (cleanLg.includes("EMPEROR")) signature = "EMPEROR - I";
+        else if (cleanLg.includes("GRAND")) signature = "GRAND MASTER - I";
+        else if (cleanLg.includes("MASTER")) signature = "MASTER - I";
+        else if (cleanLg.includes("DIAMOND")) signature = "DIAMOND - I";
+        else if (cleanLg.includes("PLATINUM")) signature = "PLATINUM - I";
+        else if (cleanLg.includes("GOLD")) signature = "GOLDEN - I";
+        else if (cleanLg.includes("SILVER")) signature = "SILVER - I";
 
         // 8. Calculate Achievements list
         const activeAchievements: string[] = [];

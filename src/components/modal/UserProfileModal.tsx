@@ -47,14 +47,18 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [hasSentRequest, setHasSentRequest] = useState((userStats as any).isFriendRequested || false);
 
   // Derive signature based on level
-  const getSignature = (lvl: number) => {
-    if (lvl >= 180) return "EMPEROR - III";
-    if (lvl >= 150) return "EMPEROR - II";
-    if (lvl >= 120) return "EMPEROR - I";
-    if (lvl >= 90) return "KING - III";
-    if (lvl >= 70) return "KING - I";
-    if (lvl >= 50) return "WARRIOR - III";
-    if (lvl >= 30) return "WARRIOR - I";
+  const getSignature = (league: string) => {
+    const cleanLg = (league || "Bronze").toUpperCase();
+    if (cleanLg.includes("IMMORTAL")) return "IMMORTAL - I";
+    if (cleanLg.includes("TITAN")) return "TITAN - I";
+    if (cleanLg.includes("LEGEND")) return "LEGEND - I";
+    if (cleanLg.includes("EMPEROR")) return "EMPEROR - I";
+    if (cleanLg.includes("GRAND")) return "GRAND MASTER - I";
+    if (cleanLg.includes("MASTER")) return "MASTER - I";
+    if (cleanLg.includes("DIAMOND")) return "DIAMOND - I";
+    if (cleanLg.includes("PLATINUM")) return "PLATINUM - I";
+    if (cleanLg.includes("GOLD")) return "GOLDEN - I";
+    if (cleanLg.includes("SILVER")) return "SILVER - I";
     return "ROOKIE - I";
   };
 
@@ -183,7 +187,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             <div className="bg-black/30 border border-purple-900/35 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
               <span className="text-[7.5px] font-black uppercase text-purple-200 tracking-wider">Signature</span>
               <span className="text-xs font-extrabold text-yellow-300 tracking-wide uppercase truncate">
-                {getSignature(userStats.level)}
+                {getSignature(userStats.currentLeague)}
               </span>
             </div>
             {/* Current Gold Box */}

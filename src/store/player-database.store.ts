@@ -164,15 +164,6 @@ export const generatePlayerDatabase = (): PlayerDetailedStats[] => {
     const unluckyRolls = matchesLost * 2;
 
     // 12. Signature Title and League Tiers
-    let signature = "ROOKIE - I";
-    if (level >= 180) signature = "EMPEROR - III";
-    else if (level >= 150) signature = "EMPEROR - II";
-    else if (level >= 120) signature = "EMPEROR - I";
-    else if (level >= 90) signature = "KING - III";
-    else if (level >= 70) signature = "KING - I";
-    else if (level >= 50) signature = "WARRIOR - III";
-    else if (level >= 30) signature = "WARRIOR - I";
-
     const points = Math.max(0, matchesWon * 12 - matchesLost * 6);
     let currentLeague = "Bronze";
     if (points >= 25000) currentLeague = "Immortal";
@@ -185,6 +176,19 @@ export const generatePlayerDatabase = (): PlayerDetailedStats[] => {
     else if (points >= 500) currentLeague = "Platinum";
     else if (points >= 250) currentLeague = "Gold";
     else if (points >= 100) currentLeague = "Silver";
+
+    const cleanLg = currentLeague.toUpperCase();
+    let signature = "ROOKIE - I";
+    if (cleanLg.includes("IMMORTAL")) signature = "IMMORTAL - I";
+    else if (cleanLg.includes("TITAN")) signature = "TITAN - I";
+    else if (cleanLg.includes("LEGEND")) signature = "LEGEND - I";
+    else if (cleanLg.includes("EMPEROR")) signature = "EMPEROR - I";
+    else if (cleanLg.includes("GRAND")) signature = "GRAND MASTER - I";
+    else if (cleanLg.includes("MASTER")) signature = "MASTER - I";
+    else if (cleanLg.includes("DIAMOND")) signature = "DIAMOND - I";
+    else if (cleanLg.includes("PLATINUM")) signature = "PLATINUM - I";
+    else if (cleanLg.includes("GOLD")) signature = "GOLDEN - I";
+    else if (cleanLg.includes("SILVER")) signature = "SILVER - I";
 
     // 13. Achievements unlocked
     const achievements: string[] = [];

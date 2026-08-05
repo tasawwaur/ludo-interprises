@@ -213,8 +213,8 @@ export const useGameStore = create<GameStoreState>()(
         }
       }
     } else {
-      // Timer hit 0!
-      set({ turnTimerSeconds: 0 });
+      // Timer hit 0! Reset timer immediately to 15 to prevent sound loop or page freeze
+      set({ turnTimerSeconds: 15 });
       SoundEngine.play('TIMEOUT');
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate(150);
@@ -223,38 +223,8 @@ export const useGameStore = create<GameStoreState>()(
         window.dispatchEvent(new CustomEvent('game_timeout'));
       }
 
-      if (gameState.gameStatus === 'ROLL_WAIT') {
-        // Skip turn and reset timer to 15s
-        const nextState = GameEngine.skipTurn(gameState);
-        set({
-          gameState: nextState,
-          turnTimerSeconds: 15,
-          isAutoMode: false,
-        });
-
-        // Trigger AI roll if next player is AI
-        setTimeout(() => {
-          get().triggerAiMoveIfNeeded();
-        }, 800);
-      } else if (gameState.gameStatus === 'MOVE_WAIT') {
-        if (gameState.movableTokens.length === 1) {
-          // Auto move the only valid token
-          get().moveToken(gameState.movableTokens[0].tokenId);
-        } else {
-          // Multiple or zero moves -> skip turn and reset timer to 15s
-          const nextState = GameEngine.skipTurn(gameState);
-          set({
-            gameState: nextState,
-            turnTimerSeconds: 15,
-            isAutoMode: false,
-          });
-
-          // Trigger AI roll if next player is AI
-          setTimeout(() => {
-            get().triggerAiMoveIfNeeded();
-          }, 800);
-        }
-      }
+      // Auto-play the turn for the active player (rolls dice + moves best token)
+      get().triggerAiMoveIfNeeded(true);
     }
   },
 
@@ -514,151 +484,168 @@ export const useGameStore = create<GameStoreState>()(
     });
   },
 
-  triggerAiMoveIfNeeded: () => {
+  triggerAiMoveIfNeeded: (forceAuto: boolean = false) => {
     const { gameState, isAutoMode } = get();
     if (!gameState || gameState.gameStatus === 'GAME_OVER') return;
 
     const activePlayer = gameState.players[gameState.activePlayerIndex];
     if (!activePlayer) return;
 
-    // CRITICAL: Auto-play ONLY for AI players (disabled for humans as requested)
-    if (!activePlayer.isAi) {
+    // CRITICAL: Auto-play for AI players OR when timer hits 0 (forceAuto = true) OR isAutoMode enabled
+    if (!activePlayer.isAi && !forceAuto && !isAutoMode) {
       return;
     }
 
     if (gameState.gameStatus === 'ROLL_WAIT' && !gameState.isDiceRolled) {
       get().rollDice();
+      setTimeout(() => {
+        get().triggerAiMoveIfNeeded(forceAuto);
+      }, 500);
       return;
     }
 
-    if (gameState.gameStatus === 'MOVE_WAIT' && gameState.movableTokens.length > 0) {
-      const moves = [...gameState.movableTokens];
-      const startIndices: Record<string, number> = { RED: 0, GREEN: 13, YELLOW: 26, BLUE: 39 };
-      const safeIndices = [0, 8, 13, 21, 26, 34, 39, 47];
+    if (gameState.gameStatus === 'MOVE_WAIT') {
+      if (gameState.movableTokens.length > 0) {
+        const moves = [...gameState.movableTokens];
+        const startIndices: Record<string, number> = { RED: 0, GREEN: 13, YELLOW: 26, BLUE: 39 };
+        const safeIndices = [0, 8, 13, 21, 26, 34, 39, 47];
 
-      const scoredMoves = moves.map((m) => {
-        const token = activePlayer.tokens.find((t) => t.id === m.tokenId);
-        if (!token) return { move: m, score: -9999 };
+        const scoredMoves = moves.map((m) => {
+          const token = activePlayer.tokens.find((t) => t.id === m.tokenId);
+          if (!token) return { move: m, score: -9999 };
 
-        let score = 0;
+          let score = 0;
 
-        // 1. Capture
-        if (m.isCapture) score += 1200;
+          // 1. Capture
+          if (m.isCapture) score += 1200;
 
-        // 2. Reaching Home
-        if (m.isHome) score += 800;
+          // 2. Reaching Home
+          if (m.isHome) score += 800;
 
-        // 3. Releasing from Yard (start cell stepCount = 0 or fromStep === -1)
-        if (m.fromStep === -1) score += 200;
+          // 3. Releasing from Yard (start cell stepCount = 0 or fromStep === -1)
+          if (m.fromStep === -1) score += 200;
 
-        // 4. Safe track index computations
-        const activeStartIdx = startIndices[activePlayer.color] ?? 0;
-        
-        // Compute safety/threat logic
-        const opponents = gameState.players.filter((p) => p.color !== activePlayer.color);
+          // 4. Safe track index computations
+          const activeStartIdx = startIndices[activePlayer.color] ?? 0;
+          
+          // Compute safety/threat logic
+          const opponents = gameState.players.filter((p) => p.color !== activePlayer.color);
 
-        if (token.stepCount >= 1 && token.stepCount <= 51) {
-          const currentTrackIndex = (activeStartIdx + (token.stepCount - 1)) % 52;
-          const isCurrentlySafe = safeIndices.includes(currentTrackIndex);
+          if (token.stepCount >= 1 && token.stepCount <= 51) {
+            const currentTrackIndex = (activeStartIdx + (token.stepCount - 1)) % 52;
+            const isCurrentlySafe = safeIndices.includes(currentTrackIndex);
 
-          if (!isCurrentlySafe) {
-            // Check if we are currently in danger
-            let inDanger = false;
-            let threateningOppTrack = -1;
+            if (!isCurrentlySafe) {
+              // Check if we are currently in danger
+              let inDanger = false;
+              let threateningOppTrack = -1;
 
+              for (const opp of opponents) {
+                const oppStartIdx = startIndices[opp.color] ?? 0;
+                for (const oppToken of opp.tokens) {
+                  if (oppToken.stepCount >= 1 && oppToken.stepCount <= 51) {
+                    const oppTrackIndex = (oppStartIdx + (oppToken.stepCount - 1)) % 52;
+                    const distBehind = (currentTrackIndex - oppTrackIndex + 52) % 52;
+                    if (distBehind > 0 && distBehind <= 6) {
+                      inDanger = true;
+                      threateningOppTrack = oppTrackIndex;
+                      break;
+                    }
+                  }
+                }
+                if (inDanger) break;
+              }
+
+              if (inDanger) {
+                // Does moving take us to safety?
+                const newTrackIndex = (activeStartIdx + (m.toStep - 1)) % 52;
+                const isNewSpotSafe = m.toStep >= 52 || safeIndices.includes(newTrackIndex);
+                if (isNewSpotSafe) {
+                  score += 400; // Escape to safety!
+                } else {
+                  const newDistBehind = (newTrackIndex - threateningOppTrack + 52) % 52;
+                  if (newDistBehind > 6) {
+                    score += 250; // Run out of range!
+                  }
+                }
+              }
+            }
+          }
+
+          // 5. Avoid landing in danger
+          if (m.toStep <= 51) {
+            const newTrackIndex = (activeStartIdx + (m.toStep - 1)) % 52;
+            const isNewSpotSafe = safeIndices.includes(newTrackIndex);
+            if (!isNewSpotSafe) {
+              let landingDanger = false;
+              for (const opp of opponents) {
+                const oppStartIdx = startIndices[opp.color] ?? 0;
+                for (const oppToken of opp.tokens) {
+                  if (oppToken.stepCount >= 1 && oppToken.stepCount <= 51) {
+                    const oppTrackIndex = (oppStartIdx + (oppToken.stepCount - 1)) % 52;
+                    const distBehind = (newTrackIndex - oppTrackIndex + 52) % 52;
+                    if (distBehind > 0 && distBehind <= 6) {
+                      landingDanger = true;
+                      break;
+                    }
+                  }
+                }
+                if (landingDanger) break;
+              }
+              if (landingDanger) {
+                score -= 300; // Penalty for moving to vulnerable cell
+              }
+            }
+
+            // 6. Threatening / Chasing Opponent
             for (const opp of opponents) {
               const oppStartIdx = startIndices[opp.color] ?? 0;
               for (const oppToken of opp.tokens) {
                 if (oppToken.stepCount >= 1 && oppToken.stepCount <= 51) {
                   const oppTrackIndex = (oppStartIdx + (oppToken.stepCount - 1)) % 52;
-                  const distBehind = (currentTrackIndex - oppTrackIndex + 52) % 52;
-                  if (distBehind > 0 && distBehind <= 6) {
-                    inDanger = true;
-                    threateningOppTrack = oppTrackIndex;
-                    break;
-                  }
-                }
-              }
-              if (inDanger) break;
-            }
-
-            if (inDanger) {
-              // Does moving take us to safety?
-              const newTrackIndex = (activeStartIdx + (m.toStep - 1)) % 52;
-              const isNewSpotSafe = m.toStep >= 52 || safeIndices.includes(newTrackIndex);
-              if (isNewSpotSafe) {
-                score += 400; // Escape to safety!
-              } else {
-                const newDistBehind = (newTrackIndex - threateningOppTrack + 52) % 52;
-                if (newDistBehind > 6) {
-                  score += 250; // Run out of range!
-                }
-              }
-            }
-          }
-        }
-
-        // 5. Avoid landing in danger
-        if (m.toStep <= 51) {
-          const newTrackIndex = (activeStartIdx + (m.toStep - 1)) % 52;
-          const isNewSpotSafe = safeIndices.includes(newTrackIndex);
-          if (!isNewSpotSafe) {
-            let landingDanger = false;
-            for (const opp of opponents) {
-              const oppStartIdx = startIndices[opp.color] ?? 0;
-              for (const oppToken of opp.tokens) {
-                if (oppToken.stepCount >= 1 && oppToken.stepCount <= 51) {
-                  const oppTrackIndex = (oppStartIdx + (oppToken.stepCount - 1)) % 52;
-                  const distBehind = (newTrackIndex - oppTrackIndex + 52) % 52;
-                  if (distBehind > 0 && distBehind <= 6) {
-                    landingDanger = true;
-                    break;
-                  }
-                }
-              }
-              if (landingDanger) break;
-            }
-            if (landingDanger) {
-              score -= 300; // Penalty for moving to vulnerable cell
-            }
-          }
-
-          // 6. Threatening / Chasing Opponent
-          for (const opp of opponents) {
-            const oppStartIdx = startIndices[opp.color] ?? 0;
-            for (const oppToken of opp.tokens) {
-              if (oppToken.stepCount >= 1 && oppToken.stepCount <= 51) {
-                const oppTrackIndex = (oppStartIdx + (oppToken.stepCount - 1)) % 52;
-                const oppSafe = safeIndices.includes(oppTrackIndex);
-                if (!oppSafe) {
-                  const distBehindOpp = (oppTrackIndex - newTrackIndex + 52) % 52;
-                  if (distBehindOpp > 0 && distBehindOpp <= 6) {
-                    score += 80; // Nice setup to chase them!
+                  const oppSafe = safeIndices.includes(oppTrackIndex);
+                  if (!oppSafe) {
+                    const distBehindOpp = (oppTrackIndex - newTrackIndex + 52) % 52;
+                    if (distBehindOpp > 0 && distBehindOpp <= 6) {
+                      score += 80; // Nice setup to chase them!
+                    }
                   }
                 }
               }
             }
           }
-        }
 
-        // 7. Creating a block/pair with our own tokens
-        const hasOwnTokenAtTarget = activePlayer.tokens.some(
-          (t) => t.id !== m.tokenId && t.stepCount === m.toStep && t.stepCount >= 1 && t.stepCount <= 51
-        );
-        if (hasOwnTokenAtTarget) {
-          score += 120;
-        }
+          // 7. Creating a block/pair with our own tokens
+          const hasOwnTokenAtTarget = activePlayer.tokens.some(
+            (t) => t.id !== m.tokenId && t.stepCount === m.toStep && t.stepCount >= 1 && t.stepCount <= 51
+          );
+          if (hasOwnTokenAtTarget) {
+            score += 120;
+          }
 
-        // 8. Progress bonus
-        score += token.stepCount * 0.4;
+          // 8. Progress bonus
+          score += token.stepCount * 0.4;
 
-        return { move: m, score };
-      });
+          return { move: m, score };
+        });
 
-      // Sort by score descending
-      scoredMoves.sort((a, b) => b.score - a.score);
-      const selectedTokenId = scoredMoves[0].move.tokenId;
-      get().moveToken(selectedTokenId);
+        // Sort by score descending
+        scoredMoves.sort((a, b) => b.score - a.score);
+        const selectedTokenId = scoredMoves[0].move.tokenId;
+        get().moveToken(selectedTokenId);
+      } else {
+        // No legal moves available -> skip turn cleanly to next player
+        const nextState = GameEngine.skipTurn(gameState);
+        set({
+          gameState: nextState,
+          turnTimerSeconds: 15,
+          isAutoMode: false,
+        });
+
+        setTimeout(() => {
+          get().triggerAiMoveIfNeeded();
+        }, 800);
+      }
     }
   },
 
@@ -885,6 +872,28 @@ export const useGameStore = create<GameStoreState>()(
         }
 
         SoundEngine.play('GAME_START');
+      } else if (data.actionType === 'FORFEIT') {
+        const { gameState, localPlayerColor } = get();
+        if (!gameState || gameState.gameStatus === 'GAME_OVER') return;
+
+        const localPlayerIndex = gameState.players.findIndex(p => p.color === localPlayerColor);
+        const winnerIndex = localPlayerIndex !== -1 ? localPlayerIndex : 0;
+        const winnerColor = gameState.players[winnerIndex].color;
+
+        const gameOverState = {
+          ...gameState,
+          gameStatus: 'GAME_OVER' as const,
+          winnerRankings: [winnerColor],
+          lastActionSummary: 'Opponent quit the match. Victory by forfeit!',
+        };
+
+        set({ gameState: gameOverState });
+        localStorage.setItem("ludo_classic_engine_state", JSON.stringify(gameOverState));
+
+        SoundEngine.play('VICTORY');
+        try {
+          confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        } catch (e) {}
       }
     });
 

@@ -159,15 +159,6 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
     }
   }, [gameState?.gameStatus, gameState?.winnerRankings, rewardClaimed, user?.coins, updateUser, localPlayer?.color, isSpectatorMode]);
 
-  // Auto transition to MatchResultScreen after 4 seconds when game is over
-  useEffect(() => {
-    if (gameState?.gameStatus === 'GAME_OVER') {
-      const timer = setTimeout(() => {
-        onLeaveGame();
-      }, 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [gameState?.gameStatus, onLeaveGame]);
 
   // Turn Timer Countdown Loop
   useEffect(() => {
@@ -450,7 +441,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                               moveToken(token.id);
                             }
                           }}
-                          className={`absolute -translate-x-1/2 ${translateClass} w-[24px] h-[31px] z-30 flex items-center justify-center filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)] transition-all duration-200 pointer-events-auto ${
+                          className={`absolute -translate-x-1/2 ${translateClass} w-[34px] h-[44px] p-0.5 z-30 flex items-center justify-center filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)] transition-all duration-200 pointer-events-auto ${
                             isMoveable && !isSpectatorMode
                               ? 'cursor-pointer hover:scale-125 active:scale-95 ring-4 ring-yellow-400 ring-offset-1 rounded-full animate-bounce shadow-[0_0_15px_rgba(251,191,36,0.9)] z-40'
                               : isSpectatorMode ? 'pointer-events-none' : 'cursor-grab active:cursor-grabbing'
@@ -460,7 +451,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                             left: positionStyle.left,
                           }}
                         >
-                          <img src={tokenImg} alt={`${token.color} Token ${idx + 1}`} className="w-full h-full object-contain" />
+                          <img src={tokenImg} alt={`${token.color} Token ${idx + 1}`} className="w-full h-full object-contain pointer-events-auto cursor-pointer" />
                           
                           {showNumber && (
                             <div 
@@ -815,8 +806,35 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         onCancel={() => setShowExitModal(false)}
         onConfirmExit={() => {
           setShowExitModal(false);
-          resetMatch();
-          onLeaveGame();
+
+          // 1. Emit forfeit/disconnect event to server so opponent gets WINNER declaration
+          const roomCode = useRoomStore.getState().roomCode;
+          const gameSocket = useGameStore.getState().gameSocket;
+          if (gameSocket && roomCode) {
+            gameSocket.emit("client_action", {
+              roomCode,
+              actionType: "FORFEIT",
+              quittingColor: localPlayer?.color,
+            });
+          }
+
+          // 2. Deduct entry fee penalty for quitting match
+          const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
+          const currentCoins = user?.coins || 0;
+          updateUser({ coins: Math.max(0, currentCoins - entryFee) });
+
+          // 3. Declare local player as LOSER by forfeit
+          const oppColor = opponentPlayer?.color || 'GREEN';
+          const gameOverState = {
+            ...gameState!,
+            gameStatus: 'GAME_OVER' as const,
+            winnerRankings: [oppColor],
+            lastActionSummary: `Match Forfeited! ${localPlayer?.name} quit the match.`,
+          };
+          useGameStore.setState({ gameState: gameOverState });
+          localStorage.setItem("ludo_classic_engine_state", JSON.stringify(gameOverState));
+
+          SoundEngine.play('GAME_OVER');
         }}
       />
 
@@ -828,6 +846,111 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         messages={chatHistory}
       />
 
+      {/* 🏆 Match Result Victory / Defeat Modal Overlay (Snake & Ladders Style) */}
+      {gameState?.gameStatus === 'GAME_OVER' && (() => {
+        const winnerColor = gameState.winnerRankings?.[0];
+        const isWinner = winnerColor === localPlayer?.color;
+        const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
+        const winReward = Math.round(entryFee * 1.9);
+
+        const localTokensHome = localPlayer?.tokens?.filter(t => t.state === 'HOME').length || 0;
+        const localKills = localPlayer?.tokens?.reduce((acc, t) => acc + (t.stepCount > 0 ? 1 : 0), 0) || 0;
+
+        const killsXP = localKills * 10;
+        const passXP = localTokensHome * 50;
+        const winXP = isWinner ? 200 : 20;
+        const totalXP = killsXP + passXP + winXP;
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
+            <div className="relative w-full max-w-sm rounded-3xl bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 border-2 border-amber-400/40 p-6 shadow-[0_0_50px_rgba(245,158,11,0.3)] text-center flex flex-col items-center gap-4">
+              
+              {/* Header Badge */}
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-3xl shadow-[0_0_20px_rgba(245,158,11,0.6)] border border-yellow-200">
+                {isWinner ? "🏆" : "💔"}
+              </div>
+
+              <div>
+                <h2 className="text-xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 uppercase">
+                  {isWinner ? "VICTORY!" : "MATCH ENDED"}
+                </h2>
+                <p className="text-xs text-slate-400 font-medium mt-1">
+                  {isWinner
+                    ? (gameState.lastActionSummary?.includes("quit") || gameState.lastActionSummary?.includes("disconnected")
+                        ? `${opponentPlayer?.name || "Opponent"} quit the match! You win!`
+                        : "Congratulations! You completed all tokens first!")
+                    : (gameState.lastActionSummary?.includes("quit")
+                        ? `You quit the match. Match Forfeited!`
+                        : `${opponentPlayer?.name || "Opponent"} won the match!`)
+                  }
+                </p>
+              </div>
+
+              {/* Rewards Summary Box */}
+              <div className="w-full rounded-2xl bg-slate-800/80 border border-slate-700/60 p-4 flex flex-col gap-3">
+                {/* Coins Row */}
+                <div className={`flex items-center justify-between px-3 py-2 rounded-xl border ${
+                  isWinner ? 'bg-amber-500/10 border-amber-500/20' : 'bg-rose-500/10 border-rose-500/20'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🪙</span>
+                    <span className={`text-xs font-bold uppercase tracking-wider ${isWinner ? 'text-amber-200' : 'text-rose-200'}`}>
+                      {isWinner ? "Bet Win Reward" : "Forfeit / Defeat Penalty"}
+                    </span>
+                  </div>
+                  <span className={`text-sm font-black ${isWinner ? 'text-amber-400' : 'text-rose-400'}`}>
+                    {isWinner ? `+${winReward.toLocaleString()} Coins` : `-${entryFee.toLocaleString()} Coins`}
+                  </span>
+                </div>
+
+                {/* XP Breakdown Header */}
+                <div className="text-[10px] font-black uppercase text-purple-300 tracking-wider text-left pl-1">
+                  XP Rewards Breakdown
+                </div>
+
+                {/* Tokens Home XP Row */}
+                <div className="flex items-center justify-between text-xs text-slate-300 px-2">
+                  <span className="flex items-center gap-1.5">
+                    🏁 <span>{localTokensHome} Tokens Home</span> <span className="text-[10px] text-slate-500">(×50 XP)</span>
+                  </span>
+                  <span className="font-extrabold text-emerald-400">+{passXP} XP</span>
+                </div>
+
+                {/* Win Bonus XP Row */}
+                <div className="flex items-center justify-between text-xs text-slate-300 px-2">
+                  <span className="flex items-center gap-1.5">
+                    🏆 <span>{isWinner ? "Victory Bonus" : "Match Bonus"}</span>
+                  </span>
+                  <span className="font-extrabold text-emerald-400">+{winXP} XP</span>
+                </div>
+
+                <div className="h-[1px] bg-slate-700/60 my-0.5" />
+
+                {/* Total XP Row */}
+                <div className="flex items-center justify-between px-2">
+                  <span className="text-xs font-black uppercase text-purple-200 tracking-wider">Total XP Earned</span>
+                  <span className="text-sm font-black text-purple-400">+{totalXP} XP</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex w-full gap-2">
+                <button
+                  onClick={() => {
+                    useGameStore.getState().resetMatch();
+                    localStorage.removeItem("ludo_classic_engine_state");
+                    onLeaveGame();
+                  }}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs uppercase tracking-wider shadow-lg hover:scale-102 active:scale-95 transition-all border-0 outline-none cursor-pointer"
+                >
+                  🚪 Exit Match
+                </button>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Luxury 1v1 Live Camera overlay */}
       <LuxuryLiveCamera

@@ -161,7 +161,7 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
           />
         </button>
 
-        {/* Voice Chat Mic Button Removed */}
+
       </div>
 
       {/* 2. Name Frame */}

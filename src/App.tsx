@@ -597,13 +597,26 @@ const MainApp: React.FC = () => {
                 return;
               }
 
-              // Determine the room members in a consistent order on both screens (real host first, guest second)
+              // Helper to resolve avatars so host and guest never share identical generic fallback images across PCs
+              const defaultHostAvatar = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80";
+              const defaultGuestAvatar = "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80";
+
+              const getAvatar = (url?: string, isHostUser: boolean = true) => {
+                if (!url || url.startsWith("blob:") || url === "/assets/images/icons/icon_club_crown.png") {
+                  return isHostUser ? defaultHostAvatar : defaultGuestAvatar;
+                }
+                return url;
+              };
+
+              const rawHostAvatar = isHost ? hostAvatar : opponent?.avatar;
+              const rawGuestAvatar = isHost ? opponent?.avatar : hostAvatar;
+
               const actualHostName = isHost ? hostName : (opponent?.name || "Player 1");
-              const actualHostAvatar = isHost ? hostAvatar : (opponent?.avatar || "/assets/images/icons/icon_club_crown.png");
+              const actualHostAvatar = getAvatar(rawHostAvatar, true);
               const actualHostColor = isHost ? (myColor as "RED" | "GREEN" | "YELLOW" | "BLUE") : (opponent?.color as "RED" | "GREEN" | "YELLOW" | "BLUE" || "RED");
 
               const actualGuestName = isHost ? (opponent?.name || "Player 2") : hostName;
-              const actualGuestAvatar = isHost ? (opponent?.avatar || "/assets/images/icons/icon_club_crown.png") : hostAvatar;
+              const actualGuestAvatar = getAvatar(rawGuestAvatar, false);
               const actualGuestColor = isHost ? (opponent?.color as "RED" | "GREEN" | "YELLOW" | "BLUE" || "GREEN") : (myColor as "RED" | "GREEN" | "YELLOW" | "BLUE");
 
               // ✅ Pass the matchmaking-assigned server roomCode to ensure both clients join the same room!

@@ -573,7 +573,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
           </button>
         </div>
 
-        {/* PLAYER 2 PROFILE: FIXED TOP-RIGHT (Opponent: Read-only mic status) */}
+        {/* OPPONENT PROFILE: TOP-RIGHT */}
         <div className="absolute top-12 right-3 z-20 pointer-events-auto">
           <div className="min-w-[98px]">
             {opponentPlayer && (
@@ -599,7 +599,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
           </div>
         </div>
 
-        {/* PLAYER 1 PROFILE: FIXED BOTTOM-LEFT (Local User: Full mic control) */}
+        {/* LOCAL PLAYER PROFILE: BOTTOM-LEFT */}
         <div className="absolute bottom-[45px] left-3 z-20 pointer-events-auto">
           <div className="min-w-[98px]">
             {localPlayer && (
@@ -827,21 +827,13 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         messages={chatHistory}
       />
 
+
       {/* Luxury 1v1 Live Camera overlay */}
-      {maxPlayers === 2 && (() => {
-        const localUser = useUserStore.getState().user;
-        const opponent = gameState?.players.find(p => p.color !== localPlayerColor);
-        
-        return (
-          <LuxuryLiveCamera
-            localPlayerName={localUser?.displayName || localUser?.username || "You"}
-            localPlayerAvatar={localUser?.avatar || "/assets/images/icons/icon_club_crown.png"}
-            opponentName={opponent?.name || "Opponent"}
-            opponentAvatar={opponent?.avatar || "/assets/images/icons/profile_frame_v3.png"}
-            isOneVsOne={maxPlayers === 2}
-          />
-        );
-      })()}
+      <LuxuryLiveCamera
+        localPlayer={localPlayer}
+        opponentPlayer={opponentPlayer}
+        isOneVsOne={true}
+      />
     </div>
   );
 };

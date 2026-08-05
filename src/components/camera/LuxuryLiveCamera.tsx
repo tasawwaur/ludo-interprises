@@ -1,379 +1,241 @@
 import React, { useState, useEffect, useRef } from "react";
+import { VoiceChatService } from "../../game/sound/VoiceChatService";
 
-interface LuxuryLiveCameraProps {
-  localPlayerName: string;
-  localPlayerAvatar: string;
-  opponentName: string;
-  opponentAvatar: string;
-  isOneVsOne: boolean;
+interface CameraPodProps {
+  playerName: string;
+  playerAvatar: string;
+  defaultX: number;
+  defaultY: number;
+  isLocal: boolean;
+  localVideoRef?: React.RefObject<HTMLVideoElement>;
+  camOn: boolean;
+  paused: boolean;
+  micOn: boolean;
+  onToggleCam?: () => void;
+  onTogglePause?: () => void;
+  onToggleMic?: () => void;
 }
 
-export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
-  localPlayerName,
-  localPlayerAvatar,
-  opponentName,
-  opponentAvatar,
-  isOneVsOne,
+const CameraPod: React.FC<CameraPodProps> = ({
+  playerName, playerAvatar, defaultX, defaultY, isLocal, localVideoRef,
+  camOn, paused, micOn, onToggleCam, onTogglePause, onToggleMic,
 }) => {
-  if (!isOneVsOne) return null;
-
-  // Camera settings
-  const [localCamOn, setLocalCamOn] = useState(false);
-  const [localPaused, setLocalPaused] = useState(false);
-  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
-  const [isMinimized, setIsMinimized] = useState(false);
-
-  // Opponent state (Simulating that opponent mirrors or toggles based on privacy rules)
-  const [opponentCamOn, setOpponentCamOn] = useState(false);
-  const [opponentPaused, setOpponentPaused] = useState(false);
-
-  const localVideoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-
-  // Dragging coordinates
-  const [position, setPosition] = useState({ x: 16, y: 120 });
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStart = useRef({ x: 0, y: 0 });
-  const positionStart = useRef({ x: 0, y: 0 });
-
-  // Double tap checking
-  const lastTap = useRef<number>(0);
-
-  // Long press timer reference
-  const longPressTimer = useRef<number | null>(null);
-  const touchStartTime = useRef<number>(0);
-
-  // Opponent turns camera on automatically 1.5s after both agree
-  useEffect(() => {
-    if (localCamOn) {
-      const timer = setTimeout(() => {
-        setOpponentCamOn(true);
-      }, 1500);
-      return () => clearTimeout(timer);
-    } else {
-      setOpponentCamOn(false);
-      setOpponentPaused(false);
-    }
-  }, [localCamOn]);
-
-  // Turn on/off webcam streams
-  useEffect(() => {
-    if (localCamOn && !localPaused) {
-      startWebcam();
-    } else {
-      stopWebcam();
-    }
-    return () => stopWebcam();
-  }, [localCamOn, localPaused, facingMode]);
-
-  const startWebcam = async () => {
-    try {
-      stopWebcam();
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode },
-        audio: false, // Mic is already handled separately
-      });
-      streamRef.current = stream;
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
-    } catch (err) {
-      console.warn("Camera permission denied or not available:", err);
-    }
-  };
-
-  const stopWebcam = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    if (localVideoRef.current) {
-      localVideoRef.current.srcObject = null;
-    }
-  };
-
-  // Drag handlers
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setIsDragging(true);
-    const touch = e.touches[0];
-    dragStart.current = { x: touch.clientX, y: touch.clientY };
-    positionStart.current = { x: position.x, y: position.y };
-    touchStartTime.current = Date.now();
-
-    // Setup Long Press detection (holding for 700ms triggers pause/resume)
-    if (longPressTimer.current) window.clearTimeout(longPressTimer.current);
-    longPressTimer.current = window.setTimeout(() => {
-      if (Date.now() - touchStartTime.current >= 600) {
-        // Trigger Long Press pause/resume
-        setLocalPaused((prev) => !prev);
-        // Opponent pauses shortly after to simulate interaction
-        setTimeout(() => {
-          setOpponentPaused((prev) => !prev);
-        }, 1000);
-      }
-    }, 700);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    const touch = e.touches[0];
-    const dx = touch.clientX - dragStart.current.x;
-    const dy = touch.clientY - dragStart.current.y;
-    
-    // Cancel long press if drag happens
-    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
-      if (longPressTimer.current) {
-        window.clearTimeout(longPressTimer.current);
-        longPressTimer.current = null;
-      }
-    }
-
-    setPosition({
-      x: positionStart.current.x + dx,
-      y: positionStart.current.y + dy,
-    });
-  };
-
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-    if (longPressTimer.current) {
-      window.clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-
-    // Auto snap to nearest screen side
-    const screenWidth = window.innerWidth;
-    const snapX = position.x < screenWidth / 2 ? 16 : screenWidth - 100;
-    setPosition((prev) => ({
-      ...prev,
-      x: snapX,
-    }));
-
-    // If tap was quick (no drag, less than 250ms), handle Tap Gesture
-    const duration = Date.now() - touchStartTime.current;
-    if (duration < 250) {
-      handleTapGesture();
-    }
-  };
-
-  // Mouse drag handlers for desktop support
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    dragStart.current = { x: e.clientX, y: e.clientY };
-    positionStart.current = { x: position.x, y: position.y };
-    touchStartTime.current = Date.now();
-
-    if (longPressTimer.current) window.clearTimeout(longPressTimer.current);
-    longPressTimer.current = window.setTimeout(() => {
-      setLocalPaused((prev) => !prev);
-      setTimeout(() => {
-        setOpponentPaused((prev) => !prev);
-      }, 1000);
-    }, 700);
-  };
-
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging) return;
-    const dx = e.clientX - dragStart.current.x;
-    const dy = e.clientY - dragStart.current.y;
-
-    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
-      if (longPressTimer.current) {
-        window.clearTimeout(longPressTimer.current);
-        longPressTimer.current = null;
-      }
-    }
-
-    setPosition({
-      x: positionStart.current.x + dx,
-      y: positionStart.current.y + dy,
-    });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    if (longPressTimer.current) {
-      window.clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-
-    const snapX = position.x < 185 ? 16 : 280; // Snap coordinates for desktop preview size
-    setPosition((prev) => ({
-      ...prev,
-      x: snapX,
-    }));
-
-    const duration = Date.now() - touchStartTime.current;
-    if (duration < 250) {
-      handleTapGesture();
-    }
-  };
-
-  useEffect(() => {
-    if (isDragging) {
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
-    }
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isDragging, position]);
-
-  const handleTapGesture = () => {
-    const now = Date.now();
-    const delay = now - lastTap.current;
-    
-    if (delay < 300) {
-      // 1. Double Tap -> Switch Front / Rear Camera
-      setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
-    } else {
-      // 2. Single Tap -> Toggle Camera ON / OFF
-      setLocalCamOn((prev) => !prev);
-    }
-    lastTap.current = now;
-  };
-
-  // Both players must agree condition
-  const bothEnabled = localCamOn && opponentCamOn;
+  const size = 140;
 
   return (
     <div
       style={{
-        transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
-        touchAction: "none",
+        position: "absolute",
+        top: 0, left: 0,
+        transform: `translate3d(${defaultX}px, ${defaultY}px, 0)`,
+        zIndex: 45,
+        userSelect: "none",
       }}
-      className={`absolute z-[40] flex flex-col gap-2.5 transition-all duration-300 ease-out select-none ${
-        isMinimized ? "w-10 h-10" : "w-20"
-      }`}
     >
-      {/* ── 1. LOCAL PLAYER CAMERA WINDOW ── */}
+      {/* Camera pod box */}
       <div
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onMouseDown={handleMouseDown}
-        className={`relative w-[76px] h-[76px] rounded-2xl bg-black border-2 transition-all duration-300 cursor-pointer overflow-hidden ${
-          bothEnabled 
-            ? "border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]" 
+        style={{ width: size, height: size }}
+        className={`relative rounded-2xl bg-black overflow-hidden border-2 shadow-lg transition-all duration-200 ${
+          camOn && !paused
+            ? "border-amber-400 shadow-[0_0_14px_rgba(245,158,11,0.6)]"
             : "border-purple-600/60 shadow-[0_0_8px_rgba(139,92,246,0.3)]"
         }`}
       >
-        {/* Floating animated green dot mic indicator */}
-        <div className="absolute top-1 right-1 z-30 flex items-center justify-center gap-0.5">
-          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping absolute"></span>
-          <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full z-10"></span>
+        {/* Live dot */}
+        <div className="absolute top-2.5 right-2.5 z-30">
+          <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping absolute"></span>
+          <span className="w-2.5 h-2.5 bg-emerald-400 rounded-full block"></span>
         </div>
 
-        {/* Live Front Camera Stream */}
-        {localCamOn && !localPaused && (
+        {/* Video (only if local player on this screen) */}
+        {isLocal && camOn && !paused && localVideoRef && (
           <video
             ref={localVideoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full h-full object-cover scale-x-[-1] animate-fade-in"
+            autoPlay playsInline muted
+            className="w-full h-full object-cover scale-x-[-1]"
           />
         )}
 
-        {/* Camera OFF Placeholder State */}
-        {(!localCamOn || localPaused) && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-purple-950/90 relative z-10">
-            {/* Profile Picture */}
+        {/* Avatar placeholder when camera OFF or opponent */}
+        {(!camOn || paused || !isLocal) && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-purple-950/90">
             <img
-              src={localPlayerAvatar || "/assets/images/icons/icon_club_crown.png"}
-              alt={localPlayerName}
-              className="w-8 h-8 rounded-full border border-amber-400/50 object-cover"
+              src={playerAvatar || "/assets/images/icons/icon_club_crown.png"}
+              alt={playerName}
+              className="rounded-full border-2 border-amber-400/50 object-cover"
+              style={{ width: size * 0.45, height: size * 0.45 }}
             />
-            {/* Tiny animated camera icon */}
-            <div className="absolute bottom-1 bg-black/60 px-1 py-0.5 rounded text-[7px] text-gray-300 font-bold uppercase tracking-wider flex items-center gap-0.5 animate-pulse">
-              📹 OFF
+            <div className="absolute bottom-10 bg-black/70 px-2 py-0.5 rounded-md text-[9px] text-gray-300 font-bold uppercase animate-pulse">
+              📹 {camOn ? "LIVE" : "OFF"}
             </div>
           </div>
         )}
 
-        {/* Paused Overlay */}
-        {localCamOn && localPaused && (
-          <div className="absolute inset-0 z-25 bg-black/85 flex items-center justify-center">
-            <span className="text-[7.5px] font-black uppercase text-rose-500 tracking-widest animate-pulse">
-              PAUSED
-            </span>
+        {/* Paused overlay */}
+        {isLocal && camOn && paused && (
+          <div className="absolute inset-0 bg-black/85 flex items-center justify-center z-20">
+            <span className="text-xs font-black uppercase text-rose-500 tracking-widest animate-pulse">PAUSED</span>
           </div>
         )}
 
-        {/* Network & Device Indicator */}
-        {localCamOn && (
-          <div className="absolute bottom-1 left-1.5 z-20 flex gap-0.5 items-center">
-            <span className="text-[6.5px] text-emerald-400 font-bold">● HD</span>
+        {/* HD indicator */}
+        {isLocal && camOn && !paused && (
+          <div className="absolute top-2 left-2 z-20">
+            <span className="text-[9px] text-emerald-400 font-bold">● HD</span>
+          </div>
+        )}
+
+        {/* ── INSIDE CAMERA CONTROLS BAR (Pause, Cam, Mic Buttons) ── */}
+        {isLocal && (
+          <div className="absolute bottom-2 left-2 right-2 z-30 flex items-center justify-between pointer-events-auto">
+            {/* Pause Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onTogglePause?.();
+              }}
+              className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all shadow-md active:scale-90 ${
+                paused
+                  ? "bg-rose-600/90 border-rose-400 text-white"
+                  : "bg-slate-900/80 border-amber-400/70 text-amber-300 hover:bg-slate-800"
+              }`}
+              title={paused ? "Resume Camera" : "Pause Camera"}
+            >
+              <span className="text-xs leading-none">{paused ? "▶️" : "⏸️"}</span>
+            </button>
+
+            {/* Camera ON/OFF main toggle */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleCam?.();
+              }}
+              className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all shadow-md active:scale-90 ${
+                camOn
+                  ? "bg-emerald-600/90 border-emerald-300 text-white"
+                  : "bg-slate-900/80 border-amber-400/70 text-amber-300 hover:bg-slate-800"
+              }`}
+              title={camOn ? "Turn Camera Off" : "Turn Camera On"}
+            >
+              <span className="text-xs leading-none">📹</span>
+            </button>
+
+            {/* Mic Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleMic?.();
+              }}
+              className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all shadow-md active:scale-90 cursor-pointer ${
+                micOn
+                  ? "bg-gradient-to-r from-emerald-500 to-green-600 border-amber-300 text-white animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]"
+                  : "bg-gradient-to-r from-red-600 to-rose-700 border-amber-400/80 text-white opacity-95"
+              }`}
+              title={micOn ? "Mic: ON" : "Mic: OFF"}
+            >
+              <span className="text-xs leading-none">{micOn ? "🎙️" : "🔇"}</span>
+            </button>
           </div>
         )}
       </div>
-
-      {/* ── 2. OPPONENT PLAYER CAMERA WINDOW (Rendered only when not minimized) ── */}
-      {!isMinimized && (
-        <div
-          className={`relative w-[76px] h-[76px] rounded-2xl bg-black border-2 transition-all duration-300 overflow-hidden ${
-            bothEnabled 
-              ? "border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)] animate-fade-in" 
-              : "border-purple-600/40 opacity-70"
-          }`}
-        >
-          {/* Opponent Webcam Active */}
-          {bothEnabled && !opponentPaused ? (
-            <div className="w-full h-full relative">
-              {/* Simulated Opponent Video Feed */}
-              <div className="w-full h-full bg-[#1b0a2c] flex items-center justify-center animate-pulse relative">
-                <img 
-                  src={opponentAvatar} 
-                  alt={opponentName} 
-                  className="w-full h-full object-cover blur-[0.5px] opacity-75"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-              </div>
-            </div>
-          ) : (
-            // Opponent Camera Off State
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-purple-950/80">
-              <img
-                src={opponentAvatar}
-                alt={opponentName}
-                className="w-8 h-8 rounded-full border border-purple-500/30 object-cover"
-              />
-              <div className="absolute bottom-1 bg-black/60 px-1 py-0.5 rounded text-[7px] text-gray-300 font-bold uppercase tracking-wider">
-                📹 OFF
-              </div>
-            </div>
-          )}
-
-          {/* Opponent Paused State */}
-          {bothEnabled && opponentPaused && (
-            <div className="absolute inset-0 z-25 bg-black/85 flex items-center justify-center">
-              <span className="text-[7.5px] font-black uppercase text-rose-500 tracking-widest animate-pulse">
-                PAUSED
-              </span>
-            </div>
-          )}
-
-          {/* Name Plate */}
-          <div className="absolute bottom-1 right-1 z-20 bg-black/50 px-1 rounded">
-            <span className="text-[6.5px] font-bold text-gray-300 truncate max-w-[40px] block">
-              {opponentName}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Minimize/Maximize Controller Button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsMinimized((prev) => !prev);
-        }}
-        className="self-center px-2 py-0.5 bg-black/60 border border-purple-500/30 rounded-md text-[6.5px] font-black text-amber-400 uppercase tracking-widest hover:bg-black active:scale-95 transition-transform"
-      >
-        {isMinimized ? "🗖 MAX" : "🗕 MIN"}
-      </button>
     </div>
   );
 };
+
+// ─────────────────────────────────────────────
+interface LuxuryLiveCameraProps {
+  localPlayer?: any;
+  opponentPlayer?: any;
+  isOneVsOne: boolean;
+}
+
+export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
+  localPlayer,
+  opponentPlayer,
+  isOneVsOne,
+}) => {
+  if (!isOneVsOne) return null;
+
+  const [localCamOn, setLocalCamOn] = useState(false);
+  const [localPaused, setLocalPaused] = useState(false);
+  const [localMicOn, setLocalMicOn] = useState(VoiceChatService.isMicrophoneActive());
+
+  const [opponentCamOn, setOpponentCamOn] = useState(false);
+
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const streamRef     = useRef<MediaStream | null>(null);
+
+  // Auto-toggle opponent cam when local turns on
+  useEffect(() => {
+    if (localCamOn) {
+      const t = setTimeout(() => setOpponentCamOn(true), 1500);
+      return () => clearTimeout(t);
+    } else {
+      setOpponentCamOn(false);
+    }
+  }, [localCamOn]);
+
+  // Webcam stream
+  useEffect(() => {
+    if (localCamOn && !localPaused) {
+      (async () => {
+        try {
+          if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+          streamRef.current = stream;
+          if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+        } catch (e) { console.warn("Camera:", e); }
+      })();
+    } else {
+      if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+      if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    }
+    return () => {
+      if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+    };
+  }, [localCamOn, localPaused]);
+
+  const handleToggleMic = async () => {
+    if (localMicOn) {
+      VoiceChatService.stopMicrophone();
+      setLocalMicOn(false);
+    } else {
+      const success = await VoiceChatService.startMicrophone();
+      setLocalMicOn(success);
+    }
+  };
+
+  return (
+    <>
+      {/* Camera Pod 1 — Local Player Pod (Bottom-Right X: 201, Y: 358, next to Bottom-Left profile!) */}
+      <CameraPod
+        playerName={localPlayer?.name || "You"}
+        playerAvatar={localPlayer?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"}
+        defaultX={201}
+        defaultY={358}
+        isLocal={true}
+        localVideoRef={localVideoRef}
+        camOn={localCamOn}
+        paused={localPaused}
+        micOn={localMicOn}
+        onToggleCam={() => setLocalCamOn(p => !p)}
+        onTogglePause={() => setLocalPaused(p => !p)}
+        onToggleMic={handleToggleMic}
+      />
+
+      {/* Camera Pod 2 — Opponent Pod (Top-Left X: -2, Y: 153, next to Top-Right profile!) */}
+      <CameraPod
+        playerName={opponentPlayer?.name || "Opponent"}
+        playerAvatar={opponentPlayer?.avatar || "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80"}
+        defaultX={-2}
+        defaultY={153}
+        isLocal={false}
+        camOn={opponentCamOn}
+        paused={false}
+        micOn={false}
+      />
+    </>
+  );
+};
+
 export default LuxuryLiveCamera;

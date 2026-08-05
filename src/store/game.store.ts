@@ -100,15 +100,16 @@ export const useGameStore = create<GameStoreState>()(
         // ✅ Always use user's real profile data (avatar, dice, frame) — same as Snake & Ladders board
         const localUserAvatar = localUser?.avatar || "/assets/images/icons/icon_club_crown.png";
 
-        // Enrich host player with their equipped frame, token, and dice
+        // Enrich players with local cosmetics without overwriting opponent avatar
         initialState.players = initialState.players.map((p) => {
+          const isMe = p.name === localUser?.username || p.name === localUser?.displayName;
           return {
             ...p,
-            avatar: p.isHost ? localUserAvatar : (p.avatar || "/assets/images/icons/icon_club_crown.png"),
-            equippedFrameId: p.isHost ? (cosmetics.equippedFrameId || 'frame_default') : (p.equippedFrameId || 'frame_default'),
-            equippedTokenId: p.isHost ? (cosmetics.equippedTokenId || 'token_default') : (p.equippedTokenId || 'token_default'),
-            equippedDiceId: p.isHost ? (dice.equippedDiceId || 'dice_classic') : (p.equippedDiceId || 'dice_classic'),
-            profileFrame: p.isHost ? (cosmetics.frames.find((f) => f.id === cosmetics.equippedFrameId)?.imgUrl || p.profileFrame) : p.profileFrame,
+            avatar: isMe ? localUserAvatar : (p.avatar || "/assets/images/icons/icon_club_crown.png"),
+            equippedFrameId: isMe ? (cosmetics.equippedFrameId || 'frame_default') : (p.equippedFrameId || 'frame_default'),
+            equippedTokenId: isMe ? (cosmetics.equippedTokenId || 'token_default') : (p.equippedTokenId || 'token_default'),
+            equippedDiceId: isMe ? (dice.equippedDiceId || 'dice_classic') : (p.equippedDiceId || 'dice_classic'),
+            profileFrame: isMe ? (cosmetics.frames.find((f) => f.id === cosmetics.equippedFrameId)?.imgUrl || p.profileFrame) : p.profileFrame,
           };
         });
 
@@ -119,9 +120,11 @@ export const useGameStore = create<GameStoreState>()(
 
         SoundEngine.play('GAME_START');
 
+        const hostPlayer = initialState.players.find(p => p.name === localUser?.username || p.name === localUser?.displayName || p.isHost) || initialState.players[0];
+
         set({
           gameState: initialState,
-          localPlayerColor: localColor as PlayerColor,
+          localPlayerColor: hostPlayer.color as PlayerColor,
           replayRecorder: recorder,
           activeHoverTokenId: null,
           selectedTokenId: null,

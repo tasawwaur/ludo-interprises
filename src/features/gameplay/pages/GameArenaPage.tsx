@@ -13,6 +13,7 @@ import { getGridPos, OUTER_TRACK_COORDS } from '../../../game/board/BoardCoordin
 import { ProtectButton } from '../components/ProtectButton';
 import { LuxuryLiveCamera } from '../../../components/camera/LuxuryLiveCamera';
 import { useGlobalModalStore } from '../../../store/global-modal.store';
+import { SoundEngine } from '../../../game/sound/SoundEngine';
 
 
 interface GameArenaPageProps {
@@ -64,16 +65,17 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
   const [showChatModal, setShowChatModal] = useState(false);
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [isVibrate, setIsVibrate] = useState(true);
-  const isMuted = useGameStore((s) => s.isMuted);
-  const toggleMute = useGameStore((s) => s.toggleMute);
+  const [isMuted, setIsMuted] = useState(() => SoundEngine.getMuteState());
+  const [isVibrate, setIsVibrate] = useState(() => SoundEngine.getVibrationState());
+
+  const handleMuteToggle = () => {
+    const nextVal = SoundEngine.toggleMute();
+    setIsMuted(nextVal);
+  };
 
   const handleVibrateToggle = () => {
-    const nextVal = !isVibrate;
+    const nextVal = SoundEngine.toggleVibration();
     setIsVibrate(nextVal);
-    if (nextVal && typeof navigator !== "undefined" && navigator.vibrate) {
-      navigator.vibrate(100);
-    }
   };
 
   const [dragPositions, setDragPositions] = useState<Record<string, { top: string; left: string }>>({});
@@ -117,9 +119,19 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
     };
   }, [activeDragTokenId]);
 
+  const defaultPlayer = {
+    id: 'P1',
+    name: user?.displayName || user?.username || 'Player',
+    color: 'RED' as const,
+    isAi: false,
+    avatar: '/assets/images/icons/icon_club_crown.png',
+    equippedFrameId: 'frame_default',
+    tokens: [],
+  };
+
   const localUserName = user?.displayName || user?.username;
-  const localPlayer = gameState?.players.find(p => (localUserName && p.name === localUserName) || p.color === localPlayerColor) || gameState?.players[0];
-  const opponentPlayer = gameState?.players.find(p => p.color !== localPlayer?.color) || gameState?.players[1];
+  const localPlayer = gameState?.players ? (gameState.players.find(p => (localUserName && p.name === localUserName) || p.color === localPlayerColor) || gameState.players[0] || defaultPlayer) : defaultPlayer;
+  const opponentPlayer = gameState?.players ? (gameState.players.find(p => p.color !== localPlayer?.color) || gameState.players[1] || defaultPlayer) : defaultPlayer;
 
   const handleProfileClick = (color: string) => {
     const p = gameState?.players.find((pl) => pl.color === color);
@@ -568,7 +580,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         {/* OPPONENT PROFILE: TOP-RIGHT */}
         <div className="absolute top-12 right-3 z-20 pointer-events-auto">
           <div className="min-w-[98px]">
-            {opponentPlayer && (
+            {gameState && opponentPlayer && (
               <CornerPlayerAvatar
                 player={opponentPlayer}
                 isActive={activePlayer?.color === opponentPlayer.color}
@@ -594,7 +606,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         {/* LOCAL PLAYER PROFILE: BOTTOM-LEFT */}
         <div className="absolute bottom-[45px] left-3 z-20 pointer-events-auto">
           <div className="min-w-[98px]">
-            {localPlayer && (
+            {gameState && localPlayer && (
               <CornerPlayerAvatar
                 player={localPlayer}
                 isActive={activePlayer?.color === localPlayer.color}
@@ -659,12 +671,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                 <span className="text-[9px] font-bold text-gray-200">Sounds</span>
               </div>
               <button
-                onClick={() => {
-                  toggleMute();
-                  if (isVibrate && typeof navigator !== "undefined" && navigator.vibrate) {
-                    navigator.vibrate(50);
-                  }
-                }}
+                onClick={handleMuteToggle}
                 className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${
                   !isMuted ? "bg-amber-400" : "bg-purple-950"
                 }`}

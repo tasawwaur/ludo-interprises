@@ -706,17 +706,6 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
 
   }, [user, updateUser]);
 
-  // Unmute SoundEngine on first user interaction
-  useEffect(() => {
-    const unlock = () => {
-      if (SoundEngine.getMuteState()) {
-        SoundEngine.toggleMute(); // unmute
-      }
-      window.removeEventListener('pointerdown', unlock);
-    };
-    window.addEventListener('pointerdown', unlock);
-    return () => window.removeEventListener('pointerdown', unlock);
-  }, []);
 
 
 

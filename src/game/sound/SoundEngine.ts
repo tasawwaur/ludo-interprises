@@ -14,7 +14,8 @@ export type SoundEffect =
 
 export class SoundEngine {
   private static audioCtx: AudioContext | null = null;
-  private static isMuted = false;
+  private static isMuted: boolean = typeof localStorage !== 'undefined' ? localStorage.getItem("ludo_sound_muted") === "true" : false;
+  private static isVibrationEnabled: boolean = typeof localStorage !== 'undefined' ? localStorage.getItem("ludo_vibration_enabled") !== "false" : true;
 
   private static getAudioContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
@@ -32,14 +33,58 @@ export class SoundEngine {
 
   public static toggleMute(): boolean {
     this.isMuted = !this.isMuted;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem("ludo_sound_muted", String(this.isMuted));
+    }
     if (this.isMuted) {
       this.stopAll();
     }
     return this.isMuted;
   }
 
+  public static setMuted(muted: boolean): void {
+    this.isMuted = muted;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem("ludo_sound_muted", String(muted));
+    }
+    if (this.isMuted) {
+      this.stopAll();
+    }
+  }
+
   public static getMuteState(): boolean {
     return this.isMuted;
+  }
+
+  public static toggleVibration(): boolean {
+    this.isVibrationEnabled = !this.isVibrationEnabled;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem("ludo_vibration_enabled", String(this.isVibrationEnabled));
+    }
+    if (this.isVibrationEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(80);
+    }
+    return this.isVibrationEnabled;
+  }
+
+  public static setVibration(enabled: boolean): void {
+    this.isVibrationEnabled = enabled;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem("ludo_vibration_enabled", String(enabled));
+    }
+  }
+
+  public static getVibrationState(): boolean {
+    return this.isVibrationEnabled;
+  }
+
+  public static vibrate(ms: number = 60): void {
+    if (!this.isVibrationEnabled) return;
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      try {
+        navigator.vibrate(ms);
+      } catch (e) {}
+    }
   }
 
   public static stopAll(): void {

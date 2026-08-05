@@ -208,17 +208,13 @@ export const useGameStore = create<GameStoreState>()(
       // Tick sound and vibration feedback in last 3 seconds
       if (newSeconds <= 3) {
         SoundEngine.play('TICK');
-        if (typeof navigator !== 'undefined' && navigator.vibrate) {
-          navigator.vibrate(60);
-        }
+        SoundEngine.vibrate(60);
       }
     } else {
       // Timer hit 0! Reset timer immediately to 15 to prevent sound loop or page freeze
       set({ turnTimerSeconds: 15 });
       SoundEngine.play('TIMEOUT');
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(150);
-      }
+      SoundEngine.vibrate(150);
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('game_timeout'));
       }

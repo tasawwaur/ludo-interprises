@@ -11,6 +11,7 @@ import { useUserStore } from '../user/user.store';
 import { useCosmeticsStore } from './cosmetics.store';
 import { useDiceStore } from '../features/dice/store/dice.store';
 import { getSocketUrl } from '../utils/socketUrl';
+import confetti from 'canvas-confetti';
 
 interface GameStoreState {
   gameState: GameState | null;
@@ -871,6 +872,31 @@ export const useGameStore = create<GameStoreState>()(
 
         SoundEngine.play('GAME_START');
       }
+    });
+
+    socket.on("opponent_disconnected", () => {
+      console.log("[Opponent Disconnected] Opponent left match — declaring local player WINNER!");
+      const { gameState, localPlayerColor } = get();
+      if (!gameState || gameState.gameStatus === 'GAME_OVER') return;
+
+      const localPlayerIndex = gameState.players.findIndex(p => p.color === localPlayerColor);
+      const winnerIndex = localPlayerIndex !== -1 ? localPlayerIndex : 0;
+      const winnerColor = gameState.players[winnerIndex].color;
+
+      const gameOverState = {
+        ...gameState,
+        gameStatus: 'GAME_OVER' as const,
+        winnerRankings: [winnerColor],
+        lastActionSummary: 'Opponent disconnected. Victory by forfeit!',
+      };
+
+      set({ gameState: gameOverState });
+      localStorage.setItem("ludo_classic_engine_state", JSON.stringify(gameOverState));
+
+      SoundEngine.play('VICTORY');
+      try {
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      } catch (e) {}
     });
 
     set({ gameSocket: socket });

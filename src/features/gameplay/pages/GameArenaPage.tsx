@@ -117,8 +117,9 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
     };
   }, [activeDragTokenId]);
 
-  const localPlayer = gameState?.players.find(p => p.color === localPlayerColor) || gameState?.players[0];
-  const opponentPlayer = gameState?.players.find(p => p.color !== localPlayerColor) || gameState?.players[1];
+  const localUserName = user?.displayName || user?.username;
+  const localPlayer = gameState?.players.find(p => (localUserName && p.name === localUserName) || p.color === localPlayerColor) || gameState?.players[0];
+  const opponentPlayer = gameState?.players.find(p => p.color !== localPlayer?.color) || gameState?.players[1];
 
   const handleProfileClick = (color: string) => {
     const p = gameState?.players.find((pl) => pl.color === color);

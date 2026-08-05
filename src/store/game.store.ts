@@ -814,12 +814,26 @@ export const useGameStore = create<GameStoreState>()(
         SoundEngine.play('DICE_STOP');
       } else if (data.actionType === 'MOVE' && data.tokenId) {
         if (data.gameState) {
-          // ✅ Persist state immediately to local storage to support refresh,
-          // but let the local move animation complete normally.
-          localStorage.setItem("ludo_classic_engine_state", JSON.stringify(data.gameState));
+          const currentPlayers = gameState.players;
+          const incomingState = data.gameState;
+          if (incomingState && incomingState.players) {
+            incomingState.players = incomingState.players.map((p: any, idx: number) => ({
+              ...p,
+              name: currentPlayers[idx]?.name || p.name,
+              avatar: currentPlayers[idx]?.avatar || p.avatar,
+              equippedFrameId: currentPlayers[idx]?.equippedFrameId || p.equippedFrameId,
+            }));
+          }
+
+          set({
+            gameState: incomingState,
+            _isRolling: false,
+            turnTimerSeconds: 15,
+          });
+          localStorage.setItem("ludo_classic_engine_state", JSON.stringify(incomingState));
+        } else {
+          get().moveToken(data.tokenId, true);
         }
-        // Opponent moved a token, sync token movement
-        get().moveToken(data.tokenId, true);
       } else if (data.actionType === 'UNDO') {
         if (data.gameState) {
           set({

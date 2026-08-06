@@ -127,11 +127,11 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
     avatar: '/assets/images/icons/icon_club_crown.png',
     equippedFrameId: 'frame_default',
     tokens: [],
-  };
+  } as any;
 
   const localUserName = user?.displayName || user?.username;
-  const localPlayer = gameState?.players ? (gameState.players.find(p => (localUserName && p.name === localUserName) || p.color === localPlayerColor) || gameState.players[0] || defaultPlayer) : defaultPlayer;
-  const opponentPlayer = gameState?.players ? (gameState.players.find(p => p.color !== localPlayer?.color) || gameState.players[1] || defaultPlayer) : defaultPlayer;
+  const localPlayer = (gameState?.players ? (gameState.players.find(p => (localUserName && p.name === localUserName) || p.color === localPlayerColor) || gameState.players[0] || defaultPlayer) : defaultPlayer) as any;
+  const opponentPlayer = (gameState?.players ? (gameState.players.find(p => p.color !== localPlayer?.color) || gameState.players[1] || defaultPlayer) : defaultPlayer) as any;
 
   const handleProfileClick = (color: string) => {
     const p = gameState?.players.find((pl) => pl.color === color);
@@ -841,7 +841,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
           useGameStore.setState({ gameState: gameOverState });
           localStorage.setItem("ludo_classic_engine_state", JSON.stringify(gameOverState));
 
-          SoundEngine.play('GAME_OVER');
+          SoundEngine.play('WIN' as any);
         }}
       />
 
@@ -860,8 +860,8 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
         const winReward = Math.round(entryFee * 1.9);
 
-        const localTokensHome = localPlayer?.tokens?.filter(t => t.state === 'HOME').length || 0;
-        const localKills = localPlayer?.tokens?.reduce((acc, t) => acc + (t.stepCount > 0 ? 1 : 0), 0) || 0;
+        const localTokensHome = localPlayer?.tokens?.filter((t: any) => t.state === 'HOME').length || 0;
+        const localKills = localPlayer?.tokens?.reduce((acc: number, t: any) => acc + (t.stepCount > 0 ? 1 : 0), 0) || 0;
 
         const killsXP = localKills * 10;
         const passXP = localTokensHome * 50;

@@ -7,7 +7,7 @@ interface CameraPodProps {
   defaultX: number;
   defaultY: number;
   isLocal: boolean;
-  localVideoRef?: React.RefObject<HTMLVideoElement>;
+  localVideoRef?: React.RefObject<HTMLVideoElement | null>;
   camOn: boolean;
   paused: boolean;
   micOn: boolean;
@@ -162,7 +162,7 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
 
   const [opponentCamOn, setOpponentCamOn] = useState(false);
 
-  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef     = useRef<MediaStream | null>(null);
 
   // Auto-toggle opponent cam when local turns on

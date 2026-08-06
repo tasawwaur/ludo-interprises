@@ -39,7 +39,7 @@ interface GameStoreState {
   resetMatch: () => void;
   tickTurnTimer: () => void;
   disableAutoMode: () => void;
-  triggerAiMoveIfNeeded: () => void;
+  triggerAiMoveIfNeeded: (forceAuto?: boolean) => void;
   demoStack: () => void;
   connectGameSocket: (roomCode: string) => void;
   disconnectGameSocket: () => void;
@@ -743,7 +743,7 @@ export const useGameStore = create<GameStoreState>()(
       }
     });
 
-    socket.on("server_action", (data: { actionType: 'ROLL' | 'MOVE' | 'UNDO' | 'CHAT'; diceValue?: number; tokenId?: string; nextColor?: string; cost?: number; text?: string; senderName?: string; color?: string; gameState?: any; hasLegalMoves?: boolean }) => {
+    socket.on("server_action", (data: { actionType: 'ROLL' | 'MOVE' | 'UNDO' | 'CHAT' | 'FORFEIT' | 'STATE_SYNC' | 'CAMERA_STATE'; diceValue?: number; tokenId?: string; nextColor?: string; cost?: number; text?: string; senderName?: string; color?: string; gameState?: any; hasLegalMoves?: boolean }) => {
       const { gameState } = get();
       if (!gameState) return;
 
@@ -886,7 +886,7 @@ export const useGameStore = create<GameStoreState>()(
         set({ gameState: gameOverState });
         localStorage.setItem("ludo_classic_engine_state", JSON.stringify(gameOverState));
 
-        SoundEngine.play('VICTORY');
+        SoundEngine.play('WIN');
         try {
           confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         } catch (e) {}
@@ -912,7 +912,7 @@ export const useGameStore = create<GameStoreState>()(
       set({ gameState: gameOverState });
       localStorage.setItem("ludo_classic_engine_state", JSON.stringify(gameOverState));
 
-      SoundEngine.play('VICTORY');
+      SoundEngine.play('WIN');
       try {
         confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
       } catch (e) {}

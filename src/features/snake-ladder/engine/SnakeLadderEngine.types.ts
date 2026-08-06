@@ -1,3 +1,12 @@
+/**
+ * 🔒 SNAKES & LADDERS - LOCKED MODULE (GAME ENGINE TYPES)
+ * --------------------------------------------------
+ * This file is part of the isolated Snakes & Ladders game engine.
+ * The gameplay logic is working perfectly. Do NOT modify or edit this file
+ * to prevent breaking changes or desync in gameplay.
+ * Locked at: v10 — All bug fixes (BUG 1, 3, 4, 5, 7) applied & verified.
+ */
+
 export type PlayerColor = "RED" | "GREEN" | "YELLOW" | "BLUE";
 export type GamePhase = "LOBBY" | "PLAYING" | "FINISHED";
 

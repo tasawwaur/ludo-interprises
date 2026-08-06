@@ -1066,15 +1066,15 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
               </div>
             </button>
 
-            {/* Mode 4: Normal Classic 4-Player (UNLOCKED - 4P) */}
+            {/* Mode 4: Normal Classic 1v1 — 4 Tokens Per Player */}
             <button
-              onClick={() => setSelectedModeForEntry("Classic 4 Player")}
+              onClick={() => setSelectedModeForEntry("Normal Classic")}
               className="w-full rounded-[24px] border-2 border-blue-400 bg-gradient-to-r from-blue-950/90 via-indigo-950/80 to-blue-950/90 p-3.5 flex items-center gap-4 text-left shadow-[0_0_25px_rgba(96,165,250,0.5)] hover:scale-[1.03] active:scale-[0.97] transition-all outline-none duration-300 cursor-pointer relative overflow-hidden"
             >
               <div className="relative">
                 <img
                   src="/assets/images/icons/normal_classic_icon.jpg"
-                  alt="Classic 4 Player"
+                  alt="Normal Classic"
                   className="w-16 h-16 rounded-[16px] object-cover border-2 border-blue-400 shadow-md"
                 />
                 <span className="absolute -top-1.5 -right-1.5 bg-blue-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter shadow-md animate-pulse">
@@ -1084,10 +1084,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-black text-blue-200 tracking-wide">NORMAL CLASSIC</h3>
-                  <span className="text-[9px] bg-gradient-to-r from-blue-500 to-indigo-500 border border-blue-300 text-white px-2.5 py-0.5 rounded-full font-black uppercase shadow">🎯 4P LIVE</span>
+                  <span className="text-[9px] bg-gradient-to-r from-blue-500 to-indigo-500 border border-blue-300 text-white px-2.5 py-0.5 rounded-full font-black uppercase shadow">🎯 1V1</span>
                 </div>
                 <p className="text-[10px] text-blue-100/90 mt-1 leading-snug">
-                  4 players — RED, GREEN, YELLOW, BLUE. Classic Ludo board. First to finish wins!
+                  Full 4-token battle! Race all 4 tokens home before your opponent.
                 </p>
                 <div className="flex items-center gap-1.5 mt-2.5">
                   <span className="text-[9px] font-black tracking-wider text-blue-400 bg-blue-400/10 px-2.5 py-0.5 rounded-md border border-blue-500/30 uppercase flex items-center gap-1">
@@ -1096,6 +1096,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
                 </div>
               </div>
             </button>
+
           </div>
         </div>
       )}

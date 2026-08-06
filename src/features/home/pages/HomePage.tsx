@@ -437,10 +437,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
           />
         </button>
 
-        {/* VIP Club Button (Official Leader Mode) */}
+        {/* VIP Club Button (Locked) */}
         <button
           onClick={() => {
-            onOpenView?.("CLUB");
+            triggerToast("🔒 VIP Club is under maintenance!");
           }}
           className="w-[30px] h-[30px] p-0 border-0 outline-none bg-transparent hover:scale-110 active:scale-[0.96] transition-transform cursor-pointer relative"
           style={{ WebkitTapHighlightColor: "transparent" }}
@@ -449,10 +449,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
           <img
             src="/assets/images/icons/icon_club_crown.png"
             alt="VIP Club"
-            className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(245,158,11,0.85)] animate-pulse"
-            style={{ animationDuration: '3s' }}
+            className="w-full h-full object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] opacity-60 grayscale-[50%]"
             draggable={false}
           />
+          <span className="absolute -top-1 -right-1 text-[8px] bg-slate-900 border border-amber-400 text-amber-300 rounded-full w-3.5 h-3.5 flex items-center justify-center font-black">
+            🔒
+          </span>
         </button>
 
         {/* Golden Dice Button */}
@@ -608,19 +610,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
           )}
           <GameModeGrid
             onSelectMode={(modeKey) => {
-              if (modeKey === "Streak Stars") {
-                onSelectMode?.("Streak Stars");
-              } else if (modeKey === "VIP Lounge") {
-                onSelectMode?.("VIP Lounge");
-              } else if (modeKey === "Tournament") {
-                onSelectMode?.("Tournament");
-              } else if (modeKey === "4P Classic") {
-                setSelectedModeForEntry("Classic 4 Player");
-              } else if (modeKey === "Private Table") {
-                onSelectMode?.("Private Table");
-              } else {
-                triggerToast(`🔒 ${modeKey} is under maintenance. Play Snake & Ladders!`);
-              }
+              triggerToast(`🔒 ${modeKey} is under maintenance. Play Snake & Ladders!`);
             }}
           />
         </div>
@@ -1014,51 +1004,65 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
               <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent via-amber-500/40 to-amber-500/20" />
             </div>
 
-            {/* Mode 2: Quick Classic (Locked) */}
+            {/* Mode 2: Quick Classic (UNLOCKED - 2P) */}
             <button
-              onClick={() => triggerToast("🔒 Quick Classic is under maintenance. Play Snake & Ladders!")}
-              className="w-full rounded-[24px] border-2 border-slate-700/60 bg-gradient-to-r from-slate-950/95 via-slate-900/80 to-slate-950/95 p-3.5 flex items-center gap-4 text-left shadow-lg opacity-60 cursor-not-allowed relative overflow-hidden"
+              onClick={() => setSelectedModeForEntry("Quick Classic")}
+              className="w-full rounded-[24px] border-2 border-emerald-500 bg-gradient-to-r from-emerald-950/90 via-teal-950/80 to-emerald-950/90 p-3.5 flex items-center gap-4 text-left shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:scale-[1.03] active:scale-[0.97] transition-all outline-none duration-300 cursor-pointer relative overflow-hidden"
             >
-              <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-[1px] flex items-center justify-center z-20">
-                <span className="bg-slate-900/95 border border-amber-400/80 text-amber-300 text-[10px] font-black px-3.5 py-1 rounded-full uppercase tracking-widest shadow-2xl flex items-center gap-1.5">
-                  🔒 UNDER MAINTENANCE
+              <div className="relative">
+                <img
+                  src="/assets/images/icons/quick_classic_icon.jpg"
+                  alt="Quick Classic"
+                  className="w-16 h-16 rounded-[16px] object-cover border-2 border-emerald-400 shadow-md"
+                />
+                <span className="absolute -top-1.5 -right-1.5 bg-emerald-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter shadow-md animate-pulse">
+                  LIVE
                 </span>
               </div>
-              <img
-                src="/assets/images/icons/quick_classic_icon.jpg"
-                alt="Quick Classic"
-                className="w-16 h-16 rounded-[16px] object-cover border-2 border-slate-600/60 grayscale"
-              />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-black text-slate-400 tracking-wide">QUICK CLASSIC</h3>
-                  <span className="text-[9px] bg-slate-800 text-slate-400 px-2.5 py-0.5 rounded-full font-black uppercase">1V1</span>
+                  <h3 className="text-sm font-black text-emerald-200 tracking-wide">QUICK CLASSIC</h3>
+                  <span className="text-[9px] bg-gradient-to-r from-emerald-500 to-teal-500 border border-emerald-300 text-white px-2.5 py-0.5 rounded-full font-black uppercase shadow">⚡ 1V1</span>
                 </div>
-                <p className="text-[10px] text-slate-400/80 mt-1 leading-snug">Fast 2-token battle. Coming soon!</p>
+                <p className="text-[10px] text-emerald-100/90 mt-1 leading-snug">
+                  Fast 2-token battle. Roll & race to reach 100 first!
+                </p>
+                <div className="flex items-center gap-1.5 mt-2.5">
+                  <span className="text-[9px] font-black tracking-wider text-emerald-400 bg-emerald-400/10 px-2.5 py-0.5 rounded-md border border-emerald-500/30 uppercase flex items-center gap-1">
+                    ENTRY: 5K - 10M COINS <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline" alt="coin" />
+                  </span>
+                </div>
               </div>
             </button>
 
-            {/* Mode 3: Unique Classic (Locked) */}
+            {/* Mode 3: Unique Classic (UNLOCKED - 2P) */}
             <button
-              onClick={() => triggerToast("🔒 Unique Classic is under maintenance. Play Snake & Ladders!")}
-              className="w-full rounded-[24px] border-2 border-slate-700/60 bg-gradient-to-r from-slate-950/95 via-slate-900/80 to-slate-950/95 p-3.5 flex items-center gap-4 text-left shadow-lg opacity-60 cursor-not-allowed relative overflow-hidden"
+              onClick={() => setSelectedModeForEntry("Unique Classic")}
+              className="w-full rounded-[24px] border-2 border-purple-400 bg-gradient-to-r from-purple-950/90 via-violet-950/80 to-purple-950/90 p-3.5 flex items-center gap-4 text-left shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:scale-[1.03] active:scale-[0.97] transition-all outline-none duration-300 cursor-pointer relative overflow-hidden"
             >
-              <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-[1px] flex items-center justify-center z-20">
-                <span className="bg-slate-900/95 border border-amber-400/80 text-amber-300 text-[10px] font-black px-3.5 py-1 rounded-full uppercase tracking-widest shadow-2xl flex items-center gap-1.5">
-                  🔒 UNDER MAINTENANCE
+              <div className="relative">
+                <img
+                  src="/assets/images/icons/unique_classic_icon.jpg"
+                  alt="Unique Classic"
+                  className="w-16 h-16 rounded-[16px] object-cover border-2 border-purple-400 shadow-md"
+                />
+                <span className="absolute -top-1.5 -right-1.5 bg-purple-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter shadow-md animate-pulse">
+                  LIVE
                 </span>
               </div>
-              <img
-                src="/assets/images/icons/unique_classic_icon.jpg"
-                alt="Unique Classic"
-                className="w-16 h-16 rounded-[16px] object-cover border-2 border-slate-600/60 grayscale"
-              />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-black text-slate-400 tracking-wide">UNIQUE CLASSIC</h3>
-                  <span className="text-[9px] bg-slate-800 text-slate-400 px-2.5 py-0.5 rounded-full font-black uppercase">1V1</span>
+                  <h3 className="text-sm font-black text-purple-200 tracking-wide">UNIQUE CLASSIC</h3>
+                  <span className="text-[9px] bg-gradient-to-r from-purple-500 to-violet-500 border border-purple-300 text-white px-2.5 py-0.5 rounded-full font-black uppercase shadow">💎 1V1</span>
                 </div>
-                <p className="text-[10px] text-slate-400/80 mt-1 leading-snug">Luxury cosmetics mode. Coming soon!</p>
+                <p className="text-[10px] text-purple-100/90 mt-1 leading-snug">
+                  Classic 2-token match with luxury cosmetics — dice, frames & themes!
+                </p>
+                <div className="flex items-center gap-1.5 mt-2.5">
+                  <span className="text-[9px] font-black tracking-wider text-purple-400 bg-purple-400/10 px-2.5 py-0.5 rounded-md border border-purple-500/30 uppercase flex items-center gap-1">
+                    ENTRY: 5K - 10M COINS <img src="/assets/images/icons/luxury_coin.png" className="w-3 h-3 object-contain inline" alt="coin" />
+                  </span>
+                </div>
               </div>
             </button>
 

@@ -272,9 +272,10 @@ const MainApp: React.FC = () => {
 
     const isWinner = localPlayer.color === wColor;
     const kills = isWinner ? 3 : 1;
-    const passedTokens = localPlayer.tokens.filter(t => t.stepCount === 57).length;
-    const xpReward = (passedTokens * 50) + (kills * 10);
-    const newXp = (user.xp || 0) + xpReward;
+    const passedTokens = localPlayer.tokens ? localPlayer.tokens.filter(t => t.stepCount === 57).length : 0;
+    const baseMatchXp = isWinner ? 350 : 150; // Guaranteed base XP reward per match
+    const xpReward = baseMatchXp + (passedTokens * 50) + (kills * 25);
+    let newXp = (user.xp || 0) + xpReward;
 
     const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
     const winReward = Math.round(entryFee * 1.9); // 2 * entryFee - 5% commission
@@ -284,15 +285,18 @@ const MainApp: React.FC = () => {
     // Check for level up (every 1000 XP)
     let newLevel = user.level || 1;
     let nextXpLimit = user.nextLevelXp || 1000;
-    if (newXp >= nextXpLimit) {
+    while (newXp >= nextXpLimit && newLevel < 200) {
+      newXp -= nextXpLimit;
       newLevel += 1;
+      nextXpLimit = newLevel * 150 + 100;
     }
 
     updateUser({
       xp: newXp,
       coins: newCoins,
       gems: newGems,
-      level: newLevel
+      level: newLevel,
+      nextLevelXp: nextXpLimit
     });
   }, [currentView, user, lastRewardedMatchId, updateUser]);
 

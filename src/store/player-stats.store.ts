@@ -200,6 +200,8 @@ export const usePlayerStatsStore = create<PlayerStatsState>((set, get) => {
           currentCoins: user.coins !== undefined ? user.coins : state.stats.currentCoins,
           currentDiamonds: user.gems !== undefined ? user.gems : state.stats.currentDiamonds,
           level: user.level !== undefined ? user.level : state.stats.level,
+          xp: user.xp !== undefined ? user.xp : state.stats.xp,
+          nextLevelXp: user.nextLevelXp !== undefined ? user.nextLevelXp : (state.stats.nextLevelXp || 1000),
         };
         
         if (typeof window !== 'undefined') {

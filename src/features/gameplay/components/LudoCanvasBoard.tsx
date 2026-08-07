@@ -15,7 +15,7 @@ export const LudoCanvasBoard: React.FC = () => {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !gameState) return;
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -24,7 +24,15 @@ export const LudoCanvasBoard: React.FC = () => {
     let animFrameId: number;
 
     const renderLoop = () => {
-      renderer.render(gameState, localPlayerColor, activeHoverTokenId, selectedTokenId);
+      const state = useGameStore.getState();
+      if (state.gameState) {
+        renderer.render(
+          state.gameState,
+          state.localPlayerColor,
+          state.activeHoverTokenId,
+          state.selectedTokenId
+        );
+      }
       animFrameId = requestAnimationFrame(renderLoop);
     };
 
@@ -33,7 +41,7 @@ export const LudoCanvasBoard: React.FC = () => {
     return () => {
       cancelAnimationFrame(animFrameId);
     };
-  }, [gameState, localPlayerColor, activeHoverTokenId, selectedTokenId]);
+  }, []);
 
   if (!gameState) return null;
 

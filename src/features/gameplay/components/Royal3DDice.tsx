@@ -46,7 +46,7 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
           setIsAnimating(false);
           setShowBadge(true);
         }
-      }, 55);
+      }, 50);
 
       return () => clearInterval(interval);
     } else if (!value) {
@@ -152,10 +152,10 @@ export const Royal3DDice: React.FC<Royal3DDiceProps> = ({
       <style>{`
         @keyframes diceRollingStyle {
           0% { transform: rotate(0deg) scale(1); }
-          25% { transform: rotate(180deg) scale(1.15); }
-          50% { transform: rotate(360deg) scale(0.95); }
-          75% { transform: rotate(540deg) scale(1.1); }
-          100% { transform: rotate(720deg) scale(1); }
+          25% { transform: rotate(360deg) scale(1.15); }
+          50% { transform: rotate(720deg) scale(0.95); }
+          75% { transform: rotate(1080deg) scale(1.1); }
+          100% { transform: rotate(1440deg) scale(1); }
         }
         .animate-dice-rolling {
           animation: diceRollingStyle 0.55s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;

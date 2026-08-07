@@ -241,55 +241,57 @@ export const useGameStore = create<GameStoreState>()(
 
     SoundEngine.play('DICE_ROLL');
 
-    setTimeout(() => {
-      let nextState = GameEngine.rollDice(gameState);
+    let nextState = GameEngine.rollDice(gameState);
 
-      // Apply cheat roll value if requested by Demo Stack
-      const cheatVal = get().cheatNextRollValue;
-      if (cheatVal !== null && nextState.diceValue) {
-        nextState.diceValue = cheatVal;
-        nextState.lastDiceValue = cheatVal;
-        // Re-compute legal moves with the forced value
-        const legalMoves = RuleValidator.getLegalMoves(nextState, cheatVal);
-        nextState.movableTokens = legalMoves;
-        // Clear flag
-        set({ cheatNextRollValue: null } as any);
-      }
+    // Apply cheat roll value if requested by Demo Stack
+    const cheatVal = get().cheatNextRollValue;
+    if (cheatVal !== null && nextState.diceValue) {
+      nextState.diceValue = cheatVal;
+      nextState.lastDiceValue = cheatVal;
+      // Re-compute legal moves with the forced value
+      const legalMoves = RuleValidator.getLegalMoves(nextState, cheatVal);
+      nextState.movableTokens = legalMoves;
+      // Clear flag
+      set({ cheatNextRollValue: null } as any);
+    }
 
-      if (nextState.diceValue) {
-        SoundEngine.play('DICE_STOP');
-        replayRecorder.recordEvent('DICE_ROLL', gameState.currentTurnColor, {
-          value: nextState.diceValue,
-        });
+    if (nextState.diceValue) {
+      replayRecorder.recordEvent('DICE_ROLL', gameState.currentTurnColor, {
+        value: nextState.diceValue,
+      });
 
-        // Emit rolling action with the actual dice value generated
-        const hasLegalMoves = nextState.movableTokens.length > 0;
-        if (gameSocket && roomCode) {
-          gameSocket.emit("client_action", {
-            roomCode,
-            actionType: 'ROLL',
-            diceValue: nextState.diceValue,
-            hasLegalMoves,
-            gameState: nextState, // ✅ Attach full state
-          });
-        }
-      }
-
+      // Emit rolling action with the actual dice value generated
       const hasLegalMoves = nextState.movableTokens.length > 0;
-      set({
-        gameState: nextState,
-        selectedTokenId: null,
-        _isRolling: false,
-        turnTimerSeconds: nextState.gameStatus === 'ROLL_WAIT' ? 15 : (hasLegalMoves ? 10 : 5),
-      } as any);
+      if (gameSocket && roomCode) {
+        gameSocket.emit("client_action", {
+          roomCode,
+          actionType: 'ROLL',
+          diceValue: nextState.diceValue,
+          hasLegalMoves,
+          gameState: nextState, // ✅ Attach full state
+        });
+      }
+    }
 
-      // ✅ Persist state
-      localStorage.setItem("ludo_classic_engine_state", JSON.stringify(nextState));
+    const hasLegalMoves = nextState.movableTokens.length > 0;
+    set({
+      gameState: nextState,
+      selectedTokenId: null,
+      turnTimerSeconds: nextState.gameStatus === 'ROLL_WAIT' ? 15 : (hasLegalMoves ? 10 : 5),
+    } as any);
+
+    // ✅ Persist state
+    localStorage.setItem("ludo_classic_engine_state", JSON.stringify(nextState));
+
+    // Release roll lock after smooth 600ms animation finishes
+    setTimeout(() => {
+      SoundEngine.play('DICE_STOP');
+      set({ _isRolling: false } as any);
 
       setTimeout(() => {
         get().triggerAiMoveIfNeeded();
-      }, 500);
-    }, 350);
+      }, 300);
+    }, 600);
   },
 
   moveToken: (tokenId: string, isRemote = false) => {
@@ -497,9 +499,6 @@ export const useGameStore = create<GameStoreState>()(
 
     if (gameState.gameStatus === 'ROLL_WAIT' && !gameState.isDiceRolled) {
       get().rollDice();
-      setTimeout(() => {
-        get().triggerAiMoveIfNeeded(forceAuto);
-      }, 500);
       return;
     }
 

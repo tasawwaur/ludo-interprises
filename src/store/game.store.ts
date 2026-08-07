@@ -767,6 +767,16 @@ export const useGameStore = create<GameStoreState>()(
       }
     });
 
+    socket.on("opponent_disconnected_grace", (data: { seconds?: number }) => {
+      console.log("[Grace Period] Opponent disconnected temporarily, waiting for rejoin...");
+      set({ opponentReconnectingSeconds: data.seconds || 15 });
+    });
+
+    socket.on("opponent_rejoined", () => {
+      console.log("[Rejoined] Opponent rejoined the match!");
+      set({ opponentReconnectingSeconds: null });
+    });
+
     socket.on("opponent_disconnected", () => {
       console.log("[Opponent Disconnected] Opponent left match — declaring local player as WINNER!");
       const { gameState, localPlayerColor } = get();

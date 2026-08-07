@@ -171,21 +171,21 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
 
   const [opponentCamOn, setOpponentCamOn] = useState(false);
 
-  // Editable coordinates with localStorage save/retrieve (Defaults match PC)
+  // Editable coordinates with localStorage save/retrieve (Defaults set to tuned mobile/PC coordinates)
   const [localX, setLocalX] = useState(() => {
-    try { return Number(localStorage.getItem('debug_cam_local_x') || '201'); } catch { return 201; }
+    try { return Number(localStorage.getItem('debug_cam_local_x') || '213'); } catch { return 213; }
   });
   const [localY, setLocalY] = useState(() => {
-    try { return Number(localStorage.getItem('debug_cam_local_y') || '358'); } catch { return 358; }
+    try { return Number(localStorage.getItem('debug_cam_local_y') || '428'); } catch { return 428; }
   });
   const [oppX, setOppX] = useState(() => {
-    try { return Number(localStorage.getItem('debug_cam_opp_x') || '-2'); } catch { return -2; }
+    try { return Number(localStorage.getItem('debug_cam_opp_x') || '8'); } catch { return 8; }
   });
   const [oppY, setOppY] = useState(() => {
-    try { return Number(localStorage.getItem('debug_cam_opp_y') || '153'); } catch { return 153; }
+    try { return Number(localStorage.getItem('debug_cam_opp_y') || '223'); } catch { return 223; }
   });
 
-  const [showDebugger, setShowDebugger] = useState(true);
+  const [showDebugger, setShowDebugger] = useState(false); // Hide by default so it's clean for players
 
   // Draggable positioning state for the debug menu itself
   const [dbPos, setDbPos] = useState({ x: 0, y: -200 }); // Shift it up on load so it doesn't block bottom
@@ -315,10 +315,10 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
   };
 
   const resetToDefault = () => {
-    setLocalX(201);
-    setLocalY(358);
-    setOppX(-2);
-    setOppY(153);
+    setLocalX(213);
+    setLocalY(428);
+    setOppX(8);
+    setOppY(223);
   };
 
   return (

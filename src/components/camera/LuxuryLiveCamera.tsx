@@ -171,11 +171,24 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
 
   const [opponentCamOn, setOpponentCamOn] = useState(false);
 
-  // Fixed coordinate settings locked for all users (tuned positions)
-  const localX = 213;
-  const localY = 428;
-  const oppX = 8;
-  const oppY = 223;
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      // If screen width is less than 640px or user-agent is mobile, treat as mobile coordinates
+      const checkMobile = window.innerWidth <= 640 || /Mobi|Android|iPhone/i.test(navigator.userAgent);
+      setIsMobile(checkMobile);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Responsive coordinate settings
+  const localX = isMobile ? 213 : 201;
+  const localY = isMobile ? 428 : 358;
+  const oppX = isMobile ? 8 : -2;
+  const oppY = isMobile ? 223 : 153;
 
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef     = useRef<MediaStream | null>(null);

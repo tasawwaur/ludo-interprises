@@ -15,6 +15,7 @@ import { LuxuryLiveCamera } from '../../../components/camera/LuxuryLiveCamera';
 import { useGlobalModalStore } from '../../../store/global-modal.store';
 import { SoundEngine } from '../../../game/sound/SoundEngine';
 import { globalSocket } from '../../../multiplayer/socket/SocketClient';
+import confetti from 'canvas-confetti';
 
 
 interface GameArenaPageProps {
@@ -972,35 +973,85 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         isOneVsOne={true}
       />
 
-      {/* ⚡ Reconnecting Grace Period Overlay */}
+      {/* 📡 Opponent Disconnected / Reconnecting Notification Card with ✓ and ✕ Buttons */}
       {opponentReconnectingSeconds !== null && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in select-none">
-          <div className="relative w-full max-w-sm rounded-3xl bg-gradient-to-b from-slate-900 via-purple-950/80 to-slate-950 border-2 border-amber-400/50 p-6 shadow-[0_0_50px_rgba(245,158,11,0.5)] text-center flex flex-col items-center gap-4">
-            {/* Spinning Loader */}
-            <div className="relative w-16 h-16 flex items-center justify-center">
-              <div className="w-16 h-16 rounded-full border-4 border-amber-500/20 border-t-amber-400 animate-spin"></div>
-              <div className="absolute text-xl">📡</div>
-            </div>
+        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-[99999] w-[92%] max-w-[360px] animate-fade-in select-none">
+          <div className="relative rounded-2xl bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 border-2 border-amber-400/60 p-3 shadow-[0_0_30px_rgba(245,158,11,0.4)] flex items-center justify-between gap-2">
             
-            <div>
-              <h2 className="text-base font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-200 uppercase">
-                Connection Interrupted
-              </h2>
-              <p className="text-[10px] text-purple-200 font-bold uppercase mt-1">
-                Opponent Disconnected
-              </p>
-              <p className="text-xs text-slate-300 font-medium mt-3 leading-relaxed">
-                Waiting for opponent to rejoin the match...
-              </p>
+            {/* Left Info: Icon & Disconnect Text */}
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-lg animate-pulse">
+                📡
+              </div>
+              <div className="flex flex-col text-left">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-black tracking-wider text-amber-300 uppercase">
+                    Opponent Offline
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-400/40 text-[9px] font-extrabold text-rose-300">
+                    {opponentReconnectingSeconds}s
+                  </span>
+                </div>
+                <span className="text-[9.5px] text-purple-200 font-medium leading-tight">
+                  Declare Forfeit Win or Wait Rejoin?
+                </span>
+              </div>
             </div>
 
-            {/* Countdown Badge */}
-            <div className="px-4 py-2 bg-black/40 border border-amber-500/20 rounded-2xl flex items-center gap-2">
-              <span className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping"></span>
-              <span className="text-sm font-black text-amber-300">
-                {opponentReconnectingSeconds}s Remaining
-              </span>
+            {/* Right Action Buttons: Right (✓) and Cross (✕) */}
+            <div className="flex items-center gap-1.5">
+              {/* ✕ CROSS BUTTON: Declare Instant Victory (Forfeit) */}
+              <button
+                onClick={() => {
+                  useGameStore.setState({ opponentReconnectingSeconds: null });
+                  // Trigger immediate forfeit victory for local player
+                  const roomCode = useRoomStore.getState().roomCode || localStorage.getItem("ludo_classic_room_code");
+                  const gameSocket = globalSocket.socket;
+                  if (gameSocket && roomCode) {
+                    gameSocket.emit("client_action", {
+                      roomCode,
+                      actionType: "FORFEIT",
+                      quittingColor: opponentPlayer?.color,
+                      winnerColor: localPlayer?.color,
+                    });
+                  }
+                  // Declare local player winner locally
+                  const nextState = {
+                    ...gameState!,
+                    gameStatus: 'GAME_OVER' as const,
+                    winnerRankings: [localPlayer?.color || 'RED'],
+                    lastActionSummary: `🏆 Opponent forfeited! You win!`,
+                  };
+                  useGameStore.setState({ gameState: nextState });
+                  SoundEngine.play('WIN');
+                  try {
+                    confetti({
+                      particleCount: 120,
+                      spread: 80,
+                      origin: { y: 0.6 },
+                      colors: ['#FFD700', '#FFA500', '#10B981', '#3B82F6', '#EF4444'],
+                    });
+                  } catch (e) {}
+                }}
+                className="w-8 h-8 rounded-xl bg-gradient-to-tr from-rose-600 to-red-500 border border-rose-300 text-white font-black text-xs flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+                title="✕ Declare Winner Now (Forfeit)"
+              >
+                ✕
+              </button>
+
+              {/* ✓ RIGHT BUTTON: Keep Game Playing & Allow Rejoin */}
+              <button
+                onClick={() => {
+                  // Dismiss banner notification and let gameplay continue
+                  useGameStore.setState({ opponentReconnectingSeconds: null });
+                }}
+                className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 border border-emerald-300 text-white font-black text-xs flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+                title="✓ Keep Playing & Allow Rejoin"
+              >
+                ✓
+              </button>
             </div>
+
           </div>
         </div>
       )}

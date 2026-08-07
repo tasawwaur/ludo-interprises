@@ -31,8 +31,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
   const setUser = useUserStore((s) => s.setUser);
 
   useEffect(() => {
-    // Initialize Facebook SDK on mount — uses real App ID from .env
-    const fbAppId = import.meta.env.VITE_FB_APP_ID || '1234567890';
+    // Initialize Facebook SDK on mount — uses real App ID
+    const fbAppId = import.meta.env.VITE_FB_APP_ID || '1745824376557788';
     initFacebookSDK(fbAppId);
 
     // Initialize Google SDK on mount

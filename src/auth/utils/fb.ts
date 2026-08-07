@@ -59,7 +59,7 @@ export const loadFacebookSDK = (): Promise<void> => {
 };
 
 // Initialize Facebook SDK
-export const initFacebookSDK = (appId: string = '1234567890'): Promise<void> => {
+export const initFacebookSDK = (appId: string = '1745824376557788'): Promise<void> => {
   return new Promise((resolve) => {
     loadFacebookSDK()
       .then(() => {

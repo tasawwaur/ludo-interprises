@@ -187,6 +187,60 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
 
   const [showDebugger, setShowDebugger] = useState(true);
 
+  // Draggable positioning state for the debug menu itself
+  const [dbPos, setDbPos] = useState({ x: 0, y: -200 }); // Shift it up on load so it doesn't block bottom
+  const [dragging, setDragging] = useState(false);
+  const relRef = useRef({ x: 0, y: 0 });
+
+  const startDrag = (clientX: number, clientY: number) => {
+    setDragging(true);
+    relRef.current = { x: clientX - dbPos.x, y: clientY - dbPos.y };
+  };
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).tagName === 'BUTTON') return;
+    startDrag(e.clientX, e.clientY);
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).tagName === 'BUTTON') return;
+    const touch = e.touches[0];
+    startDrag(touch.clientX, touch.clientY);
+  };
+
+  useEffect(() => {
+    if (!dragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setDbPos({
+        x: e.clientX - relRef.current.x,
+        y: e.clientY - relRef.current.y
+      });
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      setDbPos({
+        x: touch.clientX - relRef.current.x,
+        y: touch.clientY - relRef.current.y
+      });
+    };
+
+    const stopDrag = () => setDragging(false);
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', stopDrag);
+    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchend', stopDrag);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', stopDrag);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', stopDrag);
+    };
+  }, [dragging]);
+
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef     = useRef<MediaStream | null>(null);
 
@@ -299,31 +353,45 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
 
       {/* 🛠️ DEVELOPER INTERACTIVE COORDINATES DEBUGGER OVERLAY */}
       <div 
-        className="fixed bottom-[130px] left-1/2 -translate-x-1/2 z-[99999] pointer-events-auto select-none"
-        style={{ width: '92%', maxWidth: '380px' }}
+        className="fixed bottom-[40px] left-1/2 z-[99999] pointer-events-auto select-none"
+        style={{ 
+          width: '94%', 
+          maxWidth: '360px',
+          transform: `translate3d(${dbPos.x}px, ${dbPos.y}px, 0) translateX(-50%)`,
+          left: '50%',
+          cursor: dragging ? 'grabbing' : 'grab'
+        }}
       >
         {!showDebugger ? (
           <button
             onClick={() => setShowDebugger(true)}
-            className="w-full py-1.5 rounded-xl bg-purple-950/90 border border-amber-400/40 text-[10px] font-black tracking-widest text-amber-300 shadow-md flex items-center justify-center gap-1.5 cursor-pointer uppercase"
+            className="w-full py-2 rounded-xl bg-purple-950/95 border border-amber-400/40 text-[9px] font-black tracking-widest text-amber-300 shadow-md flex items-center justify-center gap-1.5 cursor-pointer uppercase"
           >
-            ⚙️ Open Camera Debugger
+            ⚙️ Open Tuner Panel
           </button>
         ) : (
-          <div className="rounded-2xl bg-slate-950/95 border-2 border-amber-400/50 p-3 shadow-2xl flex flex-col gap-2.5">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-purple-500/20 pb-1.5">
-              <span className="text-[10px] font-black tracking-widest text-amber-400">🎥 CAMERA COORDINATE TUNER</span>
-              <div className="flex gap-2">
+          <div className="rounded-2xl bg-slate-950/95 border border-amber-400 p-2 shadow-[0_4px_30px_rgba(0,0,0,0.85)] flex flex-col gap-2">
+            {/* Header / Drag Bar */}
+            <div 
+              onMouseDown={onMouseDown}
+              onTouchStart={onTouchStart}
+              className="flex items-center justify-between border-b border-purple-500/20 pb-1 cursor-grab active:cursor-grabbing"
+              title="Drag here to move this tuner window"
+            >
+              <div className="flex items-center gap-1 flex-1">
+                <span className="text-[10px] text-amber-400">⚡</span>
+                <span className="text-[8px] font-black tracking-widest text-amber-400">DRAG ME OUT OF THE WAY</span>
+              </div>
+              <div className="flex gap-1.5 items-center">
                 <button 
                   onClick={resetToDefault}
-                  className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-600 text-[8px] font-bold text-gray-300 hover:text-white cursor-pointer"
+                  className="px-1 py-0.5 rounded bg-slate-800 border border-slate-700 text-[7px] font-bold text-gray-300 hover:text-white cursor-pointer"
                 >
-                  Reset Defaults
+                  Reset
                 </button>
                 <button 
                   onClick={() => setShowDebugger(false)}
-                  className="text-gray-400 hover:text-white text-xs font-black cursor-pointer px-1"
+                  className="text-gray-400 hover:text-white text-xs font-black cursor-pointer px-1.5"
                 >
                   ✕
                 </button>

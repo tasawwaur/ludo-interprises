@@ -88,7 +88,8 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
 
         {/* Circular SVG Timer Ring — smooth green→yellow→red melt */}
         {isActive && (() => {
-          const t = turnTimerSeconds / 15; // 1.0 = full, 0.0 = empty
+          const maxSec = turnTimerSeconds > 10 ? 15 : (turnTimerSeconds > 5 ? 10 : 5);
+          const t = turnTimerSeconds / maxSec; // 1.0 = full, 0.0 = empty
           // Interpolate hue: 120=green, 60=yellow, 0=red
           const hue = Math.round(t * 120);
           const sat = 90;

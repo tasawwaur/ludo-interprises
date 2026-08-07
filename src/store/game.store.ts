@@ -508,13 +508,14 @@ export const useGameStore = create<GameStoreState>()(
 
     if (gameState.gameStatus === 'ROLL_WAIT' && !gameState.isDiceRolled) {
       // Add delay so the board UI settles after extra turn (kill/6/home)
-      // before the bot fires its next roll
+      // before the bot or auto-mode player fires its next roll
       setTimeout(() => {
         const fresh = get();
         const freshState = fresh.gameState;
         if (!freshState) return;
         const freshActive = freshState.players[freshState.activePlayerIndex];
-        if (freshActive?.isAi && freshState.gameStatus === 'ROLL_WAIT' && !freshState.isDiceRolled) {
+        const autoPlay = freshActive?.isAi || fresh.isAutoMode;
+        if (autoPlay && freshState.gameStatus === 'ROLL_WAIT' && !freshState.isDiceRolled) {
           fresh.rollDice();
         }
       }, 1200);

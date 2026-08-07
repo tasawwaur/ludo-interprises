@@ -707,15 +707,34 @@ export const useGameStore = create<GameStoreState>()(
       transports: ["websocket", "polling"],
       reconnection: true,
     });
- 
-    const currentUser = useUserStore.getState().user;
-    socket.emit("join_room_game", { roomCode, userId: currentUser?.id || currentUser?.uid });
- 
+
     socket.off("timer_tick");
     socket.off("timer_timeout");
     socket.off("server_action");
     socket.off("forfeit_by_timeout");
     socket.off("state_sync_response");
+
+    // ── Join room as soon as socket connects ──────────────────────────────────
+    // On initial connect OR reconnect after refresh: join the room and request
+    // the latest authoritative state from server so both players are in sync.
+    const currentUser = useUserStore.getState().user;
+    const doJoinAndSync = () => {
+      socket.emit("join_room_game", { roomCode, userId: currentUser?.id || currentUser?.uid });
+      // Small delay so server processes join before state sync request
+      setTimeout(() => {
+        socket.emit("request_state_sync", { roomCode });
+        console.log('[Auto Sync] Sent join_room_game + request_state_sync on (re)connect');
+      }, 300);
+    };
+
+    // If socket is already connected (hot-reload, re-mount), join immediately
+    if (socket.connected) {
+      doJoinAndSync();
+    } else {
+      socket.on("connect", () => {
+        doJoinAndSync();
+      });
+    }
 
     // ── Page Visibility API: detect app-background / tab switch SILENTLY ──────
     // When this player's screen goes hidden (phone home, message, call),
@@ -1064,25 +1083,36 @@ export const useGameStore = create<GameStoreState>()(
     });
  
     // ── state_sync_response: server sends latest snapshot when player rejoins silently ──
-    socket.on("state_sync_response", (data: { gameState: any; activeColor: string; secondsRemaining: number; gameStatus: string }) => {
-      if (!data.gameState) return;
+    socket.on("state_sync_response", (data: { gameState: any; activeColor: string; secondsRemaining: number; gameStatus: string; hasSnapshot?: boolean }) => {
       const { gameState: localState } = get();
-      // Merge players metadata (avatars, names) from local state to preserve cosmetics
-      const mergedPlayers = data.gameState.players?.map((p: any, idx: number) => ({
-        ...p,
-        name: localState?.players[idx]?.name || p.name,
-        avatar: localState?.players[idx]?.avatar || p.avatar,
-        equippedFrameId: localState?.players[idx]?.equippedFrameId || p.equippedFrameId,
-      })) || data.gameState.players;
-      const syncedState = { ...data.gameState, players: mergedPlayers };
-      set({
-        gameState: syncedState,
-        turnTimerSeconds: data.secondsRemaining || 15,
-        rejoinPrompt: false,
-        _isRolling: false,
-      });
-      localStorage.setItem('ludo_classic_engine_state', JSON.stringify(syncedState));
-      console.log('[State Sync] Rejoined silently with server snapshot.');
+
+      if (data.hasSnapshot && data.gameState) {
+        // Full state snapshot from server — merge cosmetics from local and restore
+        const mergedPlayers = data.gameState.players?.map((p: any, idx: number) => ({
+          ...p,
+          name: localState?.players[idx]?.name || p.name,
+          avatar: localState?.players[idx]?.avatar || p.avatar,
+          equippedFrameId: localState?.players[idx]?.equippedFrameId || p.equippedFrameId,
+        })) || data.gameState.players;
+        const syncedState = { ...data.gameState, players: mergedPlayers };
+        set({
+          gameState: syncedState,
+          turnTimerSeconds: data.secondsRemaining || 15,
+          rejoinPrompt: false,
+          _isRolling: false,
+        });
+        localStorage.setItem('ludo_classic_engine_state', JSON.stringify(syncedState));
+        console.log('[State Sync] Full game state restored from server snapshot after refresh.');
+      } else {
+        // No snapshot yet (game just started or first move pending) — just sync timer
+        // Keep local game state as-is from localStorage restore
+        set({
+          turnTimerSeconds: data.secondsRemaining || 15,
+          rejoinPrompt: false,
+          _isRolling: false,
+        });
+        console.log('[State Sync] No server snapshot yet — timer synced, local state preserved from localStorage.');
+      }
     });
 
     set({ gameSocket: socket });

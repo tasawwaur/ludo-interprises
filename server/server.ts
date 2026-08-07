@@ -680,19 +680,21 @@ io.on("connection", (socket) => {
     console.log(`[Socket] Player (${socket.id}) silently joined game room ${data.roomCode}`);
     const room = activeRooms.get(data.roomCode);
     if (room) {
-      // If this socket was in grace period, silently cancel grace timer — no event to opponent!
+      // Silently cancel grace timer if one is running — no event to opponent!
       if (room.reconnectTimer) {
         clearTimeout(room.reconnectTimer);
         room.reconnectTimer = undefined;
-        console.log(`[Silent Rejoin] Player (${socket.id}) rejoined room ${data.roomCode} — grace timer cancelled silently`);
+        console.log(`[Silent Rejoin] Rejoined room ${data.roomCode} — grace timer cancelled silently`);
       }
       // Remove from disconnected set
       if (room.disconnectedSocketIds) {
         room.disconnectedSocketIds.delete(socket.id);
       }
-      // Update the stored socket ID for this player
-      if (room.p1SocketId === socket.id || !room.disconnectedSocketIds?.size) {
-        // Try to match by color from localStorage — just update both as fallback
+      // Update socket IDs: replace old disconnected socket with new one
+      if (room.p2SocketId && room.p2SocketId !== socket.id && room.p1SocketId !== socket.id) {
+        // This is a reconnecting p2 player (new socket id)
+        room.p2SocketId = socket.id;
+      } else if (room.p1SocketId && room.p1SocketId !== socket.id) {
         room.p1SocketId = socket.id;
       }
       // Start room timer if not already running
@@ -705,16 +707,19 @@ io.on("connection", (socket) => {
   // State sync request from rejoining player — sends them the latest game snapshot silently
   socket.on("request_state_sync", (data: { roomCode: string }) => {
     const room = activeRooms.get(data.roomCode);
-    if (!room) return;
-    if (room.gameStateSnapshot) {
-      socket.emit("state_sync_response", {
-        gameState: room.gameStateSnapshot,
-        activeColor: room.activeColor,
-        secondsRemaining: room.secondsRemaining,
-        gameStatus: room.gameStatus,
-      });
-      console.log(`[State Sync] Sent snapshot to rejoining player (${socket.id}) in room ${data.roomCode}`);
+    if (!room) {
+      console.log(`[State Sync] Room ${data.roomCode} not found — game may be over`);
+      return;
     }
+    // Always respond — even if no snapshot exists, send timer/turn state so client can continue
+    socket.emit("state_sync_response", {
+      gameState: room.gameStateSnapshot || null,   // null = use client's local state
+      activeColor: room.activeColor,
+      secondsRemaining: room.secondsRemaining,
+      gameStatus: room.gameStatus,
+      hasSnapshot: !!room.gameStateSnapshot,
+    });
+    console.log(`[State Sync] Responded to (${socket.id}) in room ${data.roomCode} — snapshot: ${!!room.gameStateSnapshot}`);
   });
 
   // Authoritative action update from client

@@ -35,12 +35,12 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
     { id: "d4", label: "Emperor Vault", amount: 10000, displayAmt: "10K", price: "₹2000.00", img: "/assets/images/icons/icon_diamond.png", isPopular: false, isBest: true, offerText: "150% OFF (2.5x)", multiplier: 2.5 },
   ];
 
-  // Crowns packages (purchased via Coins or Diamonds)
+  // Crowns packages (purchased via real INR money)
   const crownPacks = [
-    { id: "cr1", label: "Bronze Crown", costType: "COINS" as const, costAmount: 5000, displayCost: "5,000 Coins", crownsReward: 5, img: "/assets/images/icons/icon_gem.png", filter: "hue-rotate-[15deg] brightness-[0.7] sepia-[0.5]", isPopular: false },
-    { id: "cr2", label: "Silver Crown", costType: "COINS" as const, costAmount: 25000, displayCost: "25,000 Coins", crownsReward: 25, img: "/assets/images/icons/icon_gem.png", filter: "saturate-[0.1] brightness-[1.3]", isPopular: true },
-    { id: "cr3", label: "Gold Crown", costType: "DIAMONDS" as const, costAmount: 500, displayCost: "500 Gems", crownsReward: 50, img: "/assets/images/icons/icon_gem.png", filter: "brightness-[1.1] drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]", isPopular: false },
-    { id: "cr4", label: "Royal Crown", costType: "DIAMONDS" as const, costAmount: 2500, displayCost: "2,500 Gems", crownsReward: 250, img: "/assets/images/icons/icon_gem.png", filter: "hue-rotate-[130deg] brightness-[1.2] drop-shadow-[0_0_10px_rgba(239,68,68,0.7)]", isPopular: false, isBest: true },
+    { id: "cr1", label: "Starter Crowns Pack", amount: 50, price: "₹50.00", img: "/assets/images/icons/icon_gem.png", filter: "hue-rotate-[15deg] brightness-[0.7] sepia-[0.5]", isPopular: false, offerText: null, multiplier: 1.0 },
+    { id: "cr2", label: "Standard Crowns Pack", amount: 500, price: "₹500.00", img: "/assets/images/icons/icon_gem.png", filter: "saturate-[0.1] brightness-[1.3]", isPopular: false, offerText: null, multiplier: 1.0 },
+    { id: "cr3", label: "Elite Crowns Pack", amount: 1000, price: "₹950.00", img: "/assets/images/icons/icon_gem.png", filter: "brightness-[1.1] drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]", isPopular: true, offerText: "5% OFF", multiplier: 1.0 },
+    { id: "cr4", label: "Imperial Crowns Vault", amount: 5000, price: "₹4500.00", img: "/assets/images/icons/icon_gem.png", filter: "hue-rotate-[130deg] brightness-[1.2] drop-shadow-[0_0_10px_rgba(239,68,68,0.7)]", isPopular: false, isBest: true, offerText: "10% OFF", multiplier: 1.0 },
   ];
 
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -59,7 +59,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
     });
   };
 
-  const initiatePayment = async (pack: { label: string; amount: number; price: string; multiplier: number; offerText: string | null }, type: "COINS" | "DIAMONDS") => {
+  const initiatePayment = async (pack: { label: string; amount: number; price: string; multiplier: number; offerText: string | null }, type: "COINS" | "DIAMONDS" | "CROWNS") => {
     if (isProcessingPayment) return;
     setIsProcessingPayment(true);
 
@@ -129,10 +129,14 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                 updateUser({ coins: currentCoins + finalAmt });
                 confetti({ particleCount: 50, spread: 60, colors: ["#FFD700", "#FFA500"] });
                 triggerToast(`✅ ${pack.label} purchased! +${finalAmt.toLocaleString()} Coins`);
-              } else {
+              } else if (type === "DIAMONDS") {
                 updateUser({ gems: currentGems + finalAmt });
                 confetti({ particleCount: 50, spread: 60, colors: ["#818CF8", "#6366F1"] });
                 triggerToast(`✅ ${pack.label} purchased! +${finalAmt.toLocaleString()} Gems`);
+              } else if (type === "CROWNS") {
+                updateUser({ crowns: currentCrowns + finalAmt });
+                confetti({ particleCount: 50, spread: 60, colors: ["#FFD700", "#FFA500", "#9333EA"] });
+                triggerToast(`✅ ${pack.label} purchased! +${finalAmt.toLocaleString()} Crowns 👑`);
               }
             } else {
               triggerToast("❌ Payment verification failed!");
@@ -201,31 +205,21 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
     }
   };
 
-  const handleUnlockCrown = (costType: "COINS" | "DIAMONDS", costAmount: number, label: string) => {
+  const handleBuyCrowns = (amount: number, label: string) => {
     const pack = crownPacks.find((p) => p.label === label);
-    const rewardAmt = pack ? pack.crownsReward : 1;
-
-    if (costType === "COINS") {
-      if (currentCoins < costAmount) {
-        triggerToast("❌ Insufficient Coins to purchase this Crown!");
-        return;
-      }
-      updateUser({
-        coins: currentCoins - costAmount,
-        crowns: currentCrowns + rewardAmt
-      });
+    if (pack) {
+      initiatePayment({
+        label: pack.label,
+        amount: pack.amount,
+        price: pack.price,
+        multiplier: 1.0,
+        offerText: pack.offerText
+      }, "CROWNS");
     } else {
-      if (currentGems < costAmount) {
-        triggerToast("❌ Insufficient Gems to purchase this Crown!");
-        return;
-      }
-      updateUser({
-        gems: currentGems - costAmount,
-        crowns: currentCrowns + rewardAmt
-      });
+      confetti({ particleCount: 50, spread: 70, colors: ['#FFD700', '#FFA500', '#9333EA'] });
+      updateUser({ crowns: currentCrowns + amount });
+      triggerToast(`✅ ${label} purchased! +${amount.toLocaleString()} Crowns 👑`);
     }
-    confetti({ particleCount: 50, spread: 70, colors: ['#FFD700', '#FFA500', '#9333EA'] });
-    triggerToast(`✅ ${label} unlocked! +${rewardAmt} Crowns 👑`);
   };
 
   return (
@@ -438,7 +432,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
               {crownPacks.map((p) => (
                 <div
                   key={p.id}
-                  onClick={() => handleUnlockCrown(p.costType, p.costAmount, p.label)}
+                  onClick={() => handleBuyCrowns(p.amount, p.label)}
                   className="bg-purple-950/60 border-2 border-purple-500/30 rounded-3xl p-3 flex flex-col items-center justify-between text-center relative shadow-lg hover:border-purple-400 active:scale-95 transition-all cursor-pointer group"
                 >
                   {p.isPopular && (
@@ -467,13 +461,13 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
 
                   <div className="w-full flex flex-col gap-1">
                     <span className="text-[10px] font-black text-amber-200 uppercase tracking-wide leading-none">
-                      Unlocks {p.crownsReward} 👑
+                      Unlocks {p.amount} 👑
                     </span>
                     <span className="text-[8.5px] font-bold text-green-400 leading-none">
-                      Value: ₹{p.crownsReward}.00
+                      Value: ₹{p.amount}.00
                     </span>
                     <button className="w-full py-2 bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white font-black text-[10px] rounded-2xl shadow border border-purple-500 mt-1 uppercase">
-                      {p.displayCost}
+                      {p.price}
                     </button>
                   </div>
                 </div>

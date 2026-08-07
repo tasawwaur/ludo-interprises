@@ -68,6 +68,9 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
   const [showMenu, setShowMenu] = useState(false);
   const [isMuted, setIsMuted] = useState(() => SoundEngine.getMuteState());
   const [isVibrate, setIsVibrate] = useState(() => SoundEngine.getVibrationState());
+  const [isVoiceMuted, setIsVoiceMuted] = useState(() => {
+    try { return localStorage.getItem("ludo_voice_muted") === "1"; } catch { return false; }
+  });
 
   const handleMuteToggle = () => {
     const nextVal = SoundEngine.toggleMute();
@@ -77,6 +80,12 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
   const handleVibrateToggle = () => {
     const nextVal = SoundEngine.toggleVibration();
     setIsVibrate(nextVal);
+  };
+
+  const handleVoiceMuteToggle = () => {
+    const nextVal = !isVoiceMuted;
+    setIsVoiceMuted(nextVal);
+    try { localStorage.setItem("ludo_voice_muted", nextVal ? "1" : "0"); } catch {}
   };
 
   const [dragPositions, setDragPositions] = useState<Record<string, { top: string; left: string }>>({});
@@ -650,6 +659,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
           localPlayer={localPlayer}
           opponentPlayer={opponentPlayer}
           isOneVsOne={true}
+          voiceMuted={isVoiceMuted}
         />
       </div>
 
@@ -707,6 +717,26 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                 <div
                   className={`w-3 h-3 rounded-full bg-white shadow-md transform transition-transform duration-200 ${
                     isVibrate ? "translate-x-4" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Voice Chat Toggle */}
+            <div className="flex justify-between items-center bg-purple-950/40 px-2 py-1 rounded-md border border-purple-500/10">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs">{isVoiceMuted ? "🔇" : "🎙️"}</span>
+                <span className="text-[9px] font-bold text-gray-200">Voice Call</span>
+              </div>
+              <button
+                onClick={handleVoiceMuteToggle}
+                className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${
+                  !isVoiceMuted ? "bg-amber-400" : "bg-purple-950"
+                }`}
+              >
+                <div
+                  className={`w-3 h-3 rounded-full bg-white shadow-md transform transition-transform duration-200 ${
+                    !isVoiceMuted ? "translate-x-4" : "translate-x-0"
                   }`}
                 />
               </button>

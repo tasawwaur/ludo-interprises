@@ -169,12 +169,14 @@ interface LuxuryLiveCameraProps {
   localPlayer?: any;
   opponentPlayer?: any;
   isOneVsOne: boolean;
+  voiceMuted?: boolean;
 }
 
 export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
   localPlayer,
   opponentPlayer,
   isOneVsOne,
+  voiceMuted,
 }) => {
   if (!isOneVsOne) return null;
 
@@ -395,8 +397,8 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
       if (data.actionType === 'STREAM_AUDIO') {
         setOpponentMicOn(true);
 
-        // Playback opponent voice chunk
-        if (data.audioChunk) {
+        // Playback opponent voice chunk if not muted by local settings
+        if (data.audioChunk && !voiceMuted) {
           const audio = new Audio(data.audioChunk);
           audio.volume = 1.0;
           audio.play().catch(() => {});

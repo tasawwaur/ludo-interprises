@@ -228,10 +228,10 @@ export const usePlayerStatsStore = create<PlayerStatsState>((set, get) => {
       set((state) => {
         const prev = state.stats;
         
-        // 1. Validate Match & calculate coin rewards
-        const coinDelta = matchData.isWin ? matchData.betCoins : -matchData.betCoins;
-        const finalCoins = Math.max(0, prev.currentCoins + coinDelta);
-        const finalCoinsEarned = prev.totalCoinsEarned + (matchData.isWin ? matchData.betCoins : 0);
+        // 1. Validate Match & calculate coin rewards (Entry fee deducted upfront at match start — 0 deduction on loss/exit!)
+        const coinDelta = matchData.isWin ? Math.round((matchData.betCoins || 5000) * 1.9) : 0;
+        const finalCoins = prev.currentCoins + coinDelta;
+        const finalCoinsEarned = prev.totalCoinsEarned + (matchData.isWin ? Math.round((matchData.betCoins || 5000) * 1.9) : 0);
         
         const diamondDelta = matchData.isWin ? (matchData.betDiamonds || 5) : 0;
         const finalDiamonds = prev.currentDiamonds + diamondDelta;

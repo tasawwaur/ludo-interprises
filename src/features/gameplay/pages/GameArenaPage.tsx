@@ -38,7 +38,9 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
   const demoStack = useGameStore((s) => s.demoStack);
   const connectGameSocket = useGameStore((s) => s.connectGameSocket);
   const disconnectGameSocket = useGameStore((s) => s.disconnectGameSocket);
-  const opponentReconnectingSeconds = useGameStore((s) => s.opponentReconnectingSeconds);
+  const rejoinPrompt = useGameStore((s) => s.rejoinPrompt);
+  const confirmRejoin = useGameStore((s) => s.confirmRejoin);
+  const confirmForfeit = useGameStore((s) => s.confirmForfeit);
   const user = useUserStore((s) => s.user);
   const maxPlayers = useRoomStore((s) => s.maxPlayers);
   const useCanvasBoard = true;
@@ -973,85 +975,51 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         isOneVsOne={true}
       />
 
-      {/* 📡 Opponent Disconnected / Reconnecting Notification Card with ✓ and ✕ Buttons */}
-      {opponentReconnectingSeconds !== null && (
-        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-[99999] w-[92%] max-w-[360px] animate-fade-in select-none">
-          <div className="relative rounded-2xl bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 border-2 border-amber-400/60 p-3 shadow-[0_0_30px_rgba(245,158,11,0.4)] flex items-center justify-between gap-2">
-            
-            {/* Left Info: Icon & Disconnect Text */}
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-lg animate-pulse">
-                📡
-              </div>
-              <div className="flex flex-col text-left">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-black tracking-wider text-amber-300 uppercase">
-                    Opponent Offline
-                  </span>
-                  <span className="px-1.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-400/40 text-[9px] font-extrabold text-rose-300">
-                    {opponentReconnectingSeconds}s
-                  </span>
+      {/* 🔄 Rejoin Prompt — shown ONLY to the player who went to background/returned */}
+      {/* Opponent sees NOTHING — game keeps running for them unchanged */}
+      {rejoinPrompt && (
+        <div className="fixed inset-0 z-[99999] flex items-end justify-center pb-8 px-4 pointer-events-none">
+          <div className="pointer-events-auto w-full max-w-[380px] animate-fade-in">
+            <div className="relative rounded-3xl bg-gradient-to-b from-slate-900 via-purple-950/95 to-slate-950 border-2 border-emerald-400/60 p-5 shadow-[0_0_40px_rgba(16,185,129,0.4)] flex flex-col gap-4">
+              
+              {/* Header */}
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-2xl">
+                  🎮
                 </div>
-                <span className="text-[9.5px] text-purple-200 font-medium leading-tight">
-                  Declare Forfeit Win or Wait Rejoin?
-                </span>
+                <div>
+                  <p className="text-[13px] font-black tracking-wider text-emerald-300 uppercase">Active Match</p>
+                  <p className="text-[10px] text-slate-300 font-medium mt-0.5">Your match is still in progress. Rejoin?</p>
+                </div>
               </div>
+
+              {/* Action Buttons Row */}
+              <div className="flex gap-3">
+                {/* ✕ Forfeit — deducts coins, opponent wins */}
+                <button
+                  id="rejoin-prompt-forfeit-btn"
+                  onClick={confirmForfeit}
+                  className="flex-1 h-11 rounded-2xl bg-gradient-to-r from-rose-700 to-red-600 border border-rose-400/50 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg hover:scale-[1.03] active:scale-95 transition-transform"
+                >
+                  <span className="text-base">✕</span>
+                  <span>Forfeit Match</span>
+                </button>
+
+                {/* ✓ Rejoin — silent, opponent unaware, game continues */}
+                <button
+                  id="rejoin-prompt-rejoin-btn"
+                  onClick={confirmRejoin}
+                  className="flex-1 h-11 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 border border-emerald-300/50 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg hover:scale-[1.03] active:scale-95 transition-transform"
+                >
+                  <span className="text-base">✓</span>
+                  <span>Rejoin Game</span>
+                </button>
+              </div>
+
+              <p className="text-center text-[9px] text-slate-500 font-medium">
+                Forfeiting will deduct your entry fee and award win to opponent.
+              </p>
             </div>
-
-            {/* Right Action Buttons: Right (✓) and Cross (✕) */}
-            <div className="flex items-center gap-1.5">
-              {/* ✕ CROSS BUTTON: Declare Instant Victory (Forfeit) */}
-              <button
-                onClick={() => {
-                  useGameStore.setState({ opponentReconnectingSeconds: null });
-                  // Trigger immediate forfeit victory for local player
-                  const roomCode = useRoomStore.getState().roomCode || localStorage.getItem("ludo_classic_room_code");
-                  const gameSocket = globalSocket.socket;
-                  if (gameSocket && roomCode) {
-                    gameSocket.emit("client_action", {
-                      roomCode,
-                      actionType: "FORFEIT",
-                      quittingColor: opponentPlayer?.color,
-                      winnerColor: localPlayer?.color,
-                    });
-                  }
-                  // Declare local player winner locally
-                  const nextState = {
-                    ...gameState!,
-                    gameStatus: 'GAME_OVER' as const,
-                    winnerRankings: [localPlayer?.color || 'RED'],
-                    lastActionSummary: `🏆 Opponent forfeited! You win!`,
-                  };
-                  useGameStore.setState({ gameState: nextState });
-                  SoundEngine.play('WIN');
-                  try {
-                    confetti({
-                      particleCount: 120,
-                      spread: 80,
-                      origin: { y: 0.6 },
-                      colors: ['#FFD700', '#FFA500', '#10B981', '#3B82F6', '#EF4444'],
-                    });
-                  } catch (e) {}
-                }}
-                className="w-8 h-8 rounded-xl bg-gradient-to-tr from-rose-600 to-red-500 border border-rose-300 text-white font-black text-xs flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-transform cursor-pointer"
-                title="✕ Declare Winner Now (Forfeit)"
-              >
-                ✕
-              </button>
-
-              {/* ✓ RIGHT BUTTON: Keep Game Playing & Allow Rejoin */}
-              <button
-                onClick={() => {
-                  // Dismiss banner notification and let gameplay continue
-                  useGameStore.setState({ opponentReconnectingSeconds: null });
-                }}
-                className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 border border-emerald-300 text-white font-black text-xs flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-transform cursor-pointer"
-                title="✓ Keep Playing & Allow Rejoin"
-              >
-                ✓
-              </button>
-            </div>
-
           </div>
         </div>
       )}

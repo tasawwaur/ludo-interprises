@@ -25,12 +25,14 @@ interface GameStoreState {
   gameSocket: any | null;
   _isRolling: boolean;
   cheatNextRollValue: number | null;
-  isSpectatorMode: boolean; // ✅ Spectator mode active
-  opponentReconnectingSeconds: number | null;
+  isSpectatorMode: boolean;
+  // Silent disconnect rejoin prompt (shown ONLY to the player who disconnected, NOT opponent)
+  rejoinPrompt: boolean;
+  _visibilityHandler: (() => void) | null; // internal: cleanup ref
 
   // Actions
   startMatch: (mode: '2P' | '2v2' | '4P', hostName: string) => void;
-  startSpectatorMatch: (p1: any, p2: any) => void; // ✅ Spectate VIP bots match
+  startSpectatorMatch: (p1: any, p2: any) => void;
   rollDice: () => void;
   undoRoll: () => void;
   moveToken: (tokenId: string, isRemote?: boolean) => void;
@@ -45,6 +47,8 @@ interface GameStoreState {
   connectGameSocket: (roomCode: string) => void;
   disconnectGameSocket: () => void;
   joinAsSpectator: (roomCode: string) => void;
+  confirmRejoin: () => void;   // Player clicks ✓ Rejoin
+  confirmForfeit: () => void;  // Player clicks ✕ Forfeit
 }
 
 export const useGameStore = create<GameStoreState>()(
@@ -61,8 +65,9 @@ export const useGameStore = create<GameStoreState>()(
       gameSocket: null,
       _isRolling: false,
       cheatNextRollValue: null,
-      isSpectatorMode: false, // ✅ Initialize as false
-      opponentReconnectingSeconds: null,
+      isSpectatorMode: false,
+      rejoinPrompt: false,
+      _visibilityHandler: null,
 
       startMatch: (mode, hostName) => {
         // ✅ Restore state from localStorage on refresh
@@ -696,7 +701,7 @@ export const useGameStore = create<GameStoreState>()(
   },
 
   connectGameSocket: (roomCode) => {
-    set({ opponentReconnectingSeconds: null });
+    set({ rejoinPrompt: false });
     const socketUrl = getSocketUrl();
     const socket = io(socketUrl, {
       transports: ["websocket", "polling"],
@@ -709,10 +714,34 @@ export const useGameStore = create<GameStoreState>()(
     socket.off("timer_tick");
     socket.off("timer_timeout");
     socket.off("server_action");
-    socket.off("opponent_disconnected");
-    socket.off("opponent_disconnected_grace");
-    socket.off("opponent_rejoined");
-    socket.off("request_state_sync");
+    socket.off("forfeit_by_timeout");
+    socket.off("state_sync_response");
+
+    // ── Page Visibility API: detect app-background / tab switch SILENTLY ──────
+    // When this player's screen goes hidden (phone home, message, call),
+    // we register a one-time handler: on return, show the rejoin prompt to THIS player only.
+    // Opponent is NEVER notified.
+    const existingHandler = (get() as any)._visibilityHandler;
+    if (existingHandler) {
+      document.removeEventListener('visibilitychange', existingHandler);
+    }
+    let wasHidden = false;
+    const visibilityHandler = () => {
+      if (document.hidden) {
+        wasHidden = true;
+        console.log('[Visibility] Player went to background — opponent unaware');
+      } else if (wasHidden) {
+        wasHidden = false;
+        const { gameState } = get();
+        // Only show rejoin prompt if game is still ongoing
+        if (gameState && gameState.gameStatus !== 'GAME_OVER') {
+          console.log('[Visibility] Player returned from background — showing local rejoin prompt');
+          set({ rejoinPrompt: true });
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', visibilityHandler);
+    set({ _visibilityHandler: visibilityHandler } as any);
 
     socket.on("timer_tick", (data: { seconds: number; activeColor: string }) => {
       const { turnTimerSeconds } = get();
@@ -767,48 +796,41 @@ export const useGameStore = create<GameStoreState>()(
       }
     });
 
-    socket.on("opponent_disconnected_grace", (data: { seconds?: number }) => {
-      console.log("[Grace Period] Opponent disconnected temporarily, waiting for rejoin...");
-      set({ opponentReconnectingSeconds: data.seconds || 15 });
-    });
-
-    socket.on("opponent_rejoined", () => {
-      console.log("[Rejoined] Opponent rejoined the match!");
-      set({ opponentReconnectingSeconds: null });
-    });
-
-    socket.on("opponent_disconnected", () => {
-      console.log("[Opponent Disconnected] Opponent left match — declaring local player as WINNER!");
+    // ── forfeit_by_timeout: 30s grace expired, declare THIS player as winner ───
+    // Server sends this ONLY to the remaining/connected player after 30s of opponent being gone.
+    socket.on("forfeit_by_timeout", () => {
+      console.log('[Forfeit Timeout] Opponent never came back — declaring local player WINNER!');
       const { gameState, localPlayerColor } = get();
-      if (!gameState) return;
+      if (!gameState || gameState.gameStatus === 'GAME_OVER') return;
 
       const myColor = localPlayerColor || gameState.players[0].color;
       const oppColor = gameState.players.find(p => p.color !== myColor)?.color || 'GREEN';
 
-      const nextState = {
+      const winState = {
         ...gameState,
         gameStatus: 'GAME_OVER' as const,
         winnerRankings: [myColor, oppColor],
-        lastActionSummary: `🏆 Opponent disconnected! You win by forfeit!`,
+        lastActionSummary: '🏆 Opponent left the match. You win!',
       };
 
-      set({
-        gameState: nextState,
-        _isRolling: false,
-      });
+      // Credit win reward
+      const entryFee = parseInt(localStorage.getItem('ludo_current_entry_fee') || '5000');
+      const winReward = Math.round(entryFee * 1.9);
+      const currentUser = useUserStore.getState().user;
+      if (currentUser) {
+        useUserStore.getState().updateUser({
+          coins: (currentUser.coins || 0) + winReward,
+          gems: (currentUser.gems || 0) + 5,
+        });
+      }
 
+      set({ gameState: winState, _isRolling: false });
       SoundEngine.play('WIN');
       try {
-        confetti({
-          particleCount: 120,
-          spread: 80,
-          origin: { y: 0.6 },
-          colors: ['#FFD700', '#FFA500', '#10B981', '#3B82F6', '#EF4444'],
-        });
+        confetti({ particleCount: 130, spread: 80, origin: { y: 0.6 }, colors: ['#FFD700','#FFA500','#10B981','#3B82F6','#EF4444'] });
       } catch (e) {}
-
-      localStorage.removeItem("ludo_active_match_session");
-      localStorage.removeItem("ludo_classic_engine_state");
+      localStorage.removeItem('ludo_active_match_session');
+      localStorage.removeItem('ludo_classic_engine_state');
     });
 
     socket.on("server_action", (data: { actionId?: string; actionType: 'ROLL' | 'MOVE' | 'UNDO' | 'CHAT' | 'STATE_SYNC' | 'FORFEIT'; diceValue?: number; tokenId?: string; nextColor?: string; cost?: number; text?: string; senderName?: string; color?: string; gameState?: any; hasLegalMoves?: boolean; turnTimerSeconds?: number }) => {
@@ -1034,7 +1056,6 @@ export const useGameStore = create<GameStoreState>()(
             gameState: data.gameState,
             _isRolling: false,
             turnTimerSeconds: data.turnTimerSeconds ?? 15,
-            opponentReconnectingSeconds: null,
           });
           localStorage.setItem("ludo_classic_engine_state", JSON.stringify(data.gameState));
           console.log("[Rejoin Sync] Game state successfully synchronized from remaining player!");
@@ -1042,62 +1063,26 @@ export const useGameStore = create<GameStoreState>()(
       }
     });
  
-    socket.on("opponent_disconnected_grace", (data: { roomCode: string; secondsRemaining: number }) => {
-      set({ opponentReconnectingSeconds: data.secondsRemaining });
-    });
- 
-    socket.on("opponent_rejoined", () => {
-      set({ opponentReconnectingSeconds: null });
-    });
- 
-    socket.on("request_state_sync", () => {
-      const { gameSocket, gameState, turnTimerSeconds } = get();
-      if (gameSocket && gameState) {
-        console.log("[Rejoin Sync] Sending current game state to rejoining player.");
-        gameSocket.emit("client_action", {
-          roomCode,
-          actionType: "STATE_SYNC",
-          gameState,
-          turnTimerSeconds,
-        });
-      }
-    });
-
-    socket.on("opponent_disconnected", () => {
-      console.log("[Opponent Disconnected] Opponent left match — declaring local player WINNER!");
-      set({ opponentReconnectingSeconds: null });
-      const { gameState, localPlayerColor } = get();
-      if (!gameState || gameState.gameStatus === 'GAME_OVER') return;
-
-      const localPlayerIndex = gameState.players.findIndex(p => p.color === localPlayerColor);
-      const winnerIndex = localPlayerIndex !== -1 ? localPlayerIndex : 0;
-      const winnerColor = gameState.players[winnerIndex].color;
-
-      const gameOverState = {
-        ...gameState,
-        gameStatus: 'GAME_OVER' as const,
-        winnerRankings: [winnerColor],
-        lastActionSummary: 'Opponent disconnected. Victory by forfeit!',
-      };
-
-      // Credit win reward coins (+9,500 coins)
-      const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
-      const winReward = Math.round(entryFee * 1.9);
-      const currentUser = useUserStore.getState().user;
-      if (currentUser) {
-        useUserStore.getState().updateUser({
-          coins: (currentUser.coins || 0) + winReward,
-          gems: (currentUser.gems || 0) + 5,
-        });
-      }
-
-      set({ gameState: gameOverState });
-      localStorage.setItem("ludo_classic_engine_state", JSON.stringify(gameOverState));
-
-      SoundEngine.play('WIN');
-      try {
-        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-      } catch (e) {}
+    // ── state_sync_response: server sends latest snapshot when player rejoins silently ──
+    socket.on("state_sync_response", (data: { gameState: any; activeColor: string; secondsRemaining: number; gameStatus: string }) => {
+      if (!data.gameState) return;
+      const { gameState: localState } = get();
+      // Merge players metadata (avatars, names) from local state to preserve cosmetics
+      const mergedPlayers = data.gameState.players?.map((p: any, idx: number) => ({
+        ...p,
+        name: localState?.players[idx]?.name || p.name,
+        avatar: localState?.players[idx]?.avatar || p.avatar,
+        equippedFrameId: localState?.players[idx]?.equippedFrameId || p.equippedFrameId,
+      })) || data.gameState.players;
+      const syncedState = { ...data.gameState, players: mergedPlayers };
+      set({
+        gameState: syncedState,
+        turnTimerSeconds: data.secondsRemaining || 15,
+        rejoinPrompt: false,
+        _isRolling: false,
+      });
+      localStorage.setItem('ludo_classic_engine_state', JSON.stringify(syncedState));
+      console.log('[State Sync] Rejoined silently with server snapshot.');
     });
 
     set({ gameSocket: socket });
@@ -1105,10 +1090,69 @@ export const useGameStore = create<GameStoreState>()(
 
   disconnectGameSocket: () => {
     const { gameSocket } = get();
+    // Clean up Page Visibility listener
+    const visHandler = (get() as any)._visibilityHandler;
+    if (visHandler) {
+      document.removeEventListener('visibilitychange', visHandler);
+      set({ _visibilityHandler: null } as any);
+    }
     if (gameSocket) {
       gameSocket.disconnect();
       set({ gameSocket: null });
     }
+  },
+
+  // Player clicks ✓ Rejoin: silently re-enter match and request state sync from server
+  confirmRejoin: () => {
+    const { gameSocket } = get();
+    const roomCode = useRoomStore.getState().roomCode || localStorage.getItem('ludo_classic_room_code');
+    if (gameSocket && roomCode) {
+      gameSocket.emit('join_room_game', { roomCode });
+      gameSocket.emit('request_state_sync', { roomCode });
+      console.log('[Rejoin] Sent join_room_game + request_state_sync silently');
+    }
+    set({ rejoinPrompt: false });
+  },
+
+  // Player clicks ✕ Forfeit: self declare as loser, emit FORFEIT so opponent gets WINNER
+  confirmForfeit: () => {
+    const { gameSocket, gameState, localPlayerColor } = get();
+    const roomCode = useRoomStore.getState().roomCode || localStorage.getItem('ludo_classic_room_code');
+    if (!gameState) return;
+
+    const myColor = localPlayerColor || gameState.players[0].color;
+    const oppColor = gameState.players.find(p => p.color !== myColor)?.color || 'GREEN';
+
+    // Emit to server so opponent gets WINNER
+    if (gameSocket && roomCode) {
+      gameSocket.emit('client_action', {
+        roomCode,
+        actionType: 'FORFEIT',
+        quittingColor: myColor,
+        winnerColor: oppColor,
+      });
+    }
+
+    // Deduct entry fee coins from this player (loser)
+    const entryFee = parseInt(localStorage.getItem('ludo_current_entry_fee') || '5000');
+    const currentUser = useUserStore.getState().user;
+    if (currentUser) {
+      useUserStore.getState().updateUser({
+        coins: Math.max(0, (currentUser.coins || 0) - entryFee),
+      });
+    }
+
+    // Set local game over as LOSER
+    const loseState = {
+      ...gameState,
+      gameStatus: 'GAME_OVER' as const,
+      winnerRankings: [oppColor, myColor],
+      lastActionSummary: '🛑 You forfeited the match.',
+    };
+    set({ gameState: loseState, rejoinPrompt: false, _isRolling: false });
+    SoundEngine.play('GAME_START');
+    localStorage.removeItem('ludo_active_match_session');
+    localStorage.removeItem('ludo_classic_engine_state');
   },
 
   joinAsSpectator: (roomCode) => {

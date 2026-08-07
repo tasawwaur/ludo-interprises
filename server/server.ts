@@ -172,6 +172,10 @@ interface RoomTimerState {
   gameStatus: 'ROLL_WAIT' | 'MOVE_WAIT' | 'GAME_OVER';
   secondsRemaining: number;
   intervalId?: NodeJS.Timeout;
+  // Silent disconnect grace system
+  gameStateSnapshot?: any;           // Latest authoritative game state for rejoin sync
+  reconnectTimer?: NodeJS.Timeout;   // 30s silent grace timer per disconnected player
+  disconnectedSocketIds?: Set<string>; // Track which sockets are in grace period
 }
 
 const activeRooms = new Map<string, RoomTimerState>();
@@ -668,19 +672,28 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Join Room Game (multiplayer timer synchronization)
+  // Join Room Game (multiplayer timer synchronization + silent rejoin)
   socket.on("join_room_game", (data: { roomCode: string }) => {
     // Tag this socket as an active gameplay socket for the room
     (socket as any).data = { type: "gameplay", roomCode: data.roomCode };
     socket.join(data.roomCode);
-    console.log(`[Socket] Player (${socket.id}) joined game room ${data.roomCode}`);
+    console.log(`[Socket] Player (${socket.id}) silently joined game room ${data.roomCode}`);
     const room = activeRooms.get(data.roomCode);
     if (room) {
-      if ((room as any).reconnectTimer) {
-        clearTimeout((room as any).reconnectTimer);
-        (room as any).reconnectTimer = null;
-        socket.to(data.roomCode).emit("opponent_rejoined", { roomCode: data.roomCode });
-        console.log(`[Socket] Player (${socket.id}) rejoined room ${data.roomCode} — cancelled grace timeout`);
+      // If this socket was in grace period, silently cancel grace timer — no event to opponent!
+      if (room.reconnectTimer) {
+        clearTimeout(room.reconnectTimer);
+        room.reconnectTimer = undefined;
+        console.log(`[Silent Rejoin] Player (${socket.id}) rejoined room ${data.roomCode} — grace timer cancelled silently`);
+      }
+      // Remove from disconnected set
+      if (room.disconnectedSocketIds) {
+        room.disconnectedSocketIds.delete(socket.id);
+      }
+      // Update the stored socket ID for this player
+      if (room.p1SocketId === socket.id || !room.disconnectedSocketIds?.size) {
+        // Try to match by color from localStorage — just update both as fallback
+        room.p1SocketId = socket.id;
       }
       // Start room timer if not already running
       if (!room.intervalId) {
@@ -689,19 +702,45 @@ io.on("connection", (socket) => {
     }
   });
 
+  // State sync request from rejoining player — sends them the latest game snapshot silently
+  socket.on("request_state_sync", (data: { roomCode: string }) => {
+    const room = activeRooms.get(data.roomCode);
+    if (!room) return;
+    if (room.gameStateSnapshot) {
+      socket.emit("state_sync_response", {
+        gameState: room.gameStateSnapshot,
+        activeColor: room.activeColor,
+        secondsRemaining: room.secondsRemaining,
+        gameStatus: room.gameStatus,
+      });
+      console.log(`[State Sync] Sent snapshot to rejoining player (${socket.id}) in room ${data.roomCode}`);
+    }
+  });
+
   // Authoritative action update from client
-  socket.on("client_action", (data: { roomCode: string; actionType: 'ROLL' | 'MOVE' | 'UNDO' | 'SL_STATE_SYNC' | 'SL_DICE_ROLLING'; nextColor?: string; isGameOver?: boolean; diceValue?: number; tokenId?: string; cost?: number; hasLegalMoves?: boolean }) => {
+  socket.on("client_action", (data: { roomCode: string; actionType: 'ROLL' | 'MOVE' | 'UNDO' | 'SL_STATE_SYNC' | 'SL_DICE_ROLLING' | 'FORFEIT'; nextColor?: string; isGameOver?: boolean; diceValue?: number; tokenId?: string; cost?: number; hasLegalMoves?: boolean; gameState?: any; quittingColor?: string; winnerColor?: string }) => {
     const room = activeRooms.get(data.roomCode);
     if (!room) return;
 
-    console.log(`[Authoritative Timer] Action ${data.actionType} received in ${data.roomCode}`, data);
+    console.log(`[Authoritative Timer] Action ${data.actionType} received in ${data.roomCode}`);
+
+    // Save game state snapshot for silent rejoin sync
+    if (data.gameState) {
+      room.gameStateSnapshot = data.gameState;
+    }
 
     // Broadcast the action to the other player in the room
     socket.to(data.roomCode).emit("server_action", data);
 
-    if (data.isGameOver || data.actionType === 'FORFEIT' as any) {
+    if (data.isGameOver || data.actionType === 'FORFEIT') {
       room.gameStatus = 'GAME_OVER';
       if (room.intervalId) clearInterval(room.intervalId);
+      // Cancel any pending grace timer
+      if (room.reconnectTimer) {
+        clearTimeout(room.reconnectTimer);
+        room.reconnectTimer = undefined;
+      }
+      activeRooms.delete(data.roomCode);
       return;
     }
 
@@ -768,7 +807,7 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     const idx = matchmakingQueue.findIndex((p) => p.socketId === socket.id);
     if (idx !== -1) matchmakingQueue.splice(idx, 1);
-    console.log("Player disconnected:", socket.id);
+    console.log("[Silent Disconnect] Player disconnected:", socket.id);
 
     // Clean up rematch requests for this player
     for (const [roomCode, requests] of rematchRequests.entries()) {
@@ -786,31 +825,38 @@ io.on("connection", (socket) => {
       }
     }
 
-    // Stop active room timers ONLY if the active gameplay socket disconnected
+    // ── SILENT GRACE PERIOD — opponent sees NOTHING ───────────────────────────
+    // No events emitted to opponent. Game timer keeps running on server.
+    // Player has 30s to silently rejoin (refresh/app-background).
     const socketData = (socket as any).data;
     if (socketData?.type === "gameplay" && socketData?.roomCode) {
       const room = activeRooms.get(socketData.roomCode);
       if (room && room.gameStatus !== 'GAME_OVER') {
-        // Broadcast reconnecting grace notice to remaining player (15s grace)
-        socket.to(socketData.roomCode).emit("opponent_disconnected_grace", {
-          disconnectedSocketId: socket.id,
-          roomCode: socketData.roomCode,
-          seconds: 15,
-        });
+        // Track this socket as disconnected (in grace)
+        if (!room.disconnectedSocketIds) room.disconnectedSocketIds = new Set();
+        room.disconnectedSocketIds.add(socket.id);
 
-        // Give 15 seconds grace period for page refresh / network reconnection
-        if ((room as any).reconnectTimer) clearTimeout((room as any).reconnectTimer);
+        // Cancel any existing grace timer and start fresh 30s silent timer
+        if (room.reconnectTimer) clearTimeout(room.reconnectTimer);
 
-        (room as any).reconnectTimer = setTimeout(() => {
-          // If 15s elapsed without reconnection, declare forfeit winner!
-          socket.to(socketData.roomCode).emit("opponent_disconnected", {
-            disconnectedSocketId: socket.id,
-            roomCode: socketData.roomCode,
-          });
-          if (room.intervalId) clearInterval(room.intervalId);
-          activeRooms.delete(socketData.roomCode);
-          console.log(`[Authoritative Timer] Cleaned up room ${socketData.roomCode} after 15s reconnect grace timeout`);
-        }, 15000);
+        console.log(`[Silent Grace] Player (${socket.id}) disconnected from room ${socketData.roomCode} — starting 30s silent grace (opponent unaware)`);
+
+        room.reconnectTimer = setTimeout(() => {
+          // 30s elapsed without rejoin — silently declare remaining player as WINNER
+          // Only emit to remaining/opponent player socket, NOT to the disconnected one
+          const remainingRoom = activeRooms.get(socketData.roomCode);
+          if (remainingRoom && remainingRoom.gameStatus !== 'GAME_OVER') {
+            socket.to(socketData.roomCode).emit("forfeit_by_timeout", {
+              disconnectedSocketId: socket.id,
+              roomCode: socketData.roomCode,
+              message: "Opponent left the match. You win!",
+            });
+            if (remainingRoom.intervalId) clearInterval(remainingRoom.intervalId);
+            remainingRoom.gameStatus = 'GAME_OVER';
+            activeRooms.delete(socketData.roomCode);
+            console.log(`[Silent Grace] 30s expired for room ${socketData.roomCode} — forfeit_by_timeout sent to remaining player only`);
+          }
+        }, 30000);
       }
     }
   });

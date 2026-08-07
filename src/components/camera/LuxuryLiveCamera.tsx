@@ -156,14 +156,36 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
 }) => {
   if (!isOneVsOne) return null;
 
-  const [localCamOn, setLocalCamOn] = useState(false);
-  const [localPaused, setLocalPaused] = useState(false);
-  const [localMicOn, setLocalMicOn] = useState(VoiceChatService.isMicrophoneActive());
+  const [localCamOn, setLocalCamOn] = useState(() => {
+    try { return localStorage.getItem('ludo_cam_on') === '1'; } catch { return false; }
+  });
+  const [localPaused, setLocalPaused] = useState(() => {
+    try { return localStorage.getItem('ludo_cam_paused') === '1'; } catch { return false; }
+  });
+  const [localMicOn, setLocalMicOn] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ludo_mic_on');
+      return saved !== null ? saved === '1' : VoiceChatService.isMicrophoneActive();
+    } catch { return VoiceChatService.isMicrophoneActive(); }
+  });
 
   const [opponentCamOn, setOpponentCamOn] = useState(false);
 
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef     = useRef<MediaStream | null>(null);
+
+  // Persist cam state to localStorage on every change
+  useEffect(() => {
+    try { localStorage.setItem('ludo_cam_on', localCamOn ? '1' : '0'); } catch {}
+  }, [localCamOn]);
+
+  useEffect(() => {
+    try { localStorage.setItem('ludo_cam_paused', localPaused ? '1' : '0'); } catch {}
+  }, [localPaused]);
+
+  useEffect(() => {
+    try { localStorage.setItem('ludo_mic_on', localMicOn ? '1' : '0'); } catch {}
+  }, [localMicOn]);
 
   // Auto-toggle opponent cam when local turns on
   useEffect(() => {
@@ -175,7 +197,7 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
     }
   }, [localCamOn]);
 
-  // Webcam stream
+  // Webcam stream — auto-start on mount if cam was ON before refresh
   useEffect(() => {
     if (localCamOn && !localPaused) {
       (async () => {
@@ -194,6 +216,15 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
       if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
     };
   }, [localCamOn, localPaused]);
+
+  // Auto-restart mic if it was ON before refresh
+  useEffect(() => {
+    if (localMicOn) {
+      VoiceChatService.startMicrophone().catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   const handleToggleMic = async () => {
     if (localMicOn) {

@@ -484,16 +484,10 @@ io.on("connection", (socket) => {
       matchmakingQueue.splice(Math.min(player1Idx, matchingIdx), 1);
       const roomCode = "ROOM_" + Math.random().toString(36).substring(2, 8).toUpperCase();
 
-      // Assign colors based on matchmaking mode to support correct seating and timer logic
-      let p1Color = "RED";
-      let p2Color = "GREEN";
-      if (mode === "Normal Classic") {
-        p1Color = "RED";
-        p2Color = "YELLOW";
-      } else if (mode === "Quick Classic" || mode === "Unique Classic") {
-        p1Color = "BLUE";
-        p2Color = "GREEN";
-      }
+      // All 1v1 modes use BLUE (Host / bottom-left) vs GREEN (Guest / top-right)
+      // to match the physical yard colors on the luxury board!
+      const p1Color = "BLUE";
+      const p2Color = "GREEN";
 
       console.log(`[Matchmaking] Match Created: ${player1.name} (${p1Color}) vs ${player2.name} (${p2Color}) in ${roomCode}`);
 

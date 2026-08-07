@@ -66,9 +66,23 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
   const isRightSide = position === 'top-right' || position === 'bottom-right';
   const micPositionClass = isRightSide ? 'top-[6px] -right-2' : 'top-[6px] -left-2';
 
+  const glowBorderColors: Record<string, string> = {
+    RED: 'border-rose-500 shadow-[0_0_18px_#ef4444,0_0_36px_#f43f5e]',
+    GREEN: 'border-emerald-400 shadow-[0_0_18px_#22c55e,0_0_36px_#10b981]',
+    YELLOW: 'border-amber-400 shadow-[0_0_18px_#eab308,0_0_36px_#f59e0b]',
+    BLUE: 'border-cyan-400 shadow-[0_0_18px_#06b6d4,0_0_36px_#3b82f6]',
+  };
+
+  const glowShadowClasses: Record<string, string> = {
+    RED: 'drop-shadow-[0_0_15px_rgba(239,68,68,0.95)] drop-shadow-[0_0_30px_rgba(244,63,94,0.8)]',
+    GREEN: 'drop-shadow-[0_0_15px_rgba(34,197,94,0.95)] drop-shadow-[0_0_30px_rgba(16,185,129,0.8)]',
+    YELLOW: 'drop-shadow-[0_0_15px_rgba(245,158,11,0.95)] drop-shadow-[0_0_30px_rgba(234,179,8,0.8)]',
+    BLUE: 'drop-shadow-[0_0_15px_rgba(6,182,212,0.95)] drop-shadow-[0_0_30px_rgba(59,130,246,0.8)]',
+  };
+
   return (
     <div className={`relative flex flex-col items-center select-none min-w-[98px] transition-all duration-300 ${
-      isActive ? 'scale-105 filter drop-shadow-[0_0_15px_rgba(34,197,94,0.95)] drop-shadow-[0_0_30px_rgba(16,185,129,0.8)]' : ''
+      isActive ? `scale-105 filter ${glowShadowClasses[player.color] || glowShadowClasses.GREEN}` : ''
     }`}>
       {/* Speech Emoji / Message Popup */}
       {chatBubbleMessage && (
@@ -81,9 +95,9 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
 
       {/* 1. Profile Photo Frame */}
       <div className="relative w-[84px] h-[84px] flex items-center justify-center p-1">
-        {/* Glowing Green Patti Border on Active Turn */}
+        {/* Glowing Border on Active Turn */}
         {isActive && (
-          <div className="absolute -inset-1 rounded-full border-[3px] border-emerald-400 shadow-[0_0_18px_#22c55e,0_0_36px_#10b981] animate-pulse z-30 pointer-events-none" />
+          <div className={`absolute -inset-1 rounded-full border-[3px] animate-pulse z-30 pointer-events-none ${glowBorderColors[player.color] || glowBorderColors.GREEN}`} />
         )}
 
         {/* Circular SVG Timer Ring — smooth green→yellow→red melt */}

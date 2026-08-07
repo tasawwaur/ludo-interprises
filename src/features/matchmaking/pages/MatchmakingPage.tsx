@@ -161,9 +161,19 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
             let finalOpponent = opponent;
 
             if (!finalOpponent) {
-              const isSnake = (useQueueStore.getState().mode || "Normal Classic") === "Snake & Ladders";
-              const myColor   = isSnake ? "RED" : "BLUE";
-              const oppColor  = isSnake ? "GREEN" : "GREEN";
+               const mode = useQueueStore.getState().mode || "Normal Classic";
+               let myColor = "RED";
+               let oppColor = "GREEN";
+               if (mode === "Normal Classic") {
+                 myColor = "RED";
+                 oppColor = "YELLOW";
+               } else if (mode === "Quick Classic" || mode === "Unique Classic") {
+                 myColor = "BLUE";
+                 oppColor = "GREEN";
+               } else if (mode === "Snake & Ladders") {
+                 myColor = "RED";
+                 oppColor = "GREEN";
+               }
 
               const randomBot = GLOBAL_PLAYER_DATABASE[Math.floor(Math.random() * GLOBAL_PLAYER_DATABASE.length)];
 

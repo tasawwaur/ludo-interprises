@@ -14,7 +14,6 @@ import { ProtectButton } from '../components/ProtectButton';
 import { LuxuryLiveCamera } from '../../../components/camera/LuxuryLiveCamera';
 import { useGlobalModalStore } from '../../../store/global-modal.store';
 import { SoundEngine } from '../../../game/sound/SoundEngine';
-import { LudoToken } from '../components/LudoToken';
 
 
 interface GameArenaPageProps {
@@ -31,16 +30,16 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
   const moveToken = useGameStore((s) => s.moveToken);
   const turnTimerSeconds = useGameStore((s) => s.turnTimerSeconds);
   const isAutoMode = useGameStore((s) => s.isAutoMode);
-  const isSpectatorMode = useGameStore((s) => s.isSpectatorMode);
+  const isSpectatorMode = useGameStore((s) => s.isSpectatorMode); // ✅ Select spectator mode state
   const disableAutoMode = useGameStore((s) => s.disableAutoMode);
   const tickTurnTimer = useGameStore((s) => s.tickTurnTimer);
   const demoStack = useGameStore((s) => s.demoStack);
   const connectGameSocket = useGameStore((s) => s.connectGameSocket);
   const disconnectGameSocket = useGameStore((s) => s.disconnectGameSocket);
+  const opponentReconnectingSeconds = useGameStore((s) => s.opponentReconnectingSeconds);
   const user = useUserStore((s) => s.user);
-  const updateUser = useUserStore((s) => s.updateUser);
   const maxPlayers = useRoomStore((s) => s.maxPlayers);
-  const useCanvasBoard = false;
+  const useCanvasBoard = true;
 
   // Connect authoritative game socket for online matchmaking matches
   useEffect(() => {
@@ -59,8 +58,6 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
     text: string;
     time: string;
     color?: string;
-    isSpectator?: boolean;
-    isSystem?: boolean;
   }
 
   const [chatHistory, setChatHistory] = useState<ChatMessageItem[]>([]);
@@ -84,7 +81,6 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
 
   const [dragPositions, setDragPositions] = useState<Record<string, { top: string; left: string }>>({});
   const [activeDragTokenId, setActiveDragTokenId] = useState<string | null>(null);
-  const [shareCopied, setShareCopied] = useState(false);
 
   const handleMouseDown = (e: React.MouseEvent, tokenId: string) => {
     e.preventDefault();
@@ -132,7 +128,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
     avatar: '/assets/images/icons/icon_club_crown.png',
     equippedFrameId: 'frame_default',
     tokens: [],
-  } as any;
+  };
 
   const localUserName = user?.displayName || user?.username;
   const localPlayer = (gameState?.players ? (gameState.players.find(p => (localUserName && p.name === localUserName) || p.color === localPlayerColor) || gameState.players[0] || defaultPlayer) : defaultPlayer) as any;
@@ -152,9 +148,29 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
     }
   }, [gameState, startMatch, user, maxPlayers]);
 
-  // NOTE: Coin/XP rewards are handled by App.tsx when MATCH_RESULT view loads.
-  // Do NOT add reward logic here — it would cause double payouts.
+  const updateUser = useUserStore((s) => s.updateUser);
+  const [rewardClaimed, setRewardClaimed] = useState(false);
 
+  // Match Victory Prize Reward (9,500 Coins for Winner)
+  useEffect(() => {
+    if (gameState?.gameStatus === 'GAME_OVER' && !rewardClaimed) {
+      if (isSpectatorMode) {
+        setRewardClaimed(true);
+        return;
+      }
+      const winnerColor = gameState.winnerRankings[0];
+      const winningPlayer = gameState.players.find((p) => p.color === winnerColor);
+      
+      // If Host / User won the match, credit win reward to their wallet!
+      if (winningPlayer?.isHost || winningPlayer?.color === localPlayer?.color) {
+        const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
+        const winReward = Math.round(entryFee * 1.9); // 2 * entryFee - 5% commission
+        const currentCoins = user?.coins || 0;
+        updateUser({ coins: currentCoins + winReward });
+        setRewardClaimed(true);
+      }
+    }
+  }, [gameState?.gameStatus, gameState?.winnerRankings, rewardClaimed, user?.coins, updateUser, localPlayer?.color, isSpectatorMode]);
 
 
   // Turn Timer Countdown Loop
@@ -179,17 +195,12 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         text: data.text,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         color: data.color || 'BLUE',
-        isSpectator: data.isSpectator || false,
-        isSystem: data.isSystem || false,
       };
-      setChatHistory((prev) => [...prev.slice(-30), newMsgItem]);
-      // Only show speech bubble for non-spectator, non-system messages
-      if (!data.isSpectator && !data.isSystem && data.color) {
-        setActiveSpeechBubbles((prev) => ({ ...prev, [data.color]: data.text }));
-        setTimeout(() => {
-          setActiveSpeechBubbles((prev) => ({ ...prev, [data.color]: null }));
-        }, 2800);
-      }
+      setChatHistory((prev) => [...prev.slice(-15), newMsgItem]);
+      setActiveSpeechBubbles((prev) => ({ ...prev, [data.color]: data.text }));
+      setTimeout(() => {
+        setActiveSpeechBubbles((prev) => ({ ...prev, [data.color]: null }));
+      }, 2800);
     };
 
     window.addEventListener('game_chat_message', handleIncomingChat);
@@ -201,59 +212,36 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
   const activePlayer = gameState.players[gameState.activePlayerIndex];
 
   const handleSendMessage = (msg: string) => {
+    const activeCol = localPlayer?.color || 'BLUE';
     const senderName = user?.displayName || user?.username || 'You';
-    const gameSocket = useGameStore.getState().gameSocket;
-    const gameStore = useGameStore.getState();
-    const specMode = gameStore.isSpectatorMode;
-    const activeCol = specMode ? 'BLUE' : (localPlayer?.color || 'BLUE');
-
-    // Add to local chat history immediately
+    
+    // Add to chat history
     const newMsgItem: ChatMessageItem = {
       id: Date.now().toString() + Math.random().toString().slice(2, 5),
       sender: senderName,
       text: msg,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       color: activeCol,
-      isSpectator: specMode,
     };
-    setChatHistory((prev) => [...prev.slice(-30), newMsgItem]);
 
-    if (!specMode) {
-      // Player: show speech bubble on board
-      setActiveSpeechBubbles((prev) => ({ ...prev, [activeCol]: msg }));
-      setTimeout(() => {
-        setActiveSpeechBubbles((prev) => ({ ...prev, [activeCol]: null }));
-      }, 2800);
-    }
+    setChatHistory((prev) => [...prev.slice(-15), newMsgItem]);
 
-    if (gameSocket) {
-      // Use unified chat_message event for both players and spectators
-      const playerRoomCode = useRoomStore.getState().roomCode;
-      const spectatorRoomCode = (gameSocket as any).spectatorRoomCode || '';
-      const resolvedRoomCode = specMode ? spectatorRoomCode : playerRoomCode;
+    setActiveSpeechBubbles((prev) => ({ ...prev, [activeCol]: msg }));
+    setTimeout(() => {
+      setActiveSpeechBubbles((prev) => ({ ...prev, [activeCol]: null }));
+    }, 2800);
 
-      gameSocket.emit("chat_message", {
-        roomCode: resolvedRoomCode,
-        senderName: senderName,
+    const roomCode = useRoomStore.getState().roomCode;
+    const gameSocket = useGameStore.getState().gameSocket;
+    if (gameSocket && roomCode) {
+      gameSocket.emit("client_action", {
+        roomCode,
+        actionType: 'CHAT',
         text: msg,
+        senderName: senderName,
         color: activeCol,
-        isSpectator: specMode,
       });
     }
-  };
-
-  // Share spectate link button handler
-  const handleShareSpectateLink = () => {
-    const roomCode = useRoomStore.getState().roomCode;
-    if (!roomCode) return;
-    const spectateUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?spectate=${roomCode}`;
-    navigator.clipboard?.writeText(spectateUrl).then(() => {
-      setShareCopied(true);
-      setTimeout(() => setShareCopied(false), 2000);
-    }).catch(() => {
-      // Fallback: prompt
-      window.prompt('Copy this link to share:', spectateUrl);
-    });
   };
 
   const getFrameImage = (color: string | undefined): string => {
@@ -476,17 +464,16 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                             left: positionStyle.left,
                           }}
                         >
-                          <LudoToken color={token.color as any} size={28} tokenIndex={token.index} />
+                          <img src={tokenImg} alt={`${token.color} Token ${idx + 1}`} className="w-full h-full object-contain pointer-events-auto cursor-pointer" />
                           
                           {showNumber && (
                             <div 
-                              className="absolute -top-[13px] h-[18px] px-1 min-w-[22px] rounded-full flex items-center justify-center border-[1.5px] border-amber-300 shadow-[0_2px_6px_rgba(0,0,0,0.6)] font-black text-[9.5px] text-white z-50 select-none pointer-events-none gap-[1px]"
+                              className="absolute -top-[12px] w-[18px] h-[18px] rounded-full flex items-center justify-center border-[1.5px] border-white shadow-[0_2px_4px_rgba(0,0,0,0.4)] font-black text-[9px] text-white z-50 select-none pointer-events-none"
                               style={{
                                 backgroundColor: badgeColors[token.color] || '#2563eb'
                               }}
                             >
-                              <span>💣</span>
-                              <span>{displayNum}</span>
+                              {displayNum}
                             </div>
                           )}
                         </div>
@@ -501,7 +488,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
           {gameState.players.length === 2 && (
             <>
               {/* Top Center Royal Frame & Opponent 3D Dice */}
-              <div className="absolute -top-[20px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] z-50 flex items-center justify-center pointer-events-auto">
+              <div className="absolute -top-[90px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] z-50 flex items-center justify-center pointer-events-auto">
                 <img
                   src={getFrameImage(opponentPlayer?.color)}
                   alt="Opponent Royal Frame"
@@ -535,7 +522,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
               </div>
 
               {/* Bottom Center Royal Frame & Local User 3D Dice */}
-              <div className="absolute -bottom-[20px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] z-50 flex items-center justify-center pointer-events-auto">
+              <div className="absolute -bottom-[100px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] z-50 flex items-center justify-center pointer-events-auto">
                 <img
                   src={getFrameImage(localPlayer?.color)}
                   alt="Local Royal Frame"
@@ -575,27 +562,12 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
           <div className="absolute top-5 left-1/2 -translate-x-1/2 z-30 pointer-events-auto bg-gradient-to-r from-purple-900/95 via-amber-500/95 to-purple-900/95 border border-amber-400 px-4 py-1.5 rounded-full flex items-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.6)] scale-95 transition-all">
             <span className="animate-pulse w-2 h-2 rounded-full bg-red-500" />
             <span className="text-[9px] font-black text-white uppercase tracking-widest flex items-center gap-1 font-sans">
-              👁 LIVE SPECTATING
+              👑 VIP SPECTATING MODE
             </span>
           </div>
         )}
 
-        {/* SHARE SPECTATE LINK BUTTON — only for active players, not spectators */}
-        {!isSpectatorMode && (
-          <div className="absolute top-5 right-3 z-30 pointer-events-auto">
-            <button
-              onClick={handleShareSpectateLink}
-              className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all active:scale-95 border shadow-lg ${
-                shareCopied
-                  ? 'bg-green-500/90 border-green-400 text-white shadow-[0_0_10px_rgba(74,222,128,0.5)]'
-                  : 'bg-purple-950/80 border-amber-400/40 text-amber-300 hover:border-amber-400/80'
-              }`}
-              title="Share spectate link"
-            >
-              {shareCopied ? '✅ Copied!' : '🔗 Share'}
-            </button>
-          </div>
-        )}
+        {/* HAMBURGER MENU BUTTON: FIXED TOP-LEFT */}
         <div className="absolute top-5 left-3 z-30 pointer-events-auto">
           <button
             onClick={() => setShowMenu(true)}
@@ -843,23 +815,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         onConfirmExit={() => {
           setShowExitModal(false);
 
-          // 1. Emit forfeit/disconnect event to server so opponent gets WINNER declaration
-          const roomCode = useRoomStore.getState().roomCode;
-          const gameSocket = useGameStore.getState().gameSocket;
-          if (gameSocket && roomCode) {
-            gameSocket.emit("client_action", {
-              roomCode,
-              actionType: "FORFEIT",
-              quittingColor: localPlayer?.color,
-            });
-          }
-
-          // 2. Deduct entry fee penalty for quitting match
-          const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
-          const currentCoins = user?.coins || 0;
-          updateUser({ coins: Math.max(0, currentCoins - entryFee) });
-
-          // 3. Declare local player as LOSER by forfeit
+          // 1. Declare local player as LOSER by forfeit
           const oppColor = opponentPlayer?.color || 'GREEN';
           const gameOverState = {
             ...gameState!,
@@ -867,20 +823,38 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
             winnerRankings: [oppColor],
             lastActionSummary: `Match Forfeited! ${localPlayer?.name} quit the match.`,
           };
+
+          // 2. Emit forfeit event to socket so opponent gets WINNER declaration instantly
+          const roomCode = useRoomStore.getState().roomCode;
+          const gameSocket = useGameStore.getState().gameSocket;
+          if (gameSocket && roomCode) {
+            gameSocket.emit("client_action", {
+              roomCode,
+              actionType: "FORFEIT",
+              quittingColor: localPlayer?.color,
+              winnerColor: oppColor,
+              gameState: gameOverState,
+            });
+          }
+
+          // 3. Deduct entry fee penalty for quitting match
+          const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
+          const currentCoins = user?.coins || 0;
+          updateUser({ coins: Math.max(0, currentCoins - entryFee) });
+
           useGameStore.setState({ gameState: gameOverState });
           localStorage.setItem("ludo_classic_engine_state", JSON.stringify(gameOverState));
 
-          SoundEngine.play('WIN' as any);
+          SoundEngine.play('TIMEOUT');
         }}
       />
 
-      {/* Chat Modal — enhanced with spectator support */}
+      {/* Chat Modal */}
       <ChatModal
         isOpen={showChatModal}
         onClose={() => setShowChatModal(false)}
         onSendMessage={handleSendMessage}
         messages={chatHistory}
-        isSpectatorMode={isSpectatorMode}
       />
 
       {/* 🏆 Match Result Victory / Defeat Modal Overlay (Snake & Ladders Style) */}
@@ -890,8 +864,8 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
         const winReward = Math.round(entryFee * 1.9);
 
-        const localTokensHome = localPlayer?.tokens?.filter((t: any) => t.state === 'HOME').length || 0;
-        const localKills = localPlayer?.tokens?.reduce((acc: number, t: any) => acc + (t.stepCount > 0 ? 1 : 0), 0) || 0;
+        const localTokensHome = (localPlayer?.tokens as any[])?.filter((t: any) => t.state === 'HOME').length || 0;
+        const localKills = (localPlayer?.tokens as any[])?.reduce((acc: number, t: any) => acc + (t.stepCount > 0 ? 1 : 0), 0) || 0;
 
         const killsXP = localKills * 10;
         const passXP = localTokensHome * 50;
@@ -995,6 +969,39 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         opponentPlayer={opponentPlayer}
         isOneVsOne={true}
       />
+
+      {/* ⚡ Reconnecting Grace Period Overlay */}
+      {opponentReconnectingSeconds !== null && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in select-none">
+          <div className="relative w-full max-w-sm rounded-3xl bg-gradient-to-b from-slate-900 via-purple-950/80 to-slate-950 border-2 border-amber-400/50 p-6 shadow-[0_0_50px_rgba(245,158,11,0.5)] text-center flex flex-col items-center gap-4">
+            {/* Spinning Loader */}
+            <div className="relative w-16 h-16 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full border-4 border-amber-500/20 border-t-amber-400 animate-spin"></div>
+              <div className="absolute text-xl">📡</div>
+            </div>
+            
+            <div>
+              <h2 className="text-base font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-200 uppercase">
+                Connection Interrupted
+              </h2>
+              <p className="text-[10px] text-purple-200 font-bold uppercase mt-1">
+                Opponent Disconnected
+              </p>
+              <p className="text-xs text-slate-300 font-medium mt-3 leading-relaxed">
+                Waiting for opponent to rejoin the match...
+              </p>
+            </div>
+
+            {/* Countdown Badge */}
+            <div className="px-4 py-2 bg-black/40 border border-amber-500/20 rounded-2xl flex items-center gap-2">
+              <span className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping"></span>
+              <span className="text-sm font-black text-amber-300">
+                {opponentReconnectingSeconds}s Remaining
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

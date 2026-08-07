@@ -26,6 +26,7 @@ interface GameStoreState {
   _isRolling: boolean;
   cheatNextRollValue: number | null;
   isSpectatorMode: boolean; // ✅ Spectator mode active
+  opponentReconnectingSeconds: number | null;
 
   // Actions
   startMatch: (mode: '2P' | '2v2' | '4P', hostName: string) => void;
@@ -43,7 +44,7 @@ interface GameStoreState {
   demoStack: () => void;
   connectGameSocket: (roomCode: string) => void;
   disconnectGameSocket: () => void;
-  joinAsSpectator: (roomCode: string) => void; // Join a live match as read-only spectator
+  joinAsSpectator: (roomCode: string) => void;
 }
 
 export const useGameStore = create<GameStoreState>()(
@@ -55,12 +56,13 @@ export const useGameStore = create<GameStoreState>()(
       activeHoverTokenId: null,
       selectedTokenId: null,
       isMuted: true,
-      turnTimerSeconds: 10,
+      turnTimerSeconds: 15,
       isAutoMode: false,
       gameSocket: null,
       _isRolling: false,
       cheatNextRollValue: null,
       isSpectatorMode: false, // ✅ Initialize as false
+      opponentReconnectingSeconds: null,
 
       startMatch: (mode, hostName) => {
         // ✅ Restore state from localStorage on refresh
@@ -68,27 +70,20 @@ export const useGameStore = create<GameStoreState>()(
         if (savedStateRaw) {
           try {
             const parsed = JSON.parse(savedStateRaw);
-            const maxPlayers = useRoomStore.getState().maxPlayers;
-            const expectedPlayerCount = maxPlayers;
-
-            if (parsed.players.length !== expectedPlayerCount) {
-              localStorage.removeItem("ludo_classic_engine_state");
-            } else {
-              const localUser = useUserStore.getState().user;
-              const localPlayer = parsed.players.find((p: any) => p.name === localUser?.username || p.name === localUser?.displayName) || parsed.players[0];
-              
-              const recorder = new ReplayRecorder();
-              set({
-                gameState: parsed,
-                localPlayerColor: localPlayer.color as PlayerColor,
-                replayRecorder: recorder,
-                activeHoverTokenId: null,
-                selectedTokenId: null,
-                turnTimerSeconds: 10,
-                isAutoMode: false,
-              });
-              return;
-            }
+            const localUser = useUserStore.getState().user;
+            const localPlayer = parsed.players.find((p: any) => p.name === localUser?.username || p.name === localUser?.displayName) || parsed.players[0];
+            
+            const recorder = new ReplayRecorder();
+            set({
+              gameState: parsed,
+              localPlayerColor: localPlayer.color as PlayerColor,
+              replayRecorder: recorder,
+              activeHoverTokenId: null,
+              selectedTokenId: null,
+              turnTimerSeconds: 15,
+              isAutoMode: false,
+            });
+            return;
           } catch (e) {
             localStorage.removeItem("ludo_classic_engine_state");
           }
@@ -137,7 +132,7 @@ export const useGameStore = create<GameStoreState>()(
           replayRecorder: recorder,
           activeHoverTokenId: null,
           selectedTokenId: null,
-          turnTimerSeconds: 10,
+          turnTimerSeconds: 15,
           isAutoMode: false,
         });
 
@@ -180,7 +175,7 @@ export const useGameStore = create<GameStoreState>()(
           replayRecorder: recorder,
           activeHoverTokenId: null,
           selectedTokenId: null,
-          turnTimerSeconds: 10,
+          turnTimerSeconds: 15,
           isAutoMode: false,
           isSpectatorMode: true, // ✅ Set flag
         });
@@ -199,7 +194,7 @@ export const useGameStore = create<GameStoreState>()(
 
   disableAutoMode: () => {
     const { gameState } = get();
-    const seconds = gameState?.gameStatus === 'MOVE_WAIT' ? 10 : 10;
+    const seconds = gameState?.gameStatus === 'MOVE_WAIT' ? 10 : 15;
     set({ isAutoMode: false, turnTimerSeconds: seconds });
   },
 
@@ -219,38 +214,16 @@ export const useGameStore = create<GameStoreState>()(
         SoundEngine.vibrate(60);
       }
     } else {
-      // Timer hit 0 — play feedback only.
-      set({ turnTimerSeconds: 0 });
+      // Timer hit 0! Reset timer immediately to 15 to prevent sound loop or page freeze
+      set({ turnTimerSeconds: 15 });
       SoundEngine.play('TIMEOUT');
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(150);
-      }
+      SoundEngine.vibrate(150);
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('game_timeout'));
       }
 
-      // Check if we should skip the turn locally (for Bot/AI matches where there is no server timer)
-      const isBotMatch = gameState.players.some(p => p.isAi);
-      if (isBotMatch) {
-        const nextState = GameEngine.skipTurn(gameState);
-        set({
-          gameState: nextState,
-          turnTimerSeconds: 10,
-          isAutoMode: false,
-        });
-        localStorage.setItem("ludo_classic_engine_state", JSON.stringify(nextState));
-        setTimeout(() => {
-          get().triggerAiMoveIfNeeded();
-        }, 800);
-        return;
-      }
-
-      // Only allowed client-side action: auto-move when there is exactly ONE movable token
-      // (this is a UX shortcut, not a skip — server will still validate the move)
-      const { gameState: gs } = get();
-      if (gs?.gameStatus === 'MOVE_WAIT' && gs.movableTokens.length === 1) {
-        get().moveToken(gs.movableTokens[0].tokenId);
-      }
+      // Auto-play the turn for the active player (rolls dice + moves best token)
+      get().triggerAiMoveIfNeeded(true);
     }
   },
 
@@ -307,7 +280,7 @@ export const useGameStore = create<GameStoreState>()(
         gameState: nextState,
         selectedTokenId: null,
         _isRolling: false,
-        turnTimerSeconds: nextState.gameStatus === 'ROLL_WAIT' ? 10 : (hasLegalMoves ? 10 : 5),
+        turnTimerSeconds: nextState.gameStatus === 'ROLL_WAIT' ? 15 : (hasLegalMoves ? 10 : 5),
       } as any);
 
       // ✅ Persist state
@@ -398,7 +371,7 @@ export const useGameStore = create<GameStoreState>()(
           gameState: finalState,
           activeHoverTokenId: null,
           selectedTokenId: null,
-          turnTimerSeconds: 10,
+          turnTimerSeconds: isAutoMode ? 5 : 15,
         });
 
         // ✅ Persist state
@@ -474,7 +447,7 @@ export const useGameStore = create<GameStoreState>()(
 
     set({
       gameState: nextState,
-      turnTimerSeconds: 10,
+      turnTimerSeconds: 15,
       selectedTokenId: null,
       _isRolling: false,
     });
@@ -504,7 +477,7 @@ export const useGameStore = create<GameStoreState>()(
       gameState: null,
       activeHoverTokenId: null,
       selectedTokenId: null,
-      turnTimerSeconds: 10,
+      turnTimerSeconds: 15,
       isAutoMode: false,
       isSpectatorMode: false, // ✅ Reset spectator mode
     });
@@ -523,18 +496,10 @@ export const useGameStore = create<GameStoreState>()(
     }
 
     if (gameState.gameStatus === 'ROLL_WAIT' && !gameState.isDiceRolled) {
-      // Add delay so the board UI settles after extra turn (kill/6/home)
-      // before the bot or auto-mode player fires its next roll
+      get().rollDice();
       setTimeout(() => {
-        const fresh = get();
-        const freshState = fresh.gameState;
-        if (!freshState) return;
-        const freshActive = freshState.players[freshState.activePlayerIndex];
-        const autoPlay = freshActive?.isAi || fresh.isAutoMode;
-        if (autoPlay && freshState.gameStatus === 'ROLL_WAIT' && !freshState.isDiceRolled) {
-          fresh.rollDice();
-        }
-      }, 1200);
+        get().triggerAiMoveIfNeeded(forceAuto);
+      }, 500);
       return;
     }
 
@@ -718,13 +683,23 @@ export const useGameStore = create<GameStoreState>()(
   },
 
   connectGameSocket: (roomCode) => {
+    set({ opponentReconnectingSeconds: null });
     const socketUrl = getSocketUrl();
     const socket = io(socketUrl, {
       transports: ["websocket", "polling"],
       reconnection: true,
     });
-
-    socket.emit("join_room_game", { roomCode });
+ 
+    const currentUser = useUserStore.getState().user;
+    socket.emit("join_room_game", { roomCode, userId: currentUser?.id || currentUser?.uid });
+ 
+    socket.off("timer_tick");
+    socket.off("timer_timeout");
+    socket.off("server_action");
+    socket.off("opponent_disconnected");
+    socket.off("opponent_disconnected_grace");
+    socket.off("opponent_rejoined");
+    socket.off("request_state_sync");
 
     socket.on("timer_tick", (data: { seconds: number; activeColor: string }) => {
       const { turnTimerSeconds } = get();
@@ -735,9 +710,7 @@ export const useGameStore = create<GameStoreState>()(
 
     socket.on("timer_timeout", (data: { timedOutColor: string; nextColor: string }) => {
       SoundEngine.play('TIMEOUT');
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(150);
-      }
+      SoundEngine.vibrate(150);
 
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('game_timeout'));
@@ -767,7 +740,7 @@ export const useGameStore = create<GameStoreState>()(
 
           set({
             gameState: nextState,
-            turnTimerSeconds: 10,
+            turnTimerSeconds: 15,
             isAutoMode: false,
             _isRolling: false,
           });
@@ -781,11 +754,9 @@ export const useGameStore = create<GameStoreState>()(
       }
     });
 
-    socket.on("server_action", (data: { actionType: 'ROLL' | 'MOVE' | 'UNDO' | 'CHAT' | 'FORFEIT' | 'STATE_SYNC' | 'CAMERA_STATE'; diceValue?: number; tokenId?: string; nextColor?: string; cost?: number; text?: string; senderName?: string; color?: string; gameState?: any; hasLegalMoves?: boolean }) => {
+    socket.on("server_action", (data: { actionType: 'ROLL' | 'MOVE' | 'UNDO' | 'CHAT' | 'STATE_SYNC' | 'FORFEIT'; diceValue?: number; tokenId?: string; nextColor?: string; cost?: number; text?: string; senderName?: string; color?: string; gameState?: any; hasLegalMoves?: boolean; turnTimerSeconds?: number }) => {
       const { gameState } = get();
       if (!gameState) return;
-
-      console.log(`[Socket Sync] Action ${data.actionType} received`, data);
 
       if (data.actionType === 'CHAT') {
         if (typeof window !== 'undefined') {
@@ -793,6 +764,15 @@ export const useGameStore = create<GameStoreState>()(
         }
         return;
       }
+
+      // Deduplicate rapid repeat actions sent over socket
+      const actionKey = `${data.actionType}_${data.diceValue ?? ''}_${data.tokenId ?? ''}_${data.gameState?.currentTurnColor ?? ''}_${data.gameState?.gameStatus ?? ''}`;
+      if ((get() as any)._lastProcessedActionKey === actionKey) {
+        return;
+      }
+      (set as any)({ _lastProcessedActionKey: actionKey });
+
+      console.log(`[Socket Sync] Action ${data.actionType} received`, data);
 
       if (data.actionType === 'ROLL' && data.diceValue !== undefined) {
         if (data.gameState) {
@@ -849,7 +829,7 @@ export const useGameStore = create<GameStoreState>()(
           set({
             gameState: incomingState,
             _isRolling: false,
-            turnTimerSeconds: 10,
+            turnTimerSeconds: 15,
           });
           localStorage.setItem("ludo_classic_engine_state", JSON.stringify(incomingState));
         } else {
@@ -859,7 +839,7 @@ export const useGameStore = create<GameStoreState>()(
         if (data.gameState) {
           set({
             gameState: data.gameState,
-            turnTimerSeconds: 10,
+            turnTimerSeconds: 15,
             _isRolling: false,
           });
           localStorage.setItem("ludo_classic_engine_state", JSON.stringify(data.gameState));
@@ -898,7 +878,7 @@ export const useGameStore = create<GameStoreState>()(
 
           set({
             gameState: finalState,
-            turnTimerSeconds: 10,
+            turnTimerSeconds: 15,
             _isRolling: false,
           });
 
@@ -910,16 +890,27 @@ export const useGameStore = create<GameStoreState>()(
         const { gameState, localPlayerColor } = get();
         if (!gameState || gameState.gameStatus === 'GAME_OVER') return;
 
-        const localPlayerIndex = gameState.players.findIndex(p => p.color === localPlayerColor);
-        const winnerIndex = localPlayerIndex !== -1 ? localPlayerIndex : 0;
-        const winnerColor = gameState.players[winnerIndex].color;
+        const quittingColor = (data as any).quittingColor;
+        const winningPlayer = gameState.players.find(p => quittingColor ? p.color !== quittingColor : p.color === localPlayerColor) || gameState.players[0];
+        const winnerColor = (data as any).winnerColor || winningPlayer.color;
 
         const gameOverState = {
           ...gameState,
           gameStatus: 'GAME_OVER' as const,
           winnerRankings: [winnerColor],
-          lastActionSummary: 'Opponent quit the match. Victory by forfeit!',
+          lastActionSummary: `${quittingColor ? 'Opponent' : 'Player'} quit the match. Victory by forfeit!`,
         };
+
+        // Credit win reward coins (+9,500 coins)
+        const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
+        const winReward = Math.round(entryFee * 1.9);
+        const currentUser = useUserStore.getState().user;
+        if (currentUser) {
+          useUserStore.getState().updateUser({
+            coins: (currentUser.coins || 0) + winReward,
+            gems: (currentUser.gems || 0) + 5,
+          });
+        }
 
         set({ gameState: gameOverState });
         localStorage.setItem("ludo_classic_engine_state", JSON.stringify(gameOverState));
@@ -928,11 +919,44 @@ export const useGameStore = create<GameStoreState>()(
         try {
           confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         } catch (e) {}
+      } else if (data.actionType === 'STATE_SYNC') {
+        if (data.gameState) {
+          set({
+            gameState: data.gameState,
+            _isRolling: false,
+            turnTimerSeconds: data.turnTimerSeconds ?? 15,
+            opponentReconnectingSeconds: null,
+          });
+          localStorage.setItem("ludo_classic_engine_state", JSON.stringify(data.gameState));
+          console.log("[Rejoin Sync] Game state successfully synchronized from remaining player!");
+        }
+      }
+    });
+ 
+    socket.on("opponent_disconnected_grace", (data: { roomCode: string; secondsRemaining: number }) => {
+      set({ opponentReconnectingSeconds: data.secondsRemaining });
+    });
+ 
+    socket.on("opponent_rejoined", () => {
+      set({ opponentReconnectingSeconds: null });
+    });
+ 
+    socket.on("request_state_sync", () => {
+      const { gameSocket, gameState, turnTimerSeconds } = get();
+      if (gameSocket && gameState) {
+        console.log("[Rejoin Sync] Sending current game state to rejoining player.");
+        gameSocket.emit("client_action", {
+          roomCode,
+          actionType: "STATE_SYNC",
+          gameState,
+          turnTimerSeconds,
+        });
       }
     });
 
     socket.on("opponent_disconnected", () => {
       console.log("[Opponent Disconnected] Opponent left match — declaring local player WINNER!");
+      set({ opponentReconnectingSeconds: null });
       const { gameState, localPlayerColor } = get();
       if (!gameState || gameState.gameStatus === 'GAME_OVER') return;
 
@@ -947,6 +971,17 @@ export const useGameStore = create<GameStoreState>()(
         lastActionSummary: 'Opponent disconnected. Victory by forfeit!',
       };
 
+      // Credit win reward coins (+9,500 coins)
+      const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
+      const winReward = Math.round(entryFee * 1.9);
+      const currentUser = useUserStore.getState().user;
+      if (currentUser) {
+        useUserStore.getState().updateUser({
+          coins: (currentUser.coins || 0) + winReward,
+          gems: (currentUser.gems || 0) + 5,
+        });
+      }
+
       set({ gameState: gameOverState });
       localStorage.setItem("ludo_classic_engine_state", JSON.stringify(gameOverState));
 
@@ -954,28 +989,6 @@ export const useGameStore = create<GameStoreState>()(
       try {
         confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
       } catch (e) {}
-    });
-
-    // ── Direct chat_message from server (e.g. spectator sends a message) ──────
-    socket.on("chat_message", (data: { senderName: string; text: string; color: string; isSpectator: boolean }) => {
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('game_chat_message', { detail: { ...data } }));
-      }
-    });
-
-    // Also handle spectator_joined notification to show in chat
-    socket.on("spectator_joined", (data: { spectatorName: string }) => {
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('game_chat_message', {
-          detail: {
-            senderName: "System",
-            text: `👁 ${data.spectatorName} joined as spectator`,
-            color: "BLUE",
-            isSpectator: false,
-            isSystem: true,
-          }
-        }));
-      }
     });
 
     set({ gameSocket: socket });
@@ -990,63 +1003,36 @@ export const useGameStore = create<GameStoreState>()(
   },
 
   joinAsSpectator: (roomCode) => {
-    // Disconnect any existing socket first
     get().disconnectGameSocket();
-
     const socketUrl = getSocketUrl();
-    const socket = io(socketUrl, {
-      transports: ["websocket", "polling"],
-      reconnection: true,
-    });
-
+    const socket = io(socketUrl, { transports: ["websocket", "polling"], reconnection: true });
     const user = useUserStore.getState().user;
     const spectatorName = user?.displayName || user?.username || "Spectator";
 
     socket.on("connect", () => {
       socket.emit("spectate_room", { roomCode, spectatorName });
-      // Store roomCode on socket for chat message sending
-      (socket as any).spectatorRoomCode = roomCode;
     });
 
-    // Server confirms join and sends initial game snapshot
     socket.on("spectate_joined", (data: { roomCode: string; activeColor: string; gameStatus: string; secondsRemaining: number }) => {
-      set({
-        isSpectatorMode: true,
-        turnTimerSeconds: data.secondsRemaining,
-        gameSocket: socket,
-      });
-      console.log(`[Spectator] Joined room ${data.roomCode} — watching ${data.activeColor}'s turn`);
+      set({ isSpectatorMode: true, turnTimerSeconds: data.secondsRemaining, gameSocket: socket });
+      console.log(`[Spectator] Joined room ${data.roomCode}`);
     });
 
-    // Room not found
     socket.on("spectate_error", (data: { message: string }) => {
       console.warn("[Spectator] Error:", data.message);
       socket.disconnect();
     });
 
-    // ── Live Chat: receive messages from players + other spectators ──────────
-    socket.on("chat_message", (data: { senderName: string; text: string; color: string; isSpectator: boolean }) => {
-      window.dispatchEvent(new CustomEvent('game_chat_message', {
-        detail: { senderName: data.senderName, text: data.text, color: data.color, isSpectator: data.isSpectator }
-      }));
-    });
-
-    // Receive all live game actions from server_action broadcasts
     socket.on("server_action", (data: any) => {
       if (data?.gameState) {
-        set({
-          gameState: data.gameState,
-          turnTimerSeconds: 10,
-        });
+        set({ gameState: data.gameState, turnTimerSeconds: 10 });
       }
     });
 
-    // Live timer ticks
     socket.on("timer_tick", (data: { seconds: number }) => {
       set({ turnTimerSeconds: data.seconds });
     });
 
-    // If both players leave, spectator mode ends
     socket.on("opponent_disconnected", () => {
       set({ isSpectatorMode: false });
       socket.disconnect();

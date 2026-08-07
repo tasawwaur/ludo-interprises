@@ -484,10 +484,19 @@ io.on("connection", (socket) => {
       matchmakingQueue.splice(Math.min(player1Idx, matchingIdx), 1);
       const roomCode = "ROOM_" + Math.random().toString(36).substring(2, 8).toUpperCase();
 
-      // Assign RED/GREEN for Snake & Ladders, BLUE/GREEN for Ludo modes
-      const isSnake = mode === "Snake & Ladders";
-      const p1Color = isSnake ? "RED" : "BLUE";
-      const p2Color = isSnake ? "GREEN" : "GREEN";
+      // Assign colors based on matchmaking mode
+      let p1Color = "RED";
+      let p2Color = "GREEN";
+      if (mode === "Normal Classic") {
+        p1Color = "RED";
+        p2Color = "YELLOW";
+      } else if (mode === "Quick Classic" || mode === "Unique Classic") {
+        p1Color = "BLUE";
+        p2Color = "GREEN";
+      } else if (mode === "Snake & Ladders") {
+        p1Color = "RED";
+        p2Color = "GREEN";
+      }
 
       console.log(`[Matchmaking] Match Created: ${player1.name} (${p1Color}) vs ${player2.name} (${p2Color}) in ${roomCode}`);
 

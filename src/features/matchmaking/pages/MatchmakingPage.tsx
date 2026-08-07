@@ -161,10 +161,9 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
             let finalOpponent = opponent;
 
             if (!finalOpponent) {
-              // All 1v1 modes use BLUE (Host / bottom-left) vs GREEN (Guest / top-right)
-              // to match the physical yard colors on the luxury board!
-              const myColor   = "BLUE";
-              const oppColor  = "GREEN";
+              const isSnake = (useQueueStore.getState().mode || "Normal Classic") === "Snake & Ladders";
+              const myColor   = isSnake ? "RED" : "BLUE";
+              const oppColor  = isSnake ? "GREEN" : "GREEN";
 
               const randomBot = GLOBAL_PLAYER_DATABASE[Math.floor(Math.random() * GLOBAL_PLAYER_DATABASE.length)];
 

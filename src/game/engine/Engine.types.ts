@@ -65,6 +65,8 @@ export interface AnimatingTokenState {
   fromStep: number;
   toStep: number;
   currentStep: number;
+  prevStep?: number;
+  stepStartTime?: number;
 }
 
 export interface GameState {

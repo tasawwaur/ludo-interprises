@@ -308,6 +308,7 @@ export const useGameStore = create<GameStoreState>()(
     const animateStep = () => {
       stepCounter++;
       const currentStep = targetMove.fromStep + stepCounter;
+      const prevStep = currentStep - 1;
 
       const isOpenToken = targetMove.fromStep === -1 && targetMove.toStep === 0;
       if (isOpenToken) {
@@ -328,13 +329,15 @@ export const useGameStore = create<GameStoreState>()(
               fromStep: targetMove.fromStep,
               toStep: targetMove.toStep,
               currentStep,
+              prevStep,
+              stepStartTime: performance.now(),
             },
           },
         };
       });
 
       if (stepCounter < totalSteps) {
-        setTimeout(animateStep, 180);
+        setTimeout(animateStep, 160);
       } else {
         const nextState = GameEngine.moveToken(gameState, tokenId);
 

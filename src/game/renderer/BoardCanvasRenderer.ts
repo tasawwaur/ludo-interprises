@@ -614,9 +614,29 @@ export class BoardCanvasRenderer {
     state.players.forEach((player) => {
       player.tokens.forEach((token) => {
         const isAnimating = state.animatingToken?.tokenId === token.id;
-        const displayStep = isAnimating ? state.animatingToken!.currentStep : token.stepCount;
+        let coords: { x: number; y: number };
 
-        const coords = getPixelCoordinates(token.color, displayStep, token.index, cellSize, localPlayerColor);
+        if (isAnimating && state.animatingToken) {
+          const now = performance.now();
+          const stepDuration = 160;
+          const elapsed = now - (state.animatingToken.stepStartTime || now);
+          const p = Math.min(1.0, Math.max(0.0, elapsed / stepDuration));
+          // Smooth cubic ease-in-out curve
+          const ease = p * p * (3 - 2 * p);
+
+          const prevStep = state.animatingToken.prevStep ?? Math.max(-1, state.animatingToken.currentStep - 1);
+          const prevCoords = getPixelCoordinates(token.color, prevStep, token.index, cellSize, localPlayerColor);
+          const targetCoords = getPixelCoordinates(token.color, state.animatingToken.currentStep, token.index, cellSize, localPlayerColor);
+
+          // Smooth lerp + gentle 3D arc hop on step
+          const interpX = prevCoords.x + (targetCoords.x - prevCoords.x) * ease;
+          const hopArc = -Math.sin(p * Math.PI) * (cellSize * 0.28);
+          const interpY = prevCoords.y + (targetCoords.y - prevCoords.y) * ease + hopArc;
+
+          coords = { x: interpX, y: interpY };
+        } else {
+          coords = getPixelCoordinates(token.color, token.stepCount, token.index, cellSize, localPlayerColor);
+        }
         const radius = cellSize * 0.40;
 
         const isMoveable = moveableSet.has(token.id);

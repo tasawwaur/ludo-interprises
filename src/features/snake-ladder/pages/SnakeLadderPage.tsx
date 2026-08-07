@@ -199,7 +199,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         const hasOldState = parsed.players.some((p: any) =>
           p.tokens.some((t: any) => t.currentPosition === 0 || t.isUnlocked === undefined)
         );
-        // Also clear if saved state has wrong token count (e.g. old 1-token save)
+        // Also clear if saved state has wrong token count (e.g. old save)
         const hasWrongTokenCount = parsed.players.some((p: any) => p.tokens.length !== 2);
         if (hasOldState || hasWrongTokenCount) {
           localStorage.removeItem("ludo_sl_engine_state");
@@ -785,6 +785,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
       engineState.phase !== "PLAYING" ||
       oppIsRolling ||
       engineState.isWaitingForTokenChoice ||
+      engineState.diceValue !== null ||
       !engineState.players[oppPlayerIndex].isBot
     ) return;
 
@@ -807,7 +808,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
     }, 1000 + Math.random() * 1200);
 
     return () => clearTimeout(botDelay);
-  }, [engineState.currentTurnColor, engineState.phase, engineState.isWaitingForTokenChoice, oppIsRolling]);
+  }, [engineState.currentTurnColor, engineState.phase, engineState.isWaitingForTokenChoice, engineState.diceValue, oppIsRolling]);
 
   const handleSelectToken = (tokenId: number) => {
     if (!engineRef.current || engineState.currentTurnColor !== myColor || !engineState.isWaitingForTokenChoice) return;
@@ -1076,6 +1077,14 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         translateY ? `translateY(${translateY}px)` : "",
       ].filter(Boolean).join(" ");
 
+      const isTargetCell = myColor === engineState.currentTurnColor &&
+        engineState.isWaitingForTokenChoice &&
+        engineState.players[myPlayerIndex].tokens.some(t => {
+          const isMovable = engineState.movableTokenIds.includes(t.tokenId);
+          const targetPos = t.currentPosition + (engineState.diceValue || 0);
+          return isMovable && cell === targetPos;
+        });
+
       cells.push(
         <div
           key={cell}
@@ -1090,6 +1099,19 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
           }}
           className="relative flex flex-col items-center justify-center bg-transparent border-0 select-none cursor-pointer"
         >
+          {/* Landing highlight placeholder */}
+          {isTargetCell && (
+            <div className={`absolute inset-[2px] rounded-xl border-[2.5px] border-dashed animate-pulse flex items-center justify-center pointer-events-none z-0 ${
+              myColor === "RED" 
+                ? "border-red-500 bg-red-500/10 shadow-[0_0_12px_rgba(239,68,68,0.75)]" 
+                : "border-emerald-500 bg-emerald-500/10 shadow-[0_0_12px_rgba(16,185,129,0.75)]"
+            }`}>
+              <div className={`w-3 h-3 rounded-full animate-ping ${
+                myColor === "RED" ? "bg-red-400/60" : "bg-emerald-400/60"
+              }`} />
+            </div>
+          )}
+
           {/* Player tokens */}
           <div className={`${containerClass} max-w-full max-h-full p-[1px]`}>
             {redTokensHere.map((t) => {
@@ -1115,13 +1137,13 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
                 >
                   {/* Continuous Placed Token Breathing Aura */}
                   {!t.isMoving && !isMovable && (
-                    <div className="absolute -inset-1 rounded-full bg-red-500/25 border border-red-400/50 animate-pulse pointer-events-none" />
+                    <div className="absolute -inset-1.5 rounded-full bg-red-600/60 border-2 border-red-300 shadow-[0_0_22px_rgba(255,0,0,1)] animate-pulse pointer-events-none" />
                   )}
 
                   <img
                     src={`/assets/images/icons/luxury_token_red.png?v=${ASSET_VERSION}`}
                     alt="RED"
-                    className="w-full h-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]"
+                    className="w-full h-full object-contain filter saturate-[2.8] contrast-[1.4] brightness-[1.25] drop-shadow-[0_0_16px_rgba(255,0,0,1)]"
                     draggable={false}
                   />
 
@@ -1161,13 +1183,13 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
                 >
                   {/* Continuous Placed Token Breathing Aura */}
                   {!t.isMoving && !isMovable && (
-                    <div className="absolute -inset-1 rounded-full bg-emerald-500/25 border border-emerald-400/50 animate-pulse pointer-events-none" />
+                    <div className="absolute -inset-1.5 rounded-full bg-emerald-500/60 border-2 border-emerald-200 shadow-[0_0_22px_rgba(0,255,100,1)] animate-pulse pointer-events-none" />
                   )}
 
                   <img
                     src={`/assets/images/icons/luxury_token_green.png?v=${ASSET_VERSION}`}
                     alt="GREEN"
-                    className="w-full h-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]"
+                    className="w-full h-full object-contain filter saturate-[3.0] contrast-[1.4] brightness-[1.25] drop-shadow-[0_0_16px_rgba(0,255,100,1)]"
                     draggable={false}
                   />
 
@@ -1254,15 +1276,7 @@ export const SnakeLadderPage: React.FC<SnakeLadderPageProps> = ({ onLeave }) => 
         style={{ backgroundImage: "url('/assets/images/backgrounds/luxury_snake_bg.jpg')" }}
       />
 
-      {/* ⚔️ Token Kill Banner Announcement Overlay */}
-      {killBanner && (
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none animate-bounce">
-          <div className="px-6 py-3 rounded-2xl bg-gradient-to-r from-red-600 via-rose-700 to-amber-600 border-2 border-yellow-300 text-white font-black text-xs md:text-sm tracking-wider shadow-[0_0_25px_rgba(239,68,68,0.95)] flex items-center gap-2">
-            <span className="text-base">⚔️</span>
-            <span>{killBanner}</span>
-          </div>
-        </div>
-      )}
+
 
       {/* 🔄 Rematch Notification Banner */}
       {rematchNotification && (

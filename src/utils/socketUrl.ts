@@ -14,7 +14,6 @@ const RENDER_BACKEND_URL = 'https://ludo-interprises.onrender.com';
  * BOTH connect to the same socket server and can match each other.
  */
 export const getSocketUrl = (): string => {
-  // 1. Env variable override (highest priority — set in Vercel/Render dashboard)
   if (import.meta.env.VITE_SOCKET_URL) {
     return import.meta.env.VITE_SOCKET_URL;
   }
@@ -22,16 +21,23 @@ export const getSocketUrl = (): string => {
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
 
-    // 2. Local development — localhost or any LAN IP (WiFi mobile testing)
-    const isLocalhost = host === 'localhost' || host === '127.0.0.1';
+    // Local development — use explicit 127.0.0.1 for localhost to avoid Windows IPv6 ::1 refusal
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'http://127.0.0.1:8000';
+    }
+
+    // LAN IP development (Mobile testing over Wi-Fi)
     const isLanIP = /^(?:10|172\.(?:1[6-9]|2\d|3[01])|192\.168)\./.test(host);
-    if (import.meta.env.DEV || isLocalhost || isLanIP) {
+    if (isLanIP) {
       return `http://${host}:8000`;
     }
 
-    // 3. ANY deployed environment (Vercel, Render, custom domain) → single Render backend
+    if (import.meta.env.DEV) {
+      return 'http://127.0.0.1:8000';
+    }
+
     return RENDER_BACKEND_URL;
   }
 
-  return 'http://localhost:8000';
+  return 'http://127.0.0.1:8000';
 };

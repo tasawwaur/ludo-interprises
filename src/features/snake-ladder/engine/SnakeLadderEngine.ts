@@ -130,11 +130,13 @@ export class SnakeLadderEngine {
     this.emit("STATE_UPDATE", { state: this.state });
   }
 
-  /** Cryptographically secure dice roll */
+  /** Weighted dice roll: 40% chance for 6, 12% chance each for 1..5 */
   public generateSecureRoll(): number {
-    const array = new Uint32Array(1);
-    window.crypto.getRandomValues(array);
-    return (array[0] % 6) + 1;
+    const rand = Math.random();
+    if (rand < 0.40) return 6;
+    const otherNumbers = [1, 2, 3, 4, 5];
+    const idx = Math.floor((rand - 0.40) / 0.12);
+    return otherNumbers[Math.min(idx, 4)];
   }
 
   /** Handle Roll Action */
@@ -354,6 +356,7 @@ export class SnakeLadderEngine {
         this.state.winnerCount += 1;
         activePlayer.winnerRank = this.state.winnerCount;
       }
+      this.state.phase = "FINISHED";
       this.state.logMessage = `🏁 ${activePlayer.name}'s token reached 100! 🏆 WINNER!`;
       this.emit("PLAYER_FINISHED", {
         state: this.state,
@@ -361,8 +364,8 @@ export class SnakeLadderEngine {
         tokenId,
         message: `${activePlayer.name} won the match by reaching 100!`,
       });
+      this.emit("GAME_OVER", { state: this.state });
       this.emit("STATE_UPDATE", { state: this.state });
-      this.handlePostLanding(token, tokenId, finalPos, rolled);
       return;
     }
     // Snake Head Landing — Slide down to tail (punch)
@@ -473,13 +476,13 @@ export class SnakeLadderEngine {
       return;
     }
 
-    // ⚔️ TOKEN KILL RULE: Check if landing position kills an opponent token
+    // ⚔️ TOKEN KILL RULE: Check if landing position kills an opponent token (Cell 1 is SAFE)
     let hasKilledOpponent = false;
     if (finalPos > 1 && finalPos < 100) {
       const opponent = this.state.players.find((p) => p.id !== activePlayer.id);
       if (opponent) {
         const killedTokens = opponent.tokens.filter(
-          (t) => t.currentPosition === finalPos && !t.isFinished
+          (t) => t.isUnlocked && !t.isFinished && t.currentPosition === finalPos && t.currentPosition > 1
         );
         if (killedTokens.length > 0) {
           hasKilledOpponent = true;

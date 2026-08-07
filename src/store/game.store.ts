@@ -43,6 +43,7 @@ interface GameStoreState {
   demoStack: () => void;
   connectGameSocket: (roomCode: string) => void;
   disconnectGameSocket: () => void;
+  joinAsSpectator: (roomCode: string) => void; // Join a live match as read-only spectator
 }
 
 export const useGameStore = create<GameStoreState>()(
@@ -54,7 +55,7 @@ export const useGameStore = create<GameStoreState>()(
       activeHoverTokenId: null,
       selectedTokenId: null,
       isMuted: true,
-      turnTimerSeconds: 15,
+      turnTimerSeconds: 10,
       isAutoMode: false,
       gameSocket: null,
       _isRolling: false,
@@ -77,7 +78,7 @@ export const useGameStore = create<GameStoreState>()(
               replayRecorder: recorder,
               activeHoverTokenId: null,
               selectedTokenId: null,
-              turnTimerSeconds: 15,
+              turnTimerSeconds: 10,
               isAutoMode: false,
             });
             return;
@@ -129,7 +130,7 @@ export const useGameStore = create<GameStoreState>()(
           replayRecorder: recorder,
           activeHoverTokenId: null,
           selectedTokenId: null,
-          turnTimerSeconds: 15,
+          turnTimerSeconds: 10,
           isAutoMode: false,
         });
 
@@ -172,7 +173,7 @@ export const useGameStore = create<GameStoreState>()(
           replayRecorder: recorder,
           activeHoverTokenId: null,
           selectedTokenId: null,
-          turnTimerSeconds: 15,
+          turnTimerSeconds: 10,
           isAutoMode: false,
           isSpectatorMode: true, // ✅ Set flag
         });
@@ -191,7 +192,7 @@ export const useGameStore = create<GameStoreState>()(
 
   disableAutoMode: () => {
     const { gameState } = get();
-    const seconds = gameState?.gameStatus === 'MOVE_WAIT' ? 10 : 15;
+    const seconds = gameState?.gameStatus === 'MOVE_WAIT' ? 10 : 10;
     set({ isAutoMode: false, turnTimerSeconds: seconds });
   },
 
@@ -213,7 +214,9 @@ export const useGameStore = create<GameStoreState>()(
         }
       }
     } else {
-      // Timer hit 0!
+      // Timer hit 0 — play feedback only.
+      // The server fires timer_timeout which is the authoritative source of the turn skip.
+      // Do NOT call GameEngine.skipTurn() here — doing so causes a double skip and desync.
       set({ turnTimerSeconds: 0 });
       SoundEngine.play('TIMEOUT');
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -223,37 +226,11 @@ export const useGameStore = create<GameStoreState>()(
         window.dispatchEvent(new CustomEvent('game_timeout'));
       }
 
-      if (gameState.gameStatus === 'ROLL_WAIT') {
-        // Skip turn and reset timer to 15s
-        const nextState = GameEngine.skipTurn(gameState);
-        set({
-          gameState: nextState,
-          turnTimerSeconds: 15,
-          isAutoMode: false,
-        });
-
-        // Trigger AI roll if next player is AI
-        setTimeout(() => {
-          get().triggerAiMoveIfNeeded();
-        }, 800);
-      } else if (gameState.gameStatus === 'MOVE_WAIT') {
-        if (gameState.movableTokens.length === 1) {
-          // Auto move the only valid token
-          get().moveToken(gameState.movableTokens[0].tokenId);
-        } else {
-          // Multiple or zero moves -> skip turn and reset timer to 15s
-          const nextState = GameEngine.skipTurn(gameState);
-          set({
-            gameState: nextState,
-            turnTimerSeconds: 15,
-            isAutoMode: false,
-          });
-
-          // Trigger AI roll if next player is AI
-          setTimeout(() => {
-            get().triggerAiMoveIfNeeded();
-          }, 800);
-        }
+      // Only allowed client-side action: auto-move when there is exactly ONE movable token
+      // (this is a UX shortcut, not a skip — server will still validate the move)
+      const { gameState: gs } = get();
+      if (gs?.gameStatus === 'MOVE_WAIT' && gs.movableTokens.length === 1) {
+        get().moveToken(gs.movableTokens[0].tokenId);
       }
     }
   },
@@ -311,7 +288,7 @@ export const useGameStore = create<GameStoreState>()(
         gameState: nextState,
         selectedTokenId: null,
         _isRolling: false,
-        turnTimerSeconds: nextState.gameStatus === 'ROLL_WAIT' ? 15 : (hasLegalMoves ? 10 : 5),
+        turnTimerSeconds: nextState.gameStatus === 'ROLL_WAIT' ? 10 : (hasLegalMoves ? 10 : 5),
       } as any);
 
       // ✅ Persist state
@@ -402,7 +379,7 @@ export const useGameStore = create<GameStoreState>()(
           gameState: finalState,
           activeHoverTokenId: null,
           selectedTokenId: null,
-          turnTimerSeconds: isAutoMode ? 5 : 15,
+          turnTimerSeconds: 10,
         });
 
         // ✅ Persist state
@@ -478,7 +455,7 @@ export const useGameStore = create<GameStoreState>()(
 
     set({
       gameState: nextState,
-      turnTimerSeconds: 15,
+      turnTimerSeconds: 10,
       selectedTokenId: null,
       _isRolling: false,
     });
@@ -508,7 +485,7 @@ export const useGameStore = create<GameStoreState>()(
       gameState: null,
       activeHoverTokenId: null,
       selectedTokenId: null,
-      turnTimerSeconds: 15,
+      turnTimerSeconds: 10,
       isAutoMode: false,
       isSpectatorMode: false, // ✅ Reset spectator mode
     });
@@ -527,7 +504,17 @@ export const useGameStore = create<GameStoreState>()(
     }
 
     if (gameState.gameStatus === 'ROLL_WAIT' && !gameState.isDiceRolled) {
-      get().rollDice();
+      // Add delay so the board UI settles after extra turn (kill/6/home)
+      // before the bot fires its next roll
+      setTimeout(() => {
+        const fresh = get();
+        const freshState = fresh.gameState;
+        if (!freshState) return;
+        const freshActive = freshState.players[freshState.activePlayerIndex];
+        if (freshActive?.isAi && freshState.gameStatus === 'ROLL_WAIT' && !freshState.isDiceRolled) {
+          fresh.rollDice();
+        }
+      }, 1200);
       return;
     }
 
@@ -746,7 +733,7 @@ export const useGameStore = create<GameStoreState>()(
 
           set({
             gameState: nextState,
-            turnTimerSeconds: 15,
+            turnTimerSeconds: 10,
             isAutoMode: false,
             _isRolling: false,
           });
@@ -828,7 +815,7 @@ export const useGameStore = create<GameStoreState>()(
           set({
             gameState: incomingState,
             _isRolling: false,
-            turnTimerSeconds: 15,
+            turnTimerSeconds: 10,
           });
           localStorage.setItem("ludo_classic_engine_state", JSON.stringify(incomingState));
         } else {
@@ -838,7 +825,7 @@ export const useGameStore = create<GameStoreState>()(
         if (data.gameState) {
           set({
             gameState: data.gameState,
-            turnTimerSeconds: 15,
+            turnTimerSeconds: 10,
             _isRolling: false,
           });
           localStorage.setItem("ludo_classic_engine_state", JSON.stringify(data.gameState));
@@ -877,7 +864,7 @@ export const useGameStore = create<GameStoreState>()(
 
           set({
             gameState: finalState,
-            turnTimerSeconds: 15,
+            turnTimerSeconds: 10,
             _isRolling: false,
           });
 
@@ -907,10 +894,32 @@ export const useGameStore = create<GameStoreState>()(
       set({ gameState: gameOverState });
       localStorage.setItem("ludo_classic_engine_state", JSON.stringify(gameOverState));
 
-      SoundEngine.play('VICTORY');
+      SoundEngine.play('WIN');
       try {
         confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
       } catch (e) {}
+    });
+
+    // ── Direct chat_message from server (e.g. spectator sends a message) ──────
+    socket.on("chat_message", (data: { senderName: string; text: string; color: string; isSpectator: boolean }) => {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('game_chat_message', { detail: { ...data } }));
+      }
+    });
+
+    // Also handle spectator_joined notification to show in chat
+    socket.on("spectator_joined", (data: { spectatorName: string }) => {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('game_chat_message', {
+          detail: {
+            senderName: "System",
+            text: `👁 ${data.spectatorName} joined as spectator`,
+            color: "BLUE",
+            isSpectator: false,
+            isSystem: true,
+          }
+        }));
+      }
     });
 
     set({ gameSocket: socket });
@@ -922,6 +931,72 @@ export const useGameStore = create<GameStoreState>()(
       gameSocket.disconnect();
       set({ gameSocket: null });
     }
+  },
+
+  joinAsSpectator: (roomCode) => {
+    // Disconnect any existing socket first
+    get().disconnectGameSocket();
+
+    const socketUrl = getSocketUrl();
+    const socket = io(socketUrl, {
+      transports: ["websocket", "polling"],
+      reconnection: true,
+    });
+
+    const user = useUserStore.getState().user;
+    const spectatorName = user?.displayName || user?.username || "Spectator";
+
+    socket.on("connect", () => {
+      socket.emit("spectate_room", { roomCode, spectatorName });
+      // Store roomCode on socket for chat message sending
+      (socket as any).spectatorRoomCode = roomCode;
+    });
+
+    // Server confirms join and sends initial game snapshot
+    socket.on("spectate_joined", (data: { roomCode: string; activeColor: string; gameStatus: string; secondsRemaining: number }) => {
+      set({
+        isSpectatorMode: true,
+        turnTimerSeconds: data.secondsRemaining,
+        gameSocket: socket,
+      });
+      console.log(`[Spectator] Joined room ${data.roomCode} — watching ${data.activeColor}'s turn`);
+    });
+
+    // Room not found
+    socket.on("spectate_error", (data: { message: string }) => {
+      console.warn("[Spectator] Error:", data.message);
+      socket.disconnect();
+    });
+
+    // ── Live Chat: receive messages from players + other spectators ──────────
+    socket.on("chat_message", (data: { senderName: string; text: string; color: string; isSpectator: boolean }) => {
+      window.dispatchEvent(new CustomEvent('game_chat_message', {
+        detail: { senderName: data.senderName, text: data.text, color: data.color, isSpectator: data.isSpectator }
+      }));
+    });
+
+    // Receive all live game actions from server_action broadcasts
+    socket.on("server_action", (data: any) => {
+      if (data?.gameState) {
+        set({
+          gameState: data.gameState,
+          turnTimerSeconds: 10,
+        });
+      }
+    });
+
+    // Live timer ticks
+    socket.on("timer_tick", (data: { seconds: number }) => {
+      set({ turnTimerSeconds: data.seconds });
+    });
+
+    // If both players leave, spectator mode ends
+    socket.on("opponent_disconnected", () => {
+      set({ isSpectatorMode: false });
+      socket.disconnect();
+    });
+
+    set({ gameSocket: socket });
   },
     }),
     {

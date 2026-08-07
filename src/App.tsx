@@ -319,7 +319,50 @@ const MainApp: React.FC = () => {
       return;
     }
 
-    // Direct auto-match check via URL Link
+    // ─── Spectator Join via URL: ?spectate=ROOM_XXXXXX ───────────────────────
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const spectateRoomCode = urlParams.get("spectate");
+      if (spectateRoomCode) {
+        // Auto-register as guest if not logged in
+        let currentUser = useUserStore.getState().user;
+        if (!currentUser) {
+          const guestNum = Math.floor(1000 + Math.random() * 9000);
+          const finalName = `SPECTATOR_${guestNum}`;
+          currentUser = {
+            id: "usr_spec_" + Math.floor(Math.random() * 1000000),
+            username: finalName,
+            displayName: finalName,
+            email: `${finalName.toLowerCase()}@ludo.enterprise`,
+            avatar: "/assets/images/icons/icon_club_crown.png",
+            country: "🇮🇳",
+            rank: 1,
+            coins: 0,
+            gems: 0,
+            level: 1,
+            xp: 0,
+            nextLevelXp: 1000,
+            loginProvider: 'guest',
+          };
+          useUserStore.getState().setUser(currentUser);
+        }
+
+        // Clean URL
+        try {
+          const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+          window.history.replaceState({ path: cleanUrl }, "", cleanUrl);
+        } catch (e) {}
+
+        // Join as spectator after brief delay for socket to connect
+        setTimeout(() => {
+          useGameStore.getState().joinAsSpectator(spectateRoomCode);
+          setCurrentView("GAME_ARENA");
+        }, 1200);
+        return;
+      }
+    }
+
+
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       const isAutoMatch = urlParams.get("join") === "true" || urlParams.get("play") === "true" || urlParams.get("autoMatch") === "true";
@@ -352,8 +395,9 @@ const MainApp: React.FC = () => {
           };
           useUserStore.getState().setUser(currentUser);
         } else if (currentUser.coins < entryFee) {
-          // Guarantee entry fee affordability
-          useUserStore.getState().updateUser({ coins: entryFee });
+          // User cannot afford this entry fee — redirect to HOME instead of giving free coins
+          setCurrentView("HOME");
+          return;
         }
 
         // Wait brief moment for globalSocket connect state to complete

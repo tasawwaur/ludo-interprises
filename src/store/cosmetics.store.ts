@@ -42,7 +42,8 @@ const generateFrames = (): CosmeticItem[] => {
 
 const generateTokens = (): CosmeticItem[] => {
   const list: CosmeticItem[] = [
-    { id: 'token_default', name: 'Classic Green Token', type: 'TOKEN', rarity: 'COMMON', isUnlocked: true, colorBg: 'bg-green-600' }
+    { id: 'token_default', name: 'Classic 3D Token', type: 'TOKEN', rarity: 'COMMON', isUnlocked: true, colorBg: 'bg-green-600' },
+    { id: 'token_bomb', name: 'Explosive Bomb Token 💣', type: 'TOKEN', rarity: 'LEGENDARY', isUnlocked: true, colorBg: 'bg-red-600' }
   ];
   const colors = ["Red", "Blue", "Yellow", "Purple", "Pink", "Cyan", "Orange", "Magenta", "Teal", "Lime", "Violet", "Amber", "Rose", "Indigo", "Gold", "Silver", "Bronze", "Emerald", "Ruby", "Sapphire"];
   const styles = ["Shiny", "Glow", "Neon", "Metallic", "Crystal", "Glass", "Chrome", "Glossy", "Marble", "Gradient"];

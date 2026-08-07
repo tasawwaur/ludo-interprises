@@ -32,6 +32,16 @@ try {
 
 const app = express();
 app.use(express.json());
+
+// ── CORS: allow frontend (localhost:3000 / any origin) to call REST APIs ──────
+app.use((req: any, res: any, next: any) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") return res.sendStatus(200);
+  next();
+});
+
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: { origin: "*" }
@@ -459,9 +469,9 @@ io.on("connection", (socket) => {
       entryFee,
     });
 
-    // Check if another player with the SAME mode is waiting in queue (match regardless of bet/entryFee)
+    // Check if another player with the SAME mode AND SAME entryFee is waiting in queue
     const matchingIdx = matchmakingQueue.findIndex(
-      (p) => p.socketId !== socket.id && p.mode === mode
+      (p) => p.socketId !== socket.id && p.mode === mode && p.entryFee === entryFee
     );
 
     if (matchingIdx !== -1) {
@@ -492,7 +502,7 @@ io.on("connection", (socket) => {
         p2Color,
         activeColor: p1Color,
         gameStatus: 'ROLL_WAIT',
-        secondsRemaining: 15,
+        secondsRemaining: 10,
       };
       activeRooms.set(roomCode, roomState);
 
@@ -596,7 +606,7 @@ io.on("connection", (socket) => {
         p2Color: "GREEN",
         activeColor: "RED",
         gameStatus: 'ROLL_WAIT',
-        secondsRemaining: 15,
+        secondsRemaining: 10,
       };
       activeRooms.set(newRoomCode, roomState);
 
@@ -688,12 +698,53 @@ io.on("connection", (socket) => {
       if (data.nextColor) {
         room.activeColor = data.nextColor;
       }
-      startRoomTimer(room, 15);
+      startRoomTimer(room, 10);
     } else if (data.actionType === 'UNDO') {
       room.gameStatus = 'ROLL_WAIT';
-      // Undo resets timer back to 15s to let the player roll again
-      startRoomTimer(room, 15);
+      // Undo resets timer back to 10s to let the player roll again
+      startRoomTimer(room, 10);
     }
+  });
+
+  // ─── Spectator: join a live room as read-only viewer ───────────────────────
+  // A friend sends { roomCode } — they join the Socket.io room so they receive
+  // all server_action broadcasts in real-time, but cannot emit actions.
+  socket.on("spectate_room", (data: { roomCode: string; spectatorName?: string }) => {
+    const { roomCode, spectatorName } = data;
+    const room = activeRooms.get(roomCode);
+    if (!room) {
+      socket.emit("spectate_error", { message: "Room not found or match already ended." });
+      return;
+    }
+    socket.join(roomCode);
+    (socket as any).data = { type: "spectator", roomCode };
+    // Send current game snapshot immediately
+    socket.emit("spectate_joined", {
+      roomCode,
+      activeColor: room.activeColor,
+      gameStatus: room.gameStatus,
+      secondsRemaining: room.secondsRemaining,
+    });
+    // Announce to the two players that a spectator joined
+    socket.to(roomCode).emit("spectator_joined", { spectatorName: spectatorName || "A friend" });
+    console.log(`[Spectator] ${spectatorName || socket.id} joined room ${roomCode}`);
+  });
+
+  // ─── Chat: players + spectators can send chat messages ─────────────────────
+  // Any socket in the room (player or spectator) can emit { roomCode, senderName, text, color, isSpectator }
+  // Server broadcasts to ALL sockets in that room so everyone sees the message.
+  socket.on("chat_message", (data: { roomCode: string; senderName: string; text: string; color?: string; isSpectator?: boolean }) => {
+    const { roomCode, senderName, text, color, isSpectator } = data;
+    if (!roomCode || !text) return;
+    // Broadcast to everyone in the room (including sender to confirm delivery)
+    io.to(roomCode).emit("chat_message", {
+      senderName: senderName || "Anonymous",
+      text,
+      color: color || "BLUE",
+      isSpectator: isSpectator || false,
+      timestamp: Date.now(),
+    });
+    console.log(`[Chat] ${isSpectator ? "👁 SPEC" : "👑"} ${senderName}: ${text} [room: ${roomCode}]`);
   });
 
   socket.on("disconnect", () => {
@@ -750,8 +801,8 @@ app.get("*", (req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 8000;
+const PORT = Number(process.env.PORT) || 8000;
 httpServer.listen(PORT, () => {
-  console.log(`Ludo Enterprise Server running on port ${PORT}`);
+  console.log(`Ludo Enterprise Backend Server running on port ${PORT}`);
 });
 

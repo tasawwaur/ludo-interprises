@@ -7,10 +7,19 @@ export interface DiceRollResult {
 
 export class DiceEngine {
   /**
-   * Performs a deterministic or randomized dice roll.
+   * Performs a dice roll with 40% probability for 6 and equal 12% probability for 1..5.
    */
   static roll(currentConsecutiveSixes: number): DiceRollResult {
-    const value = Math.floor(Math.random() * 6) + 1;
+    const rand = Math.random();
+    let value: number;
+    if (rand < 0.40) {
+      value = 6;
+    } else {
+      const otherNumbers = [1, 2, 3, 4, 5];
+      const idx = Math.floor((rand - 0.40) / 0.12);
+      value = otherNumbers[Math.min(idx, 4)];
+    }
+
     const isSix = value === 6;
     const consecutiveSixesCount = isSix ? currentConsecutiveSixes + 1 : 0;
     const isInvalidated = consecutiveSixesCount >= 3;

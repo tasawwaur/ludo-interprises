@@ -19,7 +19,7 @@ interface MatchmakingPageProps {
 
 export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMatchFound }) => {
   const { mode, setMatchFound } = useQueueStore();
-  const [seconds, setSeconds] = useState(60);
+  const [seconds, setSeconds] = useState(6); // ✅ 6s search → auto bot if no real player found
   const user = useUserStore((s) => s.user);
 
   const displayName = user?.displayName || user?.username || "Player 1";
@@ -38,7 +38,7 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
   const [matchConnected, setMatchConnected] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
   const [serverStatus, setServerStatus] = useState<"waking" | "online">("waking");
-  const [matchCountdown, setMatchCountdown] = useState(5);
+  const [matchCountdown, setMatchCountdown] = useState(1); // ✅ 1s countdown for instant feel
   const [coinsDeducted, setCoinsDeducted] = useState(false);
   const [showDeductText, setShowDeductText] = useState(false);
   const [isHost, setIsHost] = useState(true);
@@ -108,7 +108,7 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
         }
         setMyAssignedColor(data.color);
         setIsHost(data.isHost !== undefined ? data.isHost : true);
-        setMatchCountdown(1);
+        setMatchCountdown(1); // ✅ Real match found → start in 1 second
         setMatchConnected(true);
       });
     };
@@ -152,34 +152,37 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ onCancel, onMa
       setMatchCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(countdownTimer);
-          setMatchFound(true);
 
-          let finalMyColor = myAssignedColor;
-          let finalOpponent = opponent;
+          // ✅ Defer state updates to next tick to avoid React "setState during render" warning
+          setTimeout(() => {
+            setMatchFound(true);
 
-          if (!finalOpponent) {
-            const activeQueueMode = useQueueStore.getState().mode || "Normal Classic";
+            let finalMyColor = myAssignedColor;
+            let finalOpponent = opponent;
 
-            // All modes are 1v1 — Normal Classic (4 tokens), Quick Classic (2 tokens), Unique Classic (1 token)
-            // Use RED vs YELLOW for Normal Classic (opposite seating), BLUE vs GREEN for others
-            const isNormal = activeQueueMode === "Normal Classic";
-            const myColor   = isNormal ? "RED"    : (Math.random() < 0.5 ? "BLUE"   : "GREEN");
-            const oppColor  = isNormal ? "YELLOW" : (myColor === "BLUE"   ? "GREEN"  : "BLUE");
+            if (!finalOpponent) {
+              const activeQueueMode = useQueueStore.getState().mode || "Normal Classic";
 
-            const randomBot = GLOBAL_PLAYER_DATABASE[Math.floor(Math.random() * GLOBAL_PLAYER_DATABASE.length)];
+              const isNormal = activeQueueMode === "Normal Classic";
+              const myColor   = isNormal ? "RED"    : (Math.random() < 0.5 ? "BLUE"   : "GREEN");
+              const oppColor  = isNormal ? "YELLOW" : (myColor === "BLUE"   ? "GREEN"  : "BLUE");
 
-            finalMyColor = myColor;
-            finalOpponent = {
-              name: randomBot.username,
-              avatar: randomBot.avatarUrl,
-              profileFrame: "/assets/images/icons/profile_frame_v3.png",
-              nameBanner: "/assets/images/icons/name_banner_v2.png",
-              color: oppColor,
-              isBot: true,
-            };
-          }
+              const randomBot = GLOBAL_PLAYER_DATABASE[Math.floor(Math.random() * GLOBAL_PLAYER_DATABASE.length)];
 
-          onMatchFound(finalOpponent || undefined, finalMyColor || "GREEN", isHost);
+              finalMyColor = myColor;
+              finalOpponent = {
+                name: randomBot.username,
+                avatar: randomBot.avatarUrl,
+                profileFrame: "/assets/images/icons/profile_frame_v3.png",
+                nameBanner: "/assets/images/icons/name_banner_v2.png",
+                color: oppColor,
+                isBot: true,
+              };
+            }
+
+            onMatchFound(finalOpponent || undefined, finalMyColor || "GREEN", isHost);
+          }, 0);
+
           return 0;
         }
         return prev - 1;

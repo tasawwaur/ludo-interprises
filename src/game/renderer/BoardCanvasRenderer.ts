@@ -19,6 +19,12 @@ export class BoardCanvasRenderer {
   private animPulseAngle = 0;
   private currentTheme!: any;
 
+  // Waterfall particle system per token
+  private waterfallParticles: Map<string, Array<{
+    x: number; y: number; vy: number; vx: number;
+    life: number; maxLife: number; size: number; alpha: number;
+  }>> = new Map();
+
   constructor(ctx: CanvasRenderingContext2D, width: number, height: number) {
     this.ctx = ctx;
     this.width = width;
@@ -33,7 +39,7 @@ export class BoardCanvasRenderer {
     selectedTokenId?: string | null
   ) {
     const { ctx, width, height } = this;
-    this.animPulseAngle = (this.animPulseAngle + 0.08) % (Math.PI * 2);
+    this.animPulseAngle = (this.animPulseAngle + 0.05) % (Math.PI * 2);
     
     // Load equipped board theme
     const theme = getBoardTheme(state.equippedBoardId || 'board_default');
@@ -594,93 +600,212 @@ export class BoardCanvasRenderer {
     selectedTokenId?: string | null
   ) {
     const { ctx, cellSize } = this;
-    const colorMap: Record<PlayerColor, string> = {
-      GREEN: '#16a34a',
-      YELLOW: '#eab308',
-      BLUE: '#2563eb',
-      RED: '#dc2626',
+
+    // Vibrant token color palettes
+    const tokenPalette: Record<PlayerColor, { top: string; mid: string; bot: string; glow: string; ring: string }> = {
+      RED:    { top: '#ff6b6b', mid: '#e53935', bot: '#b71c1c', glow: '#ff1744', ring: '#ff8a80' },
+      GREEN:  { top: '#69f0ae', mid: '#00c853', bot: '#1b5e20', glow: '#00e676', ring: '#b9f6ca' },
+      YELLOW: { top: '#fff176', mid: '#ffd600', bot: '#f57f17', glow: '#ffea00', ring: '#ffff8d' },
+      BLUE:   { top: '#82b1ff', mid: '#2979ff', bot: '#0d47a1', glow: '#448aff', ring: '#bbdefb' },
     };
- 
+
     const moveableSet = new Set(state.movableTokens.map((m) => m.tokenId));
- 
+
     state.players.forEach((player) => {
       player.tokens.forEach((token) => {
         const isAnimating = state.animatingToken?.tokenId === token.id;
         const displayStep = isAnimating ? state.animatingToken!.currentStep : token.stepCount;
- 
+
         const coords = getPixelCoordinates(token.color, displayStep, token.index, cellSize, localPlayerColor);
-        const radius = cellSize * 0.42;
+        const radius = cellSize * 0.40;
 
         const isMoveable = moveableSet.has(token.id);
         const isHovered = activeHoverTokenId === token.id;
         const isSelected = selectedTokenId === token.id;
+        const pal = tokenPalette[token.color];
 
-        const scale = isMoveable ? 1.0 + Math.sin(this.animPulseAngle * 2) * 0.1 : 1.0;
+        // Pulse scale for moveable tokens
+        const pulse = isMoveable ? 1.0 + Math.sin(this.animPulseAngle * 2.5) * 0.12 : 1.0;
 
         ctx.save();
         ctx.translate(coords.x, coords.y);
-        ctx.scale(scale, scale);
+        ctx.scale(pulse, pulse);
 
-        // Ground Drop Shadow
-        ctx.beginPath();
-        ctx.ellipse(0, cellSize * 0.22, radius * 0.85, radius * 0.35, 0, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-        ctx.fill();
-
-        // 3D Pawn Asset Image
-        const tokenStyle = player.equippedTokenId ? getTokenStyle(player.equippedTokenId) : null;
-        const hasCustomToken = tokenStyle && player.equippedTokenId !== 'token_default';
-
-        if (hasCustomToken) {
-          if (isMoveable || isSelected) {
-            ctx.shadowColor = isSelected ? '#38bdf8' : isHovered ? '#fbbf24' : '#60a5fa';
-            ctx.shadowBlur = 12 + Math.sin(this.animPulseAngle * 3) * 6;
-          }
-          this.drawPremiumTokenCanvas(ctx, cellSize, tokenStyle);
-        } else {
-          const pawnImg = this.getPawnImage(token.color);
-          if (pawnImg && pawnImg.complete && pawnImg.naturalWidth > 0) {
-            const pawnW = cellSize * 0.88;
-            const pawnH = pawnW * (pawnImg.naturalHeight / pawnImg.naturalWidth);
-            
-            if (isMoveable || isSelected) {
-              ctx.shadowColor = isSelected ? '#38bdf8' : isHovered ? '#fbbf24' : '#60a5fa';
-              ctx.shadowBlur = 12 + Math.sin(this.animPulseAngle * 3) * 6;
-            }
-
-            ctx.drawImage(pawnImg, -pawnW / 2, -pawnH * 0.75, pawnW, pawnH);
-          } else {
-            // Fallback Glossy 2D Token Body with Gold Crown
-            ctx.beginPath();
-            ctx.arc(0, 0, radius, 0, Math.PI * 2);
-            ctx.fillStyle = colorMap[token.color];
-            ctx.fill();
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = '#ffffff';
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(0, 0, radius * 0.45, 0, Math.PI * 2);
-            ctx.fillStyle = '#fef08a';
-            ctx.fill();
-            ctx.lineWidth = 1.5;
-            ctx.strokeStyle = '#ca8a04';
-            ctx.stroke();
-          }
+        // ── 1. Outer glow for moveable/selected ──────────────────────────────
+        if (isMoveable || isSelected) {
+          ctx.shadowColor = isSelected ? '#38bdf8' : pal.glow;
+          ctx.shadowBlur = 18 + Math.sin(this.animPulseAngle * 3) * 8;
         }
 
-        // Selection / Movable Glow Ring around base
+        // ── 2. Ground shadow ellipse ─────────────────────────────────────────
+        ctx.beginPath();
+        ctx.ellipse(0, radius * 0.6, radius * 0.75, radius * 0.22, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 0;
+        ctx.fill();
+
+        // ── 3. Token base oval (3D illusion base) ────────────────────────────
+        ctx.beginPath();
+        ctx.ellipse(0, radius * 0.35, radius * 0.82, radius * 0.22, 0, 0, Math.PI * 2);
+        const baseGrad = ctx.createLinearGradient(-radius, 0, radius, 0);
+        baseGrad.addColorStop(0, pal.bot);
+        baseGrad.addColorStop(0.5, pal.mid);
+        baseGrad.addColorStop(1, pal.bot);
+        ctx.fillStyle = baseGrad;
+        ctx.fill();
+
+        // ── 4. Main sphere body ──────────────────────────────────────────────
+        const sphereGrad = ctx.createRadialGradient(
+          -radius * 0.25, -radius * 0.3, radius * 0.05,
+          0, 0, radius
+        );
+        sphereGrad.addColorStop(0, '#ffffff');
+        sphereGrad.addColorStop(0.15, pal.top);
+        sphereGrad.addColorStop(0.55, pal.mid);
+        sphereGrad.addColorStop(1, pal.bot);
+
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
         if (isMoveable || isSelected) {
-          ctx.shadowBlur = 0;
+          ctx.shadowColor = isSelected ? '#38bdf8' : pal.glow;
+          ctx.shadowBlur = 18 + Math.sin(this.animPulseAngle * 3) * 8;
+        }
+        ctx.fillStyle = sphereGrad;
+        ctx.fill();
+
+        // ── 5. Gold ring border ───────────────────────────────────────────────
+        ctx.shadowBlur = 0;
+        const ringGrad = ctx.createLinearGradient(-radius, -radius, radius, radius);
+        ringGrad.addColorStop(0, '#fef9c3');
+        ringGrad.addColorStop(0.4, '#fbbf24');
+        ringGrad.addColorStop(1, '#92400e');
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = ringGrad;
+        ctx.stroke();
+
+        // ── 6. Inner shine highlight ──────────────────────────────────────────
+        ctx.beginPath();
+        ctx.arc(-radius * 0.28, -radius * 0.28, radius * 0.22, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.fill();
+
+        // ── 7. Number badge (player index) ────────────────────────────────────
+        const playerIdx = state.players.findIndex((p) => p.color === player.color);
+        const displayNum = token.index + 1 + playerIdx * player.tokens.length;
+        const badgeR = radius * 0.38;
+
+        ctx.beginPath();
+        ctx.arc(radius * 0.42, -radius * 0.42, badgeR, 0, Math.PI * 2);
+        ctx.fillStyle = '#0f172a';
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#fbbf24';
+        ctx.stroke();
+
+        ctx.font = `bold ${Math.round(badgeR * 1.1)}px sans-serif`;
+        ctx.fillStyle = '#fef9c3';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(displayNum), radius * 0.42, -radius * 0.42);
+
+        // ── 8. Moveable ring pulse ────────────────────────────────────────────
+        if (isMoveable || isSelected) {
           ctx.beginPath();
-          ctx.ellipse(0, cellSize * 0.2, radius * 0.95, radius * 0.4, 0, 0, Math.PI * 2);
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = isSelected ? '#38bdf8' : isHovered ? '#fbbf24' : '#60a5fa';
+          ctx.arc(0, 0, radius + 4 + Math.sin(this.animPulseAngle * 2) * 3, 0, Math.PI * 2);
+          ctx.lineWidth = 2.5;
+          ctx.strokeStyle = isSelected ? '#38bdf8' : pal.ring;
+          ctx.shadowColor = isSelected ? '#38bdf8' : pal.glow;
+          ctx.shadowBlur = 10;
           ctx.stroke();
+          ctx.shadowBlur = 0;
         }
 
         ctx.restore();
+
+        // ── 9. Waterfall droplets for moveable tokens ─────────────────────────
+        if (isMoveable) {
+          this.updateWaterfallParticles(token.id, coords.x, coords.y, radius, pal);
+          this.drawWaterfallParticles(token.id, pal);
+        } else {
+          // Clear particles when token is no longer moveable
+          this.waterfallParticles.delete(token.id);
+        }
       });
+    });
+  }
+
+  private updateWaterfallParticles(
+    tokenId: string,
+    cx: number,
+    cy: number,
+    radius: number,
+    pal: { top: string; mid: string; bot: string; glow: string; ring: string }
+  ) {
+    if (!this.waterfallParticles.has(tokenId)) {
+      this.waterfallParticles.set(tokenId, []);
+    }
+    const particles = this.waterfallParticles.get(tokenId)!;
+
+    // Spawn 2-3 new droplets per frame from token rim
+    const spawnCount = 2 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < spawnCount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const spawnRadius = radius * (0.5 + Math.random() * 0.5);
+      particles.push({
+        x: cx + Math.cos(angle) * spawnRadius,
+        y: cy + Math.sin(angle) * spawnRadius * 0.4 - radius * 0.2,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: 0.4 + Math.random() * 1.4,
+        life: 0,
+        maxLife: 22 + Math.floor(Math.random() * 18),
+        size: 1.5 + Math.random() * 2.5,
+        alpha: 0.85 + Math.random() * 0.15,
+      });
+    }
+
+    // Update existing particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.12; // gravity
+      p.vx *= 0.96; // drag
+      p.life++;
+      p.alpha = (1 - p.life / p.maxLife) * 0.9;
+      if (p.life >= p.maxLife) particles.splice(i, 1);
+    }
+  }
+
+  private drawWaterfallParticles(
+    tokenId: string,
+    pal: { top: string; mid: string; bot: string; glow: string; ring: string }
+  ) {
+    const { ctx } = this;
+    const particles = this.waterfallParticles.get(tokenId);
+    if (!particles) return;
+
+    particles.forEach((p) => {
+      const t = p.life / p.maxLife;
+      // Interpolate color from ring (top) to bot (fading)
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.shadowColor = pal.glow;
+      ctx.shadowBlur = 4;
+
+      // Draw teardrop-shaped droplet
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * (1 - t * 0.5), 0, Math.PI * 2);
+
+      const dropGrad = ctx.createRadialGradient(p.x - p.size * 0.2, p.y - p.size * 0.2, 0, p.x, p.y, p.size);
+      dropGrad.addColorStop(0, '#ffffff');
+      dropGrad.addColorStop(0.4, pal.top);
+      dropGrad.addColorStop(1, pal.mid);
+      ctx.fillStyle = dropGrad;
+      ctx.fill();
+
+      ctx.restore();
     });
   }
 

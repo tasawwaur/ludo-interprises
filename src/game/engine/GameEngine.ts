@@ -2,7 +2,7 @@ import { GameState, MoveableToken, Player, PlayerColor, TeamName, Token, TokenSt
 import { RuleValidator } from '../rules/RuleValidator';
 import { DiceEngine } from '../dice/DiceEngine';
 import { TurnManager } from '../rules/TurnManager';
-import { COLOR_START_INDEX } from '../board/BoardCoordinates';
+import { COLOR_START_INDEX, SAFE_TRACK_INDICES } from '../board/BoardCoordinates';
 import { GLOBAL_PLAYER_DATABASE } from '../../store/player-database.store';
 
 export class GameEngine {
@@ -105,7 +105,10 @@ export class GameEngine {
         team = color === 'RED' || color === 'YELLOW' ? 'TEAM_A' : 'TEAM_B';
       }
 
-      const tokenIndices = roomMode === 'Quick Classic' ? [0] : [0, 1, 2, 3];
+      const tokenIndices =
+        roomMode === 'Unique Classic' ? [0] :
+        roomMode === 'Quick Classic'  ? [0, 1] :
+        [0, 1, 2, 3]; // Normal Classic (default)
       const tokens: Token[] = tokenIndices.map((tokenIdx) => ({
         id: `${color}_${tokenIdx}`,
         color,
@@ -239,6 +242,8 @@ export class GameEngine {
     const activePlayer = state.players[state.activePlayerIndex];
     let capturedPlayerName = '';
 
+    let actualCaptureOccurred = false;
+
     // Update tokens array
     const updatedPlayers = state.players.map((player) => {
       // If active player, update target token position
@@ -260,40 +265,45 @@ export class GameEngine {
         };
       }
 
-      // If capture occurred (do not capture teammates in 2v2 Mode!)
+      // If target step is on outer track (1..51), verify opponent physical presence & safe star immunity
       const isTeammate = state.mode === '2v2' && player.team === activePlayer.team;
-      if (targetMove.isCapture && !isTeammate) {
+      if (targetMove.toStep >= 1 && targetMove.toStep <= 51 && !isTeammate) {
         const targetTrackIndex = (COLOR_START_INDEX[activePlayer.color] + (targetMove.toStep - 1)) % 52;
-        let tokenWasCaptured = false;
+        const isSafeCell = SAFE_TRACK_INDICES.has(targetTrackIndex);
 
-        const updatedTokens = player.tokens.map((t) => {
-          if (t.stepCount >= 1 && t.stepCount <= 51) {
-            const oppTrackIndex = (COLOR_START_INDEX[player.color] + (t.stepCount - 1)) % 52;
-            if (oppTrackIndex === targetTrackIndex && !tokenWasCaptured) {
-              tokenWasCaptured = true;
-              capturedPlayerName = player.name;
-              return {
-                ...t,
-                stepCount: 0,
-                position: -1,
-                state: 'YARD' as const,
-              };
+        if (!isSafeCell) {
+          let tokenWasCaptured = false;
+          const updatedTokens = player.tokens.map((t) => {
+            if (t.stepCount >= 1 && t.stepCount <= 51) {
+              const oppTrackIndex = (COLOR_START_INDEX[player.color] + (t.stepCount - 1)) % 52;
+              if (oppTrackIndex === targetTrackIndex && !tokenWasCaptured) {
+                tokenWasCaptured = true;
+                actualCaptureOccurred = true;
+                capturedPlayerName = player.name;
+                return {
+                  ...t,
+                  stepCount: 0,
+                  position: -1,
+                  state: 'YARD' as const,
+                };
+              }
             }
-          }
-          return t;
-        });
+            return t;
+          });
 
-        if (tokenWasCaptured) {
-          return { ...player, tokens: updatedTokens };
+          if (tokenWasCaptured) {
+            return { ...player, tokens: updatedTokens };
+          }
         }
       }
 
       return player;
     });
 
-    // Check if active player won (all 4 tokens in home)
+    // Check if active player won (all tokens in home OR total score >= 100 points)
     const updatedActivePlayer = updatedPlayers[state.activePlayerIndex];
-    const isPlayerFinished = updatedActivePlayer.tokens.every((t) => t.stepCount === 57);
+    const totalPlayerScore = updatedActivePlayer.tokens.reduce((sum, t) => sum + t.stepCount, 0);
+    const isPlayerFinished = updatedActivePlayer.tokens.every((t) => t.stepCount === 57) || totalPlayerScore >= 100;
 
     const updatedWinnerRankings = [...state.winnerRankings];
     if (isPlayerFinished && !updatedWinnerRankings.includes(activePlayer.color)) {
@@ -311,9 +321,11 @@ export class GameEngine {
         victoryMessage = `🏆 TEAM VICTORY! ${winningTeam} wins the match!`;
       }
     } else {
-      isGameOver = updatedWinnerRankings.length >= (state.mode === '2P' ? 1 : 3);
+      isGameOver = updatedWinnerRankings.length >= (state.mode === '2P' ? 1 : 3) || isPlayerFinished;
       if (isGameOver) {
-        victoryMessage = `🏆 GAME OVER! ${updatedActivePlayer.name} wins the match!`;
+        victoryMessage = totalPlayerScore >= 100 
+          ? `🏆 100+ POINTS REACHED! ${updatedActivePlayer.name} wins with ${totalPlayerScore} points!`
+          : `🏆 GAME OVER! ${updatedActivePlayer.name} wins the match!`;
       }
     }
 
@@ -331,14 +343,16 @@ export class GameEngine {
     const extraTurnGranted = RuleValidator.shouldGrantExtraTurn(
       state.diceValue || 0,
       state.consecutiveSixes,
-      targetMove.isCapture,
+      actualCaptureOccurred,
       targetMove.isHome
     );
 
     let nextIndex = state.activePlayerIndex;
     let summaryText = `${activePlayer.name} moved token.`;
 
-    if (extraTurnGranted) {
+    if (actualCaptureOccurred) {
+      summaryText = `💥 BOMB BLAST! ${activePlayer.name} blasted ${capturedPlayerName}'s token back to Yard! Extra turn! 💣`;
+    } else if (extraTurnGranted) {
       summaryText += ` Extra turn granted! ⭐`;
     } else {
       nextIndex = TurnManager.getNextPlayerIndex({ ...state, players: updatedPlayers });

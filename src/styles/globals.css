@@ -393,3 +393,106 @@
   pointer-events: none;
   z-index: 60;
 }
+
+/* ── Waterfall Droplet Animation ─────────────────────────────── */
+@keyframes waterfallDrop {
+  0%   { transform: translateY(-4px) scale(1.1); opacity: 0.9; }
+  60%  { transform: translateY(14px) scale(0.7); opacity: 0.6; }
+  100% { transform: translateY(26px) scale(0.2); opacity: 0; }
+}
+
+@keyframes waterfallDrop2 {
+  0%   { transform: translateY(-2px) translateX(3px) scale(1); opacity: 0.85; }
+  50%  { transform: translateY(12px) translateX(5px) scale(0.6); opacity: 0.5; }
+  100% { transform: translateY(22px) translateX(2px) scale(0.1); opacity: 0; }
+}
+
+@keyframes waterfallDrop3 {
+  0%   { transform: translateY(-3px) translateX(-3px) scale(0.9); opacity: 0.8; }
+  55%  { transform: translateY(10px) translateX(-6px) scale(0.5); opacity: 0.45; }
+  100% { transform: translateY(20px) translateX(-1px) scale(0.1); opacity: 0; }
+}
+
+@keyframes tokenGlowPulse {
+  0%, 100% { filter: drop-shadow(0 0 6px currentColor) brightness(1.1); }
+  50%       { filter: drop-shadow(0 0 14px currentColor) brightness(1.35); }
+}
+
+/* Wrapper that spawns droplets */
+.token-waterfall {
+  position: relative;
+}
+
+.token-waterfall::before,
+.token-waterfall::after {
+  content: '';
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 40;
+}
+
+/* Red token droplets */
+.token-waterfall-red::before {
+  background: radial-gradient(circle, #ff8a80, #e53935);
+  top: 40%; left: 15%;
+  animation: waterfallDrop 0.75s ease-in infinite;
+  box-shadow: 0 0 4px #ff1744;
+}
+.token-waterfall-red::after {
+  background: radial-gradient(circle, #ffcdd2, #e53935);
+  top: 30%; left: 65%;
+  animation: waterfallDrop2 0.75s ease-in 0.22s infinite;
+  box-shadow: 0 0 4px #ff1744;
+}
+
+/* Green token droplets */
+.token-waterfall-green::before {
+  background: radial-gradient(circle, #b9f6ca, #00c853);
+  top: 40%; left: 15%;
+  animation: waterfallDrop 0.75s ease-in infinite;
+  box-shadow: 0 0 4px #00e676;
+}
+.token-waterfall-green::after {
+  background: radial-gradient(circle, #ccff90, #00c853);
+  top: 30%; left: 65%;
+  animation: waterfallDrop2 0.75s ease-in 0.22s infinite;
+  box-shadow: 0 0 4px #00e676;
+}
+
+/* Third droplet via child span */
+.waterfall-drop3-red {
+  position: absolute;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff, #ff5252);
+  top: 50%; left: 50%;
+  pointer-events: none;
+  z-index: 40;
+  animation: waterfallDrop3 0.75s ease-in 0.42s infinite;
+  box-shadow: 0 0 5px #ff1744;
+}
+
+.waterfall-drop3-green {
+  position: absolute;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff, #69f0ae);
+  top: 50%; left: 50%;
+  pointer-events: none;
+  z-index: 40;
+  animation: waterfallDrop3 0.75s ease-in 0.42s infinite;
+  box-shadow: 0 0 5px #00e676;
+}
+
+/* Token glow when movable */
+.token-movable-red {
+  animation: tokenGlowPulse 1s ease-in-out infinite;
+  color: #ff1744;
+}
+.token-movable-green {
+  animation: tokenGlowPulse 1s ease-in-out infinite;
+  color: #00e676;
+}

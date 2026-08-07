@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useGlobalModalStore } from "../../store/global-modal.store";
 
 export interface ChatMessage {
@@ -7,6 +7,8 @@ export interface ChatMessage {
   text: string;
   time: string;
   color?: string;
+  isSpectator?: boolean;
+  isSystem?: boolean;
 }
 
 interface ChatModalProps {
@@ -14,12 +16,27 @@ interface ChatModalProps {
   onClose: () => void;
   onSendMessage?: (msg: string) => void;
   messages?: ChatMessage[];
+  isSpectatorMode?: boolean;
 }
 
-export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMessage, messages = [] }) => {
+export const ChatModal: React.FC<ChatModalProps> = ({
+  isOpen,
+  onClose,
+  onSendMessage,
+  messages = [],
+  isSpectatorMode = false,
+}) => {
   const [activeTab, setActiveTab] = useState<"QUICK_CHAT" | "EMOJI">("QUICK_CHAT");
   const [inputMsg, setInputMsg] = useState("");
   const openProfile = useGlobalModalStore((s) => s.openProfile);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   if (!isOpen) return null;
 
@@ -32,9 +49,11 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
     "Sorry!",
     "Unlucky!",
     "Hehehe!",
+    "Let's go! 🔥",
+    "GG 🏆",
   ];
 
-  const emojis = ["😀", "😁", "😂", "😃", "😄", "😅", "😆", "😇", "😈", "😉", "😊", "😋", "😎", "😍", "😘", "🥰"];
+  const emojis = ["😀", "😁", "😂", "😃", "😄", "😅", "😆", "😇", "😈", "😉", "😊", "😋", "😎", "😍", "😘", "🥰", "🔥", "💎", "👑", "⚡"];
 
   const handleSend = (text: string) => {
     if (!text.trim()) return;
@@ -43,13 +62,21 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
     onClose();
   };
 
+  // Color map for player colors
+  const colorMap: Record<string, string> = {
+    GREEN: 'text-emerald-400',
+    YELLOW: 'text-amber-300',
+    RED: 'text-red-400',
+    BLUE: 'text-cyan-400',
+  };
+
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm p-3"
       onClick={onClose}
     >
-      <div 
-        className="w-full max-w-[270px] bg-cover bg-center border-2 border-amber-400/80 rounded-3xl p-3 shadow-[0_10px_35px_rgba(0,0,0,0.95)] flex flex-col gap-2 mb-4 relative overflow-hidden"
+      <div
+        className="w-full max-w-[300px] bg-cover bg-center border-2 border-amber-400/80 rounded-3xl p-3 shadow-[0_10px_35px_rgba(0,0,0,0.95)] flex flex-col gap-2 mb-4 relative overflow-hidden"
         style={{ backgroundImage: `url('/assets/images/icons/royal_gold_chat_frame.jpg')` }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -59,32 +86,85 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
         {/* Inner Content Layer */}
         <div className="relative z-10 flex flex-col gap-2">
 
+          {/* Header */}
+          <div className="flex items-center justify-between pb-1 border-b border-amber-400/20">
+            <div className="flex items-center gap-1.5">
+              {isSpectatorMode ? (
+                <>
+                  <span className="animate-pulse w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                  <span className="text-[9px] font-black text-purple-300 uppercase tracking-widest">👁 Spectator Chat</span>
+                </>
+              ) : (
+                <>
+                  <span className="animate-pulse w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                  <span className="text-[9px] font-black text-amber-300 uppercase tracking-widest">💬 Live Chat</span>
+                </>
+              )}
+            </div>
+            <button
+              onClick={onClose}
+              className="w-5 h-5 rounded-full bg-purple-950/60 border border-purple-500/30 flex items-center justify-center text-[9px] text-gray-400 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+
           {/* 1. CHAT HISTORY CONTAINER */}
-          <div className="w-full bg-slate-950/80 border border-purple-500/30 rounded-xl p-2 h-[100px] overflow-y-auto flex flex-col gap-1.5 no-scrollbar shadow-inner">
+          <div
+            ref={scrollRef}
+            className="w-full bg-slate-950/80 border border-purple-500/30 rounded-xl p-2 h-[120px] overflow-y-auto flex flex-col gap-1.5 no-scrollbar shadow-inner"
+          >
             {messages.length === 0 ? (
               <div className="h-full flex items-center justify-center text-[9px] text-purple-300/60 font-semibold italic">
                 No messages yet. Say hi! 👋
               </div>
             ) : (
-              messages.map((msg) => (
-                <div key={msg.id} className="flex flex-col text-[9.5px] leading-tight">
-                  <div className="flex items-center justify-between text-[8px] opacity-75 mb-0.5">
-                    <span 
-                      onClick={() => {
-                        openProfile(msg.sender);
-                        onClose();
-                      }}
-                      className={`font-extrabold cursor-pointer hover:underline ${msg.color === 'GREEN' ? 'text-emerald-400' : msg.color === 'YELLOW' ? 'text-amber-300' : 'text-cyan-400'}`}
-                    >
-                      {msg.sender}
-                    </span>
-                    <span className="text-gray-400">{msg.time}</span>
+              messages.map((msg) => {
+                // System message (e.g. "Spectator joined")
+                if (msg.isSystem) {
+                  return (
+                    <div key={msg.id} className="flex items-center justify-center">
+                      <span className="text-[8px] text-purple-300/60 italic font-medium px-2 py-0.5 bg-purple-900/20 rounded-full border border-purple-500/10">
+                        {msg.text}
+                      </span>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={msg.id} className="flex flex-col text-[9.5px] leading-tight">
+                    <div className="flex items-center justify-between text-[8px] opacity-80 mb-0.5">
+                      <div className="flex items-center gap-1">
+                        {/* Spectator Badge */}
+                        {msg.isSpectator && (
+                          <span className="bg-purple-700/60 border border-purple-400/40 text-purple-300 text-[7px] font-black px-1 py-0.5 rounded-full leading-none">
+                            👁 SPEC
+                          </span>
+                        )}
+                        <span
+                          onClick={() => {
+                            if (!msg.isSpectator) {
+                              openProfile(msg.sender);
+                              onClose();
+                            }
+                          }}
+                          className={`font-extrabold ${msg.isSpectator ? 'text-purple-300 cursor-default' : `${colorMap[msg.color || 'BLUE'] || 'text-cyan-400'} cursor-pointer hover:underline`}`}
+                        >
+                          {msg.sender}
+                        </span>
+                      </div>
+                      <span className="text-gray-400">{msg.time}</span>
+                    </div>
+                    <div className={`border rounded-lg px-2 py-1 text-white font-medium break-words ${
+                      msg.isSpectator
+                        ? 'bg-purple-900/30 border-purple-500/25'
+                        : 'bg-purple-900/40 border-purple-500/20'
+                    }`}>
+                      {msg.text}
+                    </div>
                   </div>
-                  <div className="bg-purple-900/40 border border-purple-500/20 rounded-lg px-2 py-1 text-white font-medium break-words">
-                    {msg.text}
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 
@@ -143,7 +223,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
           <div className="flex gap-1 mt-0.5">
             <input
               type="text"
-              placeholder="Type message..."
+              placeholder={isSpectatorMode ? "Spectator message..." : "Type message..."}
               value={inputMsg}
               onChange={(e) => setInputMsg(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend(inputMsg)}
@@ -156,6 +236,13 @@ export const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, onSendMes
               ➔
             </button>
           </div>
+
+          {/* Spectator mode note */}
+          {isSpectatorMode && (
+            <p className="text-[7.5px] text-purple-300/50 text-center italic">
+              👁 Your messages show as [SPEC] to all players
+            </p>
+          )}
         </div>
       </div>
     </div>

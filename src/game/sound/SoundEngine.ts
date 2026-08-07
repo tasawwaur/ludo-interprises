@@ -15,17 +15,35 @@ export type SoundEffect =
 export class SoundEngine {
   private static audioCtx: AudioContext | null = null;
   private static isMuted = false;
+  private static gestureBound = false;
+
+  private static bindUserGestureListener(): void {
+    if (typeof window === 'undefined' || this.gestureBound) return;
+    this.gestureBound = true;
+
+    const unlockAudio = () => {
+      if (this.audioCtx && this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume().catch(() => {});
+      }
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+    };
+
+    window.addEventListener('click', unlockAudio, { passive: true });
+    window.addEventListener('touchstart', unlockAudio, { passive: true });
+    window.addEventListener('keydown', unlockAudio, { passive: true });
+  }
 
   private static getAudioContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
+    this.bindUserGestureListener();
+
     if (!this.audioCtx) {
       const AudioCtxClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (AudioCtxClass) {
         this.audioCtx = new AudioCtxClass();
       }
-    }
-    if (this.audioCtx && this.audioCtx.state === 'suspended') {
-      this.audioCtx.resume();
     }
     return this.audioCtx;
   }
@@ -44,7 +62,7 @@ export class SoundEngine {
 
   public static stopAll(): void {
     if (this.audioCtx && this.audioCtx.state === 'running') {
-      this.audioCtx.suspend();
+      this.audioCtx.suspend().catch(() => {});
     }
   }
 
@@ -52,6 +70,13 @@ export class SoundEngine {
     if (this.isMuted) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
+
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+      return;
+    }
+
+    if (ctx.state !== 'running') return;
 
     const now = ctx.currentTime;
 

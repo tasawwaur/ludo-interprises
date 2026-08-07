@@ -29,7 +29,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
   const moveToken = useGameStore((s) => s.moveToken);
   const turnTimerSeconds = useGameStore((s) => s.turnTimerSeconds);
   const isAutoMode = useGameStore((s) => s.isAutoMode);
-  const isSpectatorMode = useGameStore((s) => s.isSpectatorMode); // ✅ Select spectator mode state
+  const isSpectatorMode = useGameStore((s) => s.isSpectatorMode);
   const disableAutoMode = useGameStore((s) => s.disableAutoMode);
   const tickTurnTimer = useGameStore((s) => s.tickTurnTimer);
   const demoStack = useGameStore((s) => s.demoStack);
@@ -37,7 +37,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
   const disconnectGameSocket = useGameStore((s) => s.disconnectGameSocket);
   const user = useUserStore((s) => s.user);
   const maxPlayers = useRoomStore((s) => s.maxPlayers);
-  const useCanvasBoard = true;
+  const useCanvasBoard = false;
 
   // Connect authoritative game socket for online matchmaking matches
   useEffect(() => {
@@ -56,6 +56,8 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
     text: string;
     time: string;
     color?: string;
+    isSpectator?: boolean;
+    isSystem?: boolean;
   }
 
   const [chatHistory, setChatHistory] = useState<ChatMessageItem[]>([]);
@@ -135,29 +137,9 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
     }
   }, [gameState, startMatch, user, maxPlayers]);
 
-  const updateUser = useUserStore((s) => s.updateUser);
-  const [rewardClaimed, setRewardClaimed] = useState(false);
+  // NOTE: Coin/XP rewards are handled by App.tsx when MATCH_RESULT view loads.
+  // Do NOT add reward logic here — it would cause double payouts.
 
-  // Match Victory Prize Reward (9,500 Coins for Winner)
-  useEffect(() => {
-    if (gameState?.gameStatus === 'GAME_OVER' && !rewardClaimed) {
-      if (isSpectatorMode) {
-        setRewardClaimed(true);
-        return;
-      }
-      const winnerColor = gameState.winnerRankings[0];
-      const winningPlayer = gameState.players.find((p) => p.color === winnerColor);
-      
-      // If Host / User won the match, credit win reward to their wallet!
-      if (winningPlayer?.isHost || winningPlayer?.color === localPlayer?.color) {
-        const entryFee = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
-        const winReward = Math.round(entryFee * 1.9); // 2 * entryFee - 5% commission
-        const currentCoins = user?.coins || 0;
-        updateUser({ coins: currentCoins + winReward });
-        setRewardClaimed(true);
-      }
-    }
-  }, [gameState?.gameStatus, gameState?.winnerRankings, rewardClaimed, user?.coins, updateUser, localPlayer?.color, isSpectatorMode]);
 
   // Auto transition to MatchResultScreen after 4 seconds when game is over
   useEffect(() => {
@@ -191,12 +173,17 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         text: data.text,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         color: data.color || 'BLUE',
+        isSpectator: data.isSpectator || false,
+        isSystem: data.isSystem || false,
       };
-      setChatHistory((prev) => [...prev.slice(-15), newMsgItem]);
-      setActiveSpeechBubbles((prev) => ({ ...prev, [data.color]: data.text }));
-      setTimeout(() => {
-        setActiveSpeechBubbles((prev) => ({ ...prev, [data.color]: null }));
-      }, 2800);
+      setChatHistory((prev) => [...prev.slice(-30), newMsgItem]);
+      // Only show speech bubble for non-spectator, non-system messages
+      if (!data.isSpectator && !data.isSystem && data.color) {
+        setActiveSpeechBubbles((prev) => ({ ...prev, [data.color]: data.text }));
+        setTimeout(() => {
+          setActiveSpeechBubbles((prev) => ({ ...prev, [data.color]: null }));
+        }, 2800);
+      }
     };
 
     window.addEventListener('game_chat_message', handleIncomingChat);
@@ -208,36 +195,60 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
   const activePlayer = gameState.players[gameState.activePlayerIndex];
 
   const handleSendMessage = (msg: string) => {
-    const activeCol = localPlayer?.color || 'BLUE';
     const senderName = user?.displayName || user?.username || 'You';
-    
-    // Add to chat history
+    const gameSocket = useGameStore.getState().gameSocket;
+    const gameStore = useGameStore.getState();
+    const specMode = gameStore.isSpectatorMode;
+    const activeCol = specMode ? 'BLUE' : (localPlayer?.color || 'BLUE');
+
+    // Add to local chat history immediately
     const newMsgItem: ChatMessageItem = {
       id: Date.now().toString() + Math.random().toString().slice(2, 5),
       sender: senderName,
       text: msg,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       color: activeCol,
+      isSpectator: specMode,
     };
+    setChatHistory((prev) => [...prev.slice(-30), newMsgItem]);
 
-    setChatHistory((prev) => [...prev.slice(-15), newMsgItem]);
+    if (!specMode) {
+      // Player: show speech bubble on board
+      setActiveSpeechBubbles((prev) => ({ ...prev, [activeCol]: msg }));
+      setTimeout(() => {
+        setActiveSpeechBubbles((prev) => ({ ...prev, [activeCol]: null }));
+      }, 2800);
+    }
 
-    setActiveSpeechBubbles((prev) => ({ ...prev, [activeCol]: msg }));
-    setTimeout(() => {
-      setActiveSpeechBubbles((prev) => ({ ...prev, [activeCol]: null }));
-    }, 2800);
+    if (gameSocket) {
+      // Use unified chat_message event for both players and spectators
+      const playerRoomCode = useRoomStore.getState().roomCode;
+      const spectatorRoomCode = (gameSocket as any).spectatorRoomCode || '';
+      const resolvedRoomCode = specMode ? spectatorRoomCode : playerRoomCode;
 
-    const roomCode = useRoomStore.getState().roomCode;
-    const gameSocket = useGameStore.getState().gameSocket;
-    if (gameSocket && roomCode) {
-      gameSocket.emit("client_action", {
-        roomCode,
-        actionType: 'CHAT',
-        text: msg,
+      gameSocket.emit("chat_message", {
+        roomCode: resolvedRoomCode,
         senderName: senderName,
+        text: msg,
         color: activeCol,
+        isSpectator: specMode,
       });
     }
+  };
+
+  // Share spectate link button handler
+  const [shareCopied, setShareCopied] = useState(false);
+  const handleShareSpectateLink = () => {
+    const roomCode = useRoomStore.getState().roomCode;
+    if (!roomCode) return;
+    const spectateUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?spectate=${roomCode}`;
+    navigator.clipboard?.writeText(spectateUrl).then(() => {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }).catch(() => {
+      // Fallback: prompt
+      window.prompt('Copy this link to share:', spectateUrl);
+    });
   };
 
   const getFrameImage = (color: string | undefined): string => {
@@ -460,16 +471,17 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                             left: positionStyle.left,
                           }}
                         >
-                          <img src={tokenImg} alt={`${token.color} Token ${idx + 1}`} className="w-full h-full object-contain" />
+                          <img src={tokenImg} alt={`${token.color} Token ${idx + 1}`} className="w-full h-full object-contain filter saturate-[2.8] contrast-[1.3] brightness-[1.2] drop-shadow-[0_0_12px_rgba(255,255,255,0.8)]" />
                           
                           {showNumber && (
                             <div 
-                              className="absolute -top-[12px] w-[18px] h-[18px] rounded-full flex items-center justify-center border-[1.5px] border-white shadow-[0_2px_4px_rgba(0,0,0,0.4)] font-black text-[9px] text-white z-50 select-none pointer-events-none"
+                              className="absolute -top-[13px] h-[18px] px-1 min-w-[22px] rounded-full flex items-center justify-center border-[1.5px] border-amber-300 shadow-[0_2px_6px_rgba(0,0,0,0.6)] font-black text-[9.5px] text-white z-50 select-none pointer-events-none gap-[1px]"
                               style={{
                                 backgroundColor: badgeColors[token.color] || '#2563eb'
                               }}
                             >
-                              {displayNum}
+                              <span>💣</span>
+                              <span>{displayNum}</span>
                             </div>
                           )}
                         </div>
@@ -558,12 +570,27 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
           <div className="absolute top-5 left-1/2 -translate-x-1/2 z-30 pointer-events-auto bg-gradient-to-r from-purple-900/95 via-amber-500/95 to-purple-900/95 border border-amber-400 px-4 py-1.5 rounded-full flex items-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.6)] scale-95 transition-all">
             <span className="animate-pulse w-2 h-2 rounded-full bg-red-500" />
             <span className="text-[9px] font-black text-white uppercase tracking-widest flex items-center gap-1 font-sans">
-              👑 VIP SPECTATING MODE
+              👁 LIVE SPECTATING
             </span>
           </div>
         )}
 
-        {/* HAMBURGER MENU BUTTON: FIXED TOP-LEFT */}
+        {/* SHARE SPECTATE LINK BUTTON — only for active players, not spectators */}
+        {!isSpectatorMode && (
+          <div className="absolute top-5 right-3 z-30 pointer-events-auto">
+            <button
+              onClick={handleShareSpectateLink}
+              className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all active:scale-95 border shadow-lg ${
+                shareCopied
+                  ? 'bg-green-500/90 border-green-400 text-white shadow-[0_0_10px_rgba(74,222,128,0.5)]'
+                  : 'bg-purple-950/80 border-amber-400/40 text-amber-300 hover:border-amber-400/80'
+              }`}
+              title="Share spectate link"
+            >
+              {shareCopied ? '✅ Copied!' : '🔗 Share'}
+            </button>
+          </div>
+        )}
         <div className="absolute top-5 left-3 z-30 pointer-events-auto">
           <button
             onClick={() => setShowMenu(true)}
@@ -820,12 +847,13 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
         }}
       />
 
-      {/* Chat Modal */}
+      {/* Chat Modal — enhanced with spectator support */}
       <ChatModal
         isOpen={showChatModal}
         onClose={() => setShowChatModal(false)}
         onSendMessage={handleSendMessage}
         messages={chatHistory}
+        isSpectatorMode={isSpectatorMode}
       />
 
 

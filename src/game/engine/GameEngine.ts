@@ -105,7 +105,9 @@ export class GameEngine {
         team = color === 'RED' || color === 'YELLOW' ? 'TEAM_A' : 'TEAM_B';
       }
 
-      const tokenIndices = roomMode === 'Quick Classic' ? [0] : [0, 1, 2, 3];
+      const tokenIndices = roomMode === 'Quick Classic' 
+        ? [0] 
+        : (roomMode === 'Unique Classic' ? [0, 1] : [0, 1, 2, 3]);
       const tokens: Token[] = tokenIndices.map((tokenIdx) => ({
         id: `${color}_${tokenIdx}`,
         color,

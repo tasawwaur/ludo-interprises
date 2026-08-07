@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useUserStore } from "../../../user/user.store";
 import { LudoPageBackground } from "../../../components/effects/LudoPageBackground";
+import { TermsPolicyModal } from "../../../components/modal/TermsPolicyModal";
 import confetti from "canvas-confetti";
 
 interface ShopPageProps {
@@ -13,6 +14,8 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
 
   const [activeTab, setActiveTab] = useState<"COINS" | "DIAMONDS" | "CROWNS">("COINS");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
+  const [policyInitialTab, setPolicyInitialTab] = useState<'TERMS' | 'REFUND' | 'PRIVACY'>('TERMS');
 
   // Loaded quantities
   const currentCoins = user?.coins ?? 1000;
@@ -475,6 +478,15 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
             </>
           )}
         </div>
+
+        {/* Policy Footer Links for Razorpay Compliance */}
+        <div className="w-full flex items-center justify-center gap-4 py-4 mt-4 border-t border-purple-500/10 text-[9px] font-black uppercase tracking-wider text-purple-300/40 relative z-20">
+          <span onClick={() => { setPolicyInitialTab('TERMS'); setShowPolicyModal(true); }} className="hover:text-amber-400 cursor-pointer transition-colors">Terms of Service</span>
+          <span>•</span>
+          <span onClick={() => { setPolicyInitialTab('REFUND'); setShowPolicyModal(true); }} className="hover:text-amber-400 cursor-pointer transition-colors">Refund Policy</span>
+          <span>•</span>
+          <span onClick={() => { setPolicyInitialTab('PRIVACY'); setShowPolicyModal(true); }} className="hover:text-amber-400 cursor-pointer transition-colors">Privacy Policy</span>
+        </div>
       </div>
 
       {/* ── FLOATING TOAST BAR ── */}
@@ -485,6 +497,13 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
           </span>
         </div>
       )}
+
+      {/* Terms and Refund Policy Modal */}
+      <TermsPolicyModal
+        isOpen={showPolicyModal}
+        initialTab={policyInitialTab}
+        onClose={() => setShowPolicyModal(false)}
+      />
     </div>
   );
 };

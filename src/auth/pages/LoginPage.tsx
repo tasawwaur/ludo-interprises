@@ -5,6 +5,7 @@ import { initGoogleSDK, promptGoogleSignIn, renderGoogleSignInButton, triggerGoo
 import { GuestRegistrationModal } from "../components/GuestRegistrationModal";
 import { formatPlayerUID } from "../../utils/uuid";
 import { getDefaultAvatar } from "../../utils/avatar";
+import { TermsPolicyModal } from "../../components/modal/TermsPolicyModal";
 
 interface LoginPageProps {
   onSuccessLogin?: () => void;
@@ -14,6 +15,8 @@ interface LoginPageProps {
 export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
 
   const [showGuestRegModal, setShowGuestRegModal] = useState(false);
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
+  const [policyInitialTab, setPolicyInitialTab] = useState<'TERMS' | 'REFUND' | 'PRIVACY'>('TERMS');
   
   // Facebook Modal State
   const [showFBModal, setShowFBModal] = useState(false);
@@ -555,11 +558,39 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
         </div>
       )}
 
+      {/* Policy Agreement Links at bottom of screen */}
+      <div 
+        className="absolute z-20 pointer-events-auto text-[9.5px] font-bold text-purple-300/60 text-center w-full select-none"
+        style={{ bottom: "5%" }}
+      >
+        By logging in, you agree to our{' '}
+        <span 
+          onClick={() => { setPolicyInitialTab('TERMS'); setShowPolicyModal(true); }} 
+          className="text-amber-400 hover:text-amber-300 cursor-pointer underline"
+        >
+          Terms of Service
+        </span>{' '}
+        &{' '}
+        <span 
+          onClick={() => { setPolicyInitialTab('REFUND'); setShowPolicyModal(true); }} 
+          className="text-amber-400 hover:text-amber-300 cursor-pointer underline"
+        >
+          Refund Policy
+        </span>.
+      </div>
+
       {/* Guest Registration Multi-step Modal */}
       <GuestRegistrationModal
         isOpen={showGuestRegModal}
         onClose={() => setShowGuestRegModal(false)}
         onComplete={handleGuestRegistrationComplete}
+      />
+
+      {/* Terms and Refund Policy Modal */}
+      <TermsPolicyModal
+        isOpen={showPolicyModal}
+        initialTab={policyInitialTab}
+        onClose={() => setShowPolicyModal(false)}
       />
     </div>
   );

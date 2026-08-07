@@ -14,6 +14,7 @@ import { ProtectButton } from '../components/ProtectButton';
 import { LuxuryLiveCamera } from '../../../components/camera/LuxuryLiveCamera';
 import { useGlobalModalStore } from '../../../store/global-modal.store';
 import { SoundEngine } from '../../../game/sound/SoundEngine';
+import { LudoToken } from '../components/LudoToken';
 
 
 interface GameArenaPageProps {
@@ -475,7 +476,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
                             left: positionStyle.left,
                           }}
                         >
-                          <img src={tokenImg} alt={`${token.color} Token ${idx + 1}`} className="w-full h-full object-contain filter saturate-[2.8] contrast-[1.3] brightness-[1.2] drop-shadow-[0_0_12px_rgba(255,255,255,0.8)] pointer-events-auto cursor-pointer" />
+                          <LudoToken color={token.color as any} size={28} tokenIndex={token.index} />
                           
                           {showNumber && (
                             <div 

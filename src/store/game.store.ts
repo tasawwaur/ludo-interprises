@@ -220,13 +220,29 @@ export const useGameStore = create<GameStoreState>()(
       }
     } else {
       // Timer hit 0 — play feedback only.
-      // The server fires timer_timeout which is the authoritative source of the turn skip.
-      // Do NOT call GameEngine.skipTurn() here — doing so causes a double skip and desync.
       set({ turnTimerSeconds: 0 });
       SoundEngine.play('TIMEOUT');
-      SoundEngine.vibrate(150);
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(150);
+      }
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('game_timeout'));
+      }
+
+      // Check if we should skip the turn locally (for Bot/AI matches where there is no server timer)
+      const isBotMatch = gameState.players.some(p => p.isAi);
+      if (isBotMatch) {
+        const nextState = GameEngine.skipTurn(gameState);
+        set({
+          gameState: nextState,
+          turnTimerSeconds: 10,
+          isAutoMode: false,
+        });
+        localStorage.setItem("ludo_classic_engine_state", JSON.stringify(nextState));
+        setTimeout(() => {
+          get().triggerAiMoveIfNeeded();
+        }, 800);
+        return;
       }
 
       // Only allowed client-side action: auto-move when there is exactly ONE movable token

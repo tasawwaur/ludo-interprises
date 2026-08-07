@@ -484,12 +484,16 @@ io.on("connection", (socket) => {
       matchmakingQueue.splice(Math.min(player1Idx, matchingIdx), 1);
       const roomCode = "ROOM_" + Math.random().toString(36).substring(2, 8).toUpperCase();
 
-      // Snake & Ladders always uses RED (goes first) / GREEN (goes second).
-      // For Ludo classic use random pair assignment.
-      // Since server doesn't track mode, always use RED/GREEN — SnakeLadder reads these directly,
-      // and Ludo classic UI maps them by position, not name, so this is safe.
-      const p1Color = "RED";
-      const p2Color = "GREEN";
+      // Assign colors based on matchmaking mode to support correct seating and timer logic
+      let p1Color = "RED";
+      let p2Color = "GREEN";
+      if (mode === "Normal Classic") {
+        p1Color = "RED";
+        p2Color = "YELLOW";
+      } else if (mode === "Quick Classic" || mode === "Unique Classic") {
+        p1Color = "BLUE";
+        p2Color = "GREEN";
+      }
 
       console.log(`[Matchmaking] Match Created: ${player1.name} (${p1Color}) vs ${player2.name} (${p2Color}) in ${roomCode}`);
 
@@ -593,18 +597,23 @@ io.on("connection", (socket) => {
       const player2 = requests[1];
       const newRoomCode = "ROOM_" + Math.random().toString(36).substring(2, 8).toUpperCase();
 
-      // Swap colors for the rematch — player who was RED becomes GREEN and vice versa
-      const p1NewColor = player1.color === "RED" ? "GREEN" : "RED";
-      const p2NewColor = player2.color === "RED" ? "GREEN" : "RED";
+      // Swap colors for the rematch based on the active mode pairs
+      const oppositeColorMap: Record<string, string> = {
+        RED: "YELLOW", YELLOW: "RED",
+        BLUE: "GREEN", GREEN: "BLUE"
+      };
+      
+      const p1NewColor = oppositeColorMap[player1.color] || (player1.color === "RED" ? "GREEN" : "RED");
+      const p2NewColor = oppositeColorMap[player2.color] || (player2.color === "RED" ? "GREEN" : "RED");
 
       // Register the new room state for authoritative turn timers
       const roomState: RoomTimerState = {
         roomCode: newRoomCode,
-        p1SocketId: p1NewColor === "RED" ? player1.socketId : player2.socketId,
-        p2SocketId: p1NewColor === "GREEN" ? player1.socketId : player2.socketId,
-        p1Color: "RED",
-        p2Color: "GREEN",
-        activeColor: "RED",
+        p1SocketId: player1.socketId,
+        p2SocketId: player2.socketId,
+        p1Color: p1NewColor,
+        p2Color: p2NewColor,
+        activeColor: p1NewColor,
         gameStatus: 'ROLL_WAIT',
         secondsRemaining: 10,
       };

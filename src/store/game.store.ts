@@ -124,7 +124,10 @@ export const useGameStore = create<GameStoreState>()(
 
         SoundEngine.play('GAME_START');
 
-        const hostPlayer = initialState.players.find(p => p.name === localUser?.username || p.name === localUser?.displayName || p.isHost) || initialState.players[0];
+        const savedMyColor = localStorage.getItem("ludo_classic_my_color");
+        const hostPlayer = savedMyColor
+          ? (initialState.players.find(p => p.color === savedMyColor) || initialState.players[0])
+          : (initialState.players.find(p => p.name === localUser?.username || p.name === localUser?.displayName || p.isHost) || initialState.players[0]);
 
         set({
           gameState: initialState,

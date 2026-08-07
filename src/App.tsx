@@ -791,6 +791,7 @@ const MainApp: React.FC = () => {
 
         let isLocalPlayerWinner = true;
         const betCoins = parseInt(localStorage.getItem("ludo_current_entry_fee") || "5000");
+        const matchStats = useGameStore.getState().matchStats;
 
         if (gState) {
           const wColor = gState.winnerRankings[0] || "GREEN";
@@ -810,16 +811,16 @@ const MainApp: React.FC = () => {
               winnerScore = wPlayer.tokens.reduce((sum, t) => sum + t.stepCount, 0);
               winnerAvatar = localAvatar || wPlayer.avatar || "";
               winnerFrame = localFrame;
-              winnerPassedTokens = wPlayer.tokens.filter((t) => t.stepCount === 57).length;
-              winnerKills = 3; // Standard kills for victory
+              winnerPassedTokens = matchStats.tokensCompleted;
+              winnerKills = matchStats.kills;
             }
             if (lPlayer) {
               loserName = lPlayer.name;
               loserScore = lPlayer.tokens.reduce((sum, t) => sum + t.stepCount, 0);
               loserAvatar = lPlayer.avatar || "";
               loserFrame = lPlayer.profileFrame || "/assets/images/icons/profile_frame_v3.png";
-              loserPassedTokens = lPlayer.tokens.filter((t) => t.stepCount === 57).length;
-              loserKills = 1;
+              loserPassedTokens = matchStats.opponentCompleted;
+              loserKills = matchStats.opponentKills;
             }
           } else {
             // Local player is the loser (Defeat)
@@ -828,16 +829,16 @@ const MainApp: React.FC = () => {
               winnerScore = wPlayer.tokens.reduce((sum, t) => sum + t.stepCount, 0);
               winnerAvatar = wPlayer.avatar || "";
               winnerFrame = wPlayer.profileFrame || "/assets/images/icons/profile_frame_v3.png";
-              winnerPassedTokens = wPlayer.tokens.filter((t) => t.stepCount === 57).length;
-              winnerKills = 3;
+              winnerPassedTokens = matchStats.opponentCompleted;
+              winnerKills = matchStats.opponentKills;
             }
             if (lPlayer) {
               loserName = lPlayer.name;
               loserScore = lPlayer.tokens.reduce((sum, t) => sum + t.stepCount, 0);
               loserAvatar = localAvatar || lPlayer.avatar || "";
               loserFrame = localFrame;
-              loserPassedTokens = lPlayer.tokens.filter((t) => t.stepCount === 57).length;
-              loserKills = 1;
+              loserPassedTokens = matchStats.tokensCompleted;
+              loserKills = matchStats.kills;
             }
           }
         }
@@ -859,6 +860,12 @@ const MainApp: React.FC = () => {
             loserPassedTokens={loserPassedTokens}
             isLocalPlayerWinner={isLocalPlayerWinner}
             betCoins={betCoins}
+            tokensLost={matchStats.tokensLost}
+            diceRolls={matchStats.diceRolls}
+            sixesCount={matchStats.sixesCount}
+            maxConsecutiveSixes={matchStats.maxConsecutiveSixes}
+            safeZoneVisits={matchStats.safeZoneVisits}
+            consecutiveKills={matchStats.consecutiveKills}
             onPlayAgain={() => {
               useGameStore.getState().resetMatch();
               startQueue("2P Classic");

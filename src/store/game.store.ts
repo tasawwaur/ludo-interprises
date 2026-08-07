@@ -27,6 +27,18 @@ interface GameStoreState {
   cheatNextRollValue: number | null;
   isSpectatorMode: boolean; // ✅ Spectator mode active
   opponentReconnectingSeconds: number | null;
+  matchStats: {
+    kills: number;
+    tokensCompleted: number;
+    tokensLost: number;
+    diceRolls: number;
+    sixesCount: number;
+    maxConsecutiveSixes: number;
+    consecutiveKills: number;
+    safeZoneVisits: number;
+    opponentKills: number;
+    opponentCompleted: number;
+  };
 
   // Actions
   startMatch: (mode: '2P' | '2v2' | '4P', hostName: string) => void;
@@ -45,6 +57,8 @@ interface GameStoreState {
   connectGameSocket: (roomCode: string) => void;
   disconnectGameSocket: () => void;
   joinAsSpectator: (roomCode: string) => void;
+  incrementStat: (key: 'kills' | 'tokensCompleted' | 'tokensLost' | 'diceRolls' | 'sixesCount' | 'maxConsecutiveSixes' | 'consecutiveKills' | 'safeZoneVisits' | 'opponentKills' | 'opponentCompleted', amount?: number) => void;
+  resetMatchStats: () => void;
 }
 
 export const useGameStore = create<GameStoreState>()(
@@ -63,6 +77,44 @@ export const useGameStore = create<GameStoreState>()(
       cheatNextRollValue: null,
       isSpectatorMode: false, // ✅ Initialize as false
       opponentReconnectingSeconds: null,
+      matchStats: {
+        kills: 0,
+        tokensCompleted: 0,
+        tokensLost: 0,
+        diceRolls: 0,
+        sixesCount: 0,
+        maxConsecutiveSixes: 0,
+        consecutiveKills: 0,
+        safeZoneVisits: 0,
+        opponentKills: 0,
+        opponentCompleted: 0
+      },
+
+      incrementStat: (key, amount = 1) => {
+        set((state: any) => ({
+          matchStats: {
+            ...state.matchStats,
+            [key]: (state.matchStats[key] || 0) + amount
+          }
+        }));
+      },
+
+      resetMatchStats: () => {
+        set({
+          matchStats: {
+            kills: 0,
+            tokensCompleted: 0,
+            tokensLost: 0,
+            diceRolls: 0,
+            sixesCount: 0,
+            maxConsecutiveSixes: 0,
+            consecutiveKills: 0,
+            safeZoneVisits: 0,
+            opponentKills: 0,
+            opponentCompleted: 0
+          }
+        });
+      },
 
       startMatch: (mode, hostName) => {
         // ✅ Restore state from localStorage on refresh
@@ -89,6 +141,7 @@ export const useGameStore = create<GameStoreState>()(
           }
         }
 
+        get().resetMatchStats();
         set({ gameState: null });
 
         const members = useRoomStore.getState().members;
@@ -259,6 +312,22 @@ export const useGameStore = create<GameStoreState>()(
     }
 
     if (nextState.diceValue) {
+      // Record local player stats
+      if (gameState.currentTurnColor === get().localPlayerColor) {
+        get().incrementStat('diceRolls');
+        if (nextState.diceValue === 6) {
+          get().incrementStat('sixesCount');
+        }
+        if (nextState.consecutiveSixes > get().matchStats.maxConsecutiveSixes) {
+          set((s: any) => ({
+            matchStats: {
+              ...s.matchStats,
+              maxConsecutiveSixes: nextState.consecutiveSixes
+            }
+          }));
+        }
+      }
+
       replayRecorder.recordEvent('DICE_ROLL', gameState.currentTurnColor, {
         value: nextState.diceValue,
       });
@@ -344,6 +413,42 @@ export const useGameStore = create<GameStoreState>()(
         setTimeout(animateStep, 160);
       } else {
         const nextState = GameEngine.moveToken(gameState, tokenId);
+
+        // Record real gameplay statistics
+        const isMyMove = gameState.currentTurnColor === get().localPlayerColor;
+        if (isMyMove) {
+          if (targetMove.isCapture) {
+            get().incrementStat('kills');
+            get().incrementStat('consecutiveKills');
+            
+            // Check for triple kill combo
+            const currentConsecutive = get().matchStats.consecutiveKills;
+            if (currentConsecutive === 3) {
+              nextState.lastActionSummary = `🔥 TRIPLE KILL COMBO! +150 XP bonus!`;
+            }
+          }
+          if (targetMove.isHome) {
+            get().incrementStat('tokensCompleted');
+          }
+          const SAFE_TRACK_INDICES = [0, 8, 13, 21, 26, 34, 39, 47];
+          if (SAFE_TRACK_INDICES.includes(targetMove.toStep) || targetMove.toStep >= 52) {
+            get().incrementStat('safeZoneVisits');
+          }
+        } else {
+          if (targetMove.isCapture) {
+            get().incrementStat('tokensLost');
+            set((s: any) => ({
+              matchStats: {
+                ...s.matchStats,
+                consecutiveKills: 0
+              }
+            }));
+            get().incrementStat('opponentKills');
+          }
+          if (targetMove.isHome) {
+            get().incrementStat('opponentCompleted');
+          }
+        }
 
         if (targetMove.isCapture) {
           SoundEngine.play('CAPTURE');
@@ -483,6 +588,7 @@ export const useGameStore = create<GameStoreState>()(
 
   resetMatch: () => {
     SoundEngine.stopAll();
+    get().resetMatchStats();
     set({
       gameState: null,
       activeHoverTokenId: null,

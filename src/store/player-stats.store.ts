@@ -25,6 +25,7 @@ export interface CompletedMatchData {
   isPerfectWin: boolean;
   isAllTokensHome: boolean;
   matchDurationSeconds: number;
+  consecutiveKills?: number;
 }
 
 export interface PlayerDetailedStats {
@@ -243,6 +244,11 @@ export const usePlayerStatsStore = create<PlayerStatsState>((set, get) => {
         matchXp += matchData.isFirstKill ? 20 : 0; // First Kill Bonus
         matchXp += matchData.isPerfectWin ? 75 : 0; // Perfect Win Bonus
         matchXp += matchData.isAllTokensHome ? 100 : 0; // All Tokens Home Bonus
+        
+        // 3 consecutive kills combo reward (+150 XP!)
+        if (matchData.consecutiveKills && matchData.consecutiveKills >= 3) {
+          matchXp += 150;
+        }
 
         let finalXp = prev.xp + matchXp;
         let finalLevel = prev.level;

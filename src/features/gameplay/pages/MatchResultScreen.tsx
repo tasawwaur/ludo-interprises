@@ -25,6 +25,13 @@ interface MatchResultScreenProps {
   
   isLocalPlayerWinner?: boolean;
   betCoins?: number;
+
+  tokensLost?: number;
+  diceRolls?: number;
+  sixesCount?: number;
+  maxConsecutiveSixes?: number;
+  safeZoneVisits?: number;
+  consecutiveKills?: number;
 }
 
 const colorConfig: Record<
@@ -92,6 +99,13 @@ export const MatchResultScreen: React.FC<MatchResultScreenProps> = ({
   
   isLocalPlayerWinner = true,
   betCoins = 5000,
+
+  tokensLost = 0,
+  diceRolls = 0,
+  sixesCount = 0,
+  maxConsecutiveSixes = 0,
+  safeZoneVisits = 0,
+  consecutiveKills = 0,
 }) => {
   const user = useUserStore((s) => s.user);
   const cfg = colorConfig[winnerColor] || colorConfig.GREEN;
@@ -162,17 +176,18 @@ export const MatchResultScreen: React.FC<MatchResultScreenProps> = ({
       tripleKills: localPlayerKills >= 3 ? 1 : 0,
       quadraKills: localPlayerKills >= 4 ? 1 : 0,
       tokensCompleted: localPlayerPassed,
-      tokensLost: isLocalPlayerWinner ? 1 : 4,
-      diceRolls: 20 + Math.floor(Math.random() * 15),
-      sixesCount: 3 + Math.floor(Math.random() * 5),
-      maxConsecutiveSixes: Math.random() > 0.85 ? 2 : 1,
-      safeZoneVisits: 2 + Math.floor(Math.random() * 3),
+      tokensLost: tokensLost !== undefined ? tokensLost : (isLocalPlayerWinner ? 1 : 4),
+      diceRolls: diceRolls || (20 + Math.floor(Math.random() * 15)),
+      sixesCount: sixesCount || (3 + Math.floor(Math.random() * 5)),
+      maxConsecutiveSixes: maxConsecutiveSixes || (Math.random() > 0.85 ? 2 : 1),
+      safeZoneVisits: safeZoneVisits || (2 + Math.floor(Math.random() * 3)),
       luckyRolls: 1 + Math.floor(Math.random() * 2),
       unluckyRolls: Math.floor(Math.random() * 2),
       isFirstKill: localPlayerKills > 0,
       isPerfectWin: isLocalPlayerWinner && localPlayerPassed === 4,
       isAllTokensHome: isLocalPlayerWinner && localPlayerPassed === 4,
       matchDurationSeconds: 240 + Math.floor(Math.random() * 120),
+      consecutiveKills: consecutiveKills,
     });
   }, []);
 

@@ -237,19 +237,22 @@ export const usePlayerStatsStore = create<PlayerStatsState>((set, get) => {
         const finalDiamonds = prev.currentDiamonds + diamondDelta;
         const finalDiamondsEarned = prev.totalDiamondsEarned + diamondDelta;
 
-        // 2. Calculate XP Earned based on prompt rules
-        let matchXp = 0;
-        matchXp += matchData.isWin ? 200 : 0; // Win Match
-        matchXp += matchData.kills * 8; // Kill Enemy Token (+8 XP each)
-        matchXp += matchData.hardKills * 50; // Hard Kill
-        matchXp += matchData.tokensCompleted * 50; // Complete One Token
-        matchXp += matchData.isFirstKill ? 20 : 0; // First Kill Bonus
-        matchXp += matchData.isPerfectWin ? 75 : 0; // Perfect Win Bonus
-        matchXp += matchData.isAllTokensHome ? 100 : 0; // All Tokens Home Bonus
-        
-        // 3 consecutive kills combo reward (+150 XP!)
+        // 2. Calculate XP Earned based on Mode & Kills (Kill XP = +25 XP each across all modes)
+        let modeBaseXp = matchData.isWin ? 350 : 150;
+        const gMode = matchData.gameMode.toUpperCase();
+        if (gMode.includes("SNAKE") || gMode.includes("LADDER")) {
+          modeBaseXp = matchData.isWin ? 180 : 70;
+        } else if (gMode.includes("QUICK")) {
+          modeBaseXp = matchData.isWin ? 220 : 90;
+        } else if (gMode.includes("PRIVATE") || gMode.includes("VIP") || gMode.includes("UNIQUE")) {
+          modeBaseXp = matchData.isWin ? 250 : 100;
+        }
+
+        let matchXp = modeBaseXp;
+        matchXp += matchData.kills * 25; // Kill Enemy Token (+25 XP each across all modes)
+        matchXp += matchData.tokensCompleted * 50; // Complete One Token (+50 XP)
         if (matchData.consecutiveKills && matchData.consecutiveKills >= 3) {
-          matchXp += 150;
+          matchXp += 150; // 3 consecutive kills combo bonus (+150 XP)
         }
 
         let finalXp = prev.xp + matchXp;

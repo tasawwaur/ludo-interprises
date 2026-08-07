@@ -273,7 +273,19 @@ const MainApp: React.FC = () => {
     const isWinner = localPlayer.color === wColor;
     const kills = isWinner ? 3 : 1;
     const passedTokens = localPlayer.tokens ? localPlayer.tokens.filter(t => t.stepCount === 57).length : 0;
-    const baseMatchXp = isWinner ? 350 : 150; // Guaranteed base XP reward per match
+    
+    // Mode-specific XP reward logic (Kill XP remains identical +25 XP across all modes)
+    const activeMode = (localStorage.getItem("ludo_classic_mode") || useQueueStore.getState().mode || "Classic").toLowerCase();
+    let baseMatchXp = isWinner ? 350 : 150; // Normal / Classic Default
+
+    if (activeMode.includes("snake") || activeMode.includes("ladder")) {
+      baseMatchXp = isWinner ? 180 : 70; // Snake & Ladders Mode
+    } else if (activeMode.includes("quick")) {
+      baseMatchXp = isWinner ? 220 : 90; // Quick Mode
+    } else if (activeMode.includes("vip") || activeMode.includes("master") || activeMode.includes("private") || activeMode.includes("unique")) {
+      baseMatchXp = isWinner ? 250 : 100; // Unique / VIP Mode
+    }
+
     const xpReward = baseMatchXp + (passedTokens * 50) + (kills * 25);
     let newXp = (user.xp || 0) + xpReward;
 

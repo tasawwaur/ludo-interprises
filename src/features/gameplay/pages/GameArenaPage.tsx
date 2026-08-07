@@ -173,16 +173,17 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
   }, [gameState?.gameStatus, gameState?.winnerRankings, rewardClaimed, user?.coins, updateUser, localPlayer?.color, isSpectatorMode]);
 
 
-  // Turn Timer Countdown Loop
+  // Turn Timer Countdown Loop — stable single listener
   useEffect(() => {
-    if (!gameState || gameState.gameStatus === 'GAME_OVER') return;
-
     const interval = setInterval(() => {
-      tickTurnTimer();
+      const state = useGameStore.getState().gameState;
+      if (state && state.gameStatus !== 'GAME_OVER' && state.gameStatus !== 'TOKEN_MOVING') {
+        useGameStore.getState().tickTurnTimer();
+      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [gameState, tickTurnTimer]);
+  }, []);
 
   // Listen to incoming chat messages from the socket
   useEffect(() => {

@@ -767,6 +767,40 @@ export const useGameStore = create<GameStoreState>()(
       }
     });
 
+    socket.on("opponent_disconnected", () => {
+      console.log("[Opponent Disconnected] Opponent left match — declaring local player as WINNER!");
+      const { gameState, localPlayerColor } = get();
+      if (!gameState) return;
+
+      const myColor = localPlayerColor || gameState.players[0].color;
+      const oppColor = gameState.players.find(p => p.color !== myColor)?.color || 'GREEN';
+
+      const nextState = {
+        ...gameState,
+        gameStatus: 'GAME_OVER' as const,
+        winnerRankings: [myColor, oppColor],
+        lastActionSummary: `🏆 Opponent disconnected! You win by forfeit!`,
+      };
+
+      set({
+        gameState: nextState,
+        _isRolling: false,
+      });
+
+      SoundEngine.play('WIN');
+      try {
+        confetti({
+          particleCount: 120,
+          spread: 80,
+          origin: { y: 0.6 },
+          colors: ['#FFD700', '#FFA500', '#10B981', '#3B82F6', '#EF4444'],
+        });
+      } catch (e) {}
+
+      localStorage.removeItem("ludo_active_match_session");
+      localStorage.removeItem("ludo_classic_engine_state");
+    });
+
     socket.on("server_action", (data: { actionId?: string; actionType: 'ROLL' | 'MOVE' | 'UNDO' | 'CHAT' | 'STATE_SYNC' | 'FORFEIT'; diceValue?: number; tokenId?: string; nextColor?: string; cost?: number; text?: string; senderName?: string; color?: string; gameState?: any; hasLegalMoves?: boolean; turnTimerSeconds?: number }) => {
       const { gameState } = get();
       if (!gameState) return;

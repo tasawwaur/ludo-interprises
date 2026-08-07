@@ -762,7 +762,7 @@ const MainApp: React.FC = () => {
                 useGameStore.getState().resetMatch();
                 setCurrentView("VIP_LOUNGE");
               } else {
-                setCurrentView("MATCH_RESULT");
+                setCurrentView("HOME");
               }
             }}
           />

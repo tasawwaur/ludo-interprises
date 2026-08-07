@@ -24,8 +24,12 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleReset = () => {
-    localStorage.removeItem("ludo_sl_engine_state");
-    localStorage.removeItem("ludo_active_match_session");
+    try {
+      localStorage.removeItem("ludo_sl_engine_state");
+      localStorage.removeItem("ludo_classic_engine_state");
+      localStorage.removeItem("ludo_active_match_session");
+      localStorage.removeItem("ludo_room_code");
+    } catch (e) {}
     this.setState({ hasError: false, error: null });
     window.location.href = "/";
   };
@@ -40,9 +44,14 @@ export class ErrorBoundary extends Component<Props, State> {
           <h1 className="text-xl font-black bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent uppercase tracking-wider mb-2">
             Something Went Wrong
           </h1>
-          <p className="text-xs text-gray-400 text-center max-w-xs mb-6">
-            An unexpected glitch occurred. Don't worry, your progress can be restored.
+          <p className="text-xs text-gray-400 text-center max-w-xs mb-2">
+            An unexpected glitch occurred. Click Return to Home to reset.
           </p>
+          {this.state.error && (
+            <div className="text-[10px] text-rose-300 bg-rose-950/60 p-2 rounded-lg border border-rose-500/30 max-w-xs mb-4 text-center font-mono break-all select-all">
+              {this.state.error.toString()}
+            </div>
+          )}
           <button
             onClick={this.handleReset}
             className="px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950 font-black text-xs uppercase tracking-widest rounded-xl shadow-lg border border-amber-300 hover:scale-105 active:scale-95 transition-all cursor-pointer"

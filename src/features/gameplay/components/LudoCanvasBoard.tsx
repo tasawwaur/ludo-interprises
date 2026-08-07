@@ -54,9 +54,11 @@ export const LudoCanvasBoard: React.FC = () => {
       if (!token) continue;
 
       const coords = getPixelCoordinates(token.color, token.stepCount, token.index, cellSize, localPlayerColor);
-      const dist = Math.hypot(clickX - coords.x, clickY - coords.y);
+      // Account for vertical height of 3D token model/sprite
+      const tokenCenterY = coords.y - cellSize * 0.3;
+      const dist = Math.hypot(clickX - coords.x, clickY - tokenCenterY);
 
-      if (dist <= cellSize * 0.5) {
+      if (dist <= cellSize * 0.95) {
         matchedTokenId = token.id;
         break;
       }
@@ -90,9 +92,10 @@ export const LudoCanvasBoard: React.FC = () => {
       if (!token) continue;
 
       const coords = getPixelCoordinates(token.color, token.stepCount, token.index, cellSize, localPlayerColor);
-      const dist = Math.hypot(mouseX - coords.x, mouseY - coords.y);
+      const tokenCenterY = coords.y - cellSize * 0.3;
+      const dist = Math.hypot(mouseX - coords.x, mouseY - tokenCenterY);
 
-      if (dist <= cellSize * 0.5) {
+      if (dist <= cellSize * 0.95) {
         hoveredId = token.id;
         break;
       }

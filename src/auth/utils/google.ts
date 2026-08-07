@@ -76,7 +76,7 @@ export const initGoogleSDK = async (
     const google = (window as any).google;
     if (google?.accounts?.id) {
       google.accounts.id.initialize({
-        client_id: clientId || '1088492040921-sample.apps.googleusercontent.com',
+        client_id: clientId || '553585934648-1u10lds26ngf5b9bel7cv22brg74vt1c.apps.googleusercontent.com',
         callback: (response: any) => {
           if (response.credential) {
             const profile = decodeGoogleJwt(response.credential);
@@ -106,7 +106,7 @@ export const renderGoogleSignInButton = (
     const google = (window as any).google;
     if (google?.accounts?.id) {
       google.accounts.id.initialize({
-        client_id: clientId || '1088492040921-sample.apps.googleusercontent.com',
+        client_id: clientId || '553585934648-1u10lds26ngf5b9bel7cv22brg74vt1c.apps.googleusercontent.com',
         callback: (response: any) => {
           if (response.credential) {
             const profile = decodeGoogleJwt(response.credential);
@@ -141,7 +141,7 @@ export const triggerGoogleOAuth = (
     const google = (window as any).google;
     if (google?.accounts?.oauth2) {
       const client = google.accounts.oauth2.initTokenClient({
-        client_id: clientId || '1088492040921-sample.apps.googleusercontent.com',
+        client_id: clientId || '553585934648-1u10lds26ngf5b9bel7cv22brg74vt1c.apps.googleusercontent.com',
         scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
         callback: async (tokenResponse: any) => {
           if (tokenResponse?.access_token) {

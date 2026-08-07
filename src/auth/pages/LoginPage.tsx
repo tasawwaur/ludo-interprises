@@ -36,7 +36,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     initFacebookSDK(fbAppId);
 
     // Initialize Google SDK on mount
-    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '553585934648-1u10lds26ngf5b9bel7cv22brg74vt1c.apps.googleusercontent.com';
     initGoogleSDK(googleClientId, (googleProfile) => {
       handleCompleteGoogleAuth(googleProfile);
     }).then((ready) => {
@@ -245,33 +245,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
   };
 
 
-  // Google Login Handler — Always executes login authentication window
+  // Google Login Handler — Always executes real Google OAuth authentication
   const handleGoogleLogin = () => {
-    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
-    const isConfigured = googleClientId && !googleClientId.includes('YOUR_GOOGLE_CLIENT_ID');
-
-    if (isConfigured) {
-      try {
-        triggerGoogleOAuth(googleClientId, (googleProfile) => {
-          handleCompleteGoogleAuth(googleProfile);
-        });
-      } catch (e) {
-        console.warn('Google OAuth popup failed:', e);
-        handleCompleteGoogleAuth({
-          sub: `goog_trlife_${Date.now()}`,
-          name: "Trlife",
-          email: "trlife0786@gmail.com",
-          picture: "https://lh3.googleusercontent.com/a/default-user=s96-c",
-        });
-      }
-    } else {
-      handleCompleteGoogleAuth({
-        sub: `goog_trlife_${Date.now()}`,
-        name: "Trlife",
-        email: "trlife0786@gmail.com",
-        picture: "https://lh3.googleusercontent.com/a/default-user=s96-c",
-      });
-    }
+    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '553585934648-1u10lds26ngf5b9bel7cv22brg74vt1c.apps.googleusercontent.com';
+    triggerGoogleOAuth(googleClientId, (googleProfile) => {
+      handleCompleteGoogleAuth(googleProfile);
+    });
   };
 
   const handleCompleteGoogleAuth = (profile: GoogleUserProfile) => {

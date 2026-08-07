@@ -83,6 +83,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
 
   const [dragPositions, setDragPositions] = useState<Record<string, { top: string; left: string }>>({});
   const [activeDragTokenId, setActiveDragTokenId] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const handleMouseDown = (e: React.MouseEvent, tokenId: string) => {
     e.preventDefault();
@@ -241,7 +242,6 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
   };
 
   // Share spectate link button handler
-  const [shareCopied, setShareCopied] = useState(false);
   const handleShareSpectateLink = () => {
     const roomCode = useRoomStore.getState().roomCode;
     if (!roomCode) return;

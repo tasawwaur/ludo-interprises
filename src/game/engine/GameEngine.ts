@@ -303,7 +303,13 @@ export class GameEngine {
     // Check if active player won (all tokens in home OR total score >= 100 points)
     const updatedActivePlayer = updatedPlayers[state.activePlayerIndex];
     const totalPlayerScore = updatedActivePlayer.tokens.reduce((sum, t) => sum + t.stepCount, 0);
-    const isPlayerFinished = updatedActivePlayer.tokens.every((t) => t.stepCount === 57) || totalPlayerScore >= 100;
+    
+    // Quick Classic (2 tokens) and Unique Classic (1 token): win as soon as at least ONE token reaches home (step 57)
+    // Normal Classic (4 tokens): require all 4 tokens to reach home (step 57) or 100+ points
+    const isQuickOrUnique = updatedActivePlayer.tokens.length <= 2;
+    const isPlayerFinished = isQuickOrUnique
+      ? updatedActivePlayer.tokens.some((t) => t.stepCount === 57)
+      : (updatedActivePlayer.tokens.every((t) => t.stepCount === 57) || totalPlayerScore >= 100);
 
     const updatedWinnerRankings = [...state.winnerRankings];
     if (isPlayerFinished && !updatedWinnerRankings.includes(activePlayer.color)) {
@@ -323,9 +329,13 @@ export class GameEngine {
     } else {
       isGameOver = updatedWinnerRankings.length >= (state.mode === '2P' ? 1 : 3) || isPlayerFinished;
       if (isGameOver) {
-        victoryMessage = totalPlayerScore >= 100 
-          ? `🏆 100+ POINTS REACHED! ${updatedActivePlayer.name} wins with ${totalPlayerScore} points!`
-          : `🏆 GAME OVER! ${updatedActivePlayer.name} wins the match!`;
+        if (isQuickOrUnique) {
+          victoryMessage = `🏆 GAME OVER! ${updatedActivePlayer.name} won by getting a token home!`;
+        } else {
+          victoryMessage = totalPlayerScore >= 100 
+            ? `🏆 100+ POINTS REACHED! ${updatedActivePlayer.name} wins with ${totalPlayerScore} points!`
+            : `🏆 GAME OVER! ${updatedActivePlayer.name} wins the match!`;
+        }
       }
     }
 

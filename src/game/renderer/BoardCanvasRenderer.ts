@@ -25,6 +25,15 @@ export class BoardCanvasRenderer {
     life: number; maxLife: number; size: number; alpha: number;
   }>> = new Map();
 
+  // Fire trail particles for moving tokens
+  private fireParticles: Map<string, Array<{
+    x: number; y: number; vx: number; vy: number;
+    life: number; maxLife: number; size: number; hue: number;
+  }>> = new Map();
+
+  // Path placeholder pulse angle per token
+  private pathPulseAngle = 0;
+
   constructor(ctx: CanvasRenderingContext2D, width: number, height: number) {
     this.ctx = ctx;
     this.width = width;
@@ -40,6 +49,7 @@ export class BoardCanvasRenderer {
   ) {
     const { ctx, width, height } = this;
     this.animPulseAngle = (this.animPulseAngle + 0.05) % (Math.PI * 2);
+    this.pathPulseAngle = (this.pathPulseAngle + 0.08) % (Math.PI * 2);
     
     // Load equipped board theme
     const theme = getBoardTheme(state.equippedBoardId || 'board_default');
@@ -572,23 +582,80 @@ export class BoardCanvasRenderer {
 
   private drawDestinationPath(color: PlayerColor, fromStep: number, toStep: number, localPlayerColor: PlayerColor | null) {
     const { ctx, cellSize } = this;
- 
+    const totalSteps = toStep - fromStep;
+
     for (let step = fromStep + 1; step <= toStep; step++) {
       const coords = getPixelCoordinates(color, step, 0, cellSize, localPlayerColor);
       const isDestination = step === toStep;
-
-      ctx.beginPath();
-      ctx.arc(coords.x, coords.y, cellSize * (isDestination ? 0.35 : 0.18), 0, Math.PI * 2);
+      const progress = (step - fromStep) / totalSteps; // 0..1 along path
+      const pulseOffset = progress * Math.PI * 2;
 
       if (isDestination) {
-        ctx.fillStyle = '#fbbf24';
+        // ── Destination: bright glowing golden ring with inner pulse ──
+        const pulseSize = cellSize * 0.38 + Math.sin(this.pathPulseAngle * 2) * cellSize * 0.06;
+
+        // Outer glow ring
+        ctx.save();
+        ctx.shadowColor = '#fbbf24';
+        ctx.shadowBlur = 18 + Math.sin(this.pathPulseAngle * 3) * 6;
+        ctx.beginPath();
+        ctx.arc(coords.x, coords.y, pulseSize, 0, Math.PI * 2);
+        const destGrad = ctx.createRadialGradient(
+          coords.x, coords.y, 0,
+          coords.x, coords.y, pulseSize
+        );
+        destGrad.addColorStop(0, 'rgba(255,251,150,0.95)');
+        destGrad.addColorStop(0.4, 'rgba(251,191,36,0.85)');
+        destGrad.addColorStop(1, 'rgba(245,158,11,0.2)');
+        ctx.fillStyle = destGrad;
         ctx.fill();
-        ctx.lineWidth = 3;
+
+        // Spinning star sparkles around destination
+        const numSparkles = 6;
+        for (let s = 0; s < numSparkles; s++) {
+          const angle = this.pathPulseAngle * 2 + (s / numSparkles) * Math.PI * 2;
+          const sR = pulseSize * 1.4;
+          const sx = coords.x + Math.cos(angle) * sR;
+          const sy = coords.y + Math.sin(angle) * sR;
+          ctx.beginPath();
+          ctx.arc(sx, sy, cellSize * 0.06, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(255,255,180,0.9)';
+          ctx.shadowColor = '#fef9c3';
+          ctx.shadowBlur = 8;
+          ctx.fill();
+        }
+
+        // Bold border ring
+        ctx.beginPath();
+        ctx.arc(coords.x, coords.y, pulseSize, 0, Math.PI * 2);
+        ctx.lineWidth = 2.5;
         ctx.strokeStyle = '#ffffff';
+        ctx.shadowBlur = 12;
         ctx.stroke();
+        ctx.restore();
+
       } else {
-        ctx.fillStyle = 'rgba(251, 191, 36, 0.6)';
+        // ── Path steps: glowing animated breadcrumb dots ──
+        const dotPhase = this.pathPulseAngle + pulseOffset;
+        const dotSize = cellSize * 0.13 + Math.sin(dotPhase * 2.5) * cellSize * 0.05;
+        const alpha = 0.45 + Math.sin(dotPhase * 2) * 0.3;
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(0.15, alpha);
+        ctx.shadowColor = '#fbbf24';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(coords.x, coords.y, dotSize, 0, Math.PI * 2);
+        const dotGrad = ctx.createRadialGradient(
+          coords.x, coords.y, 0,
+          coords.x, coords.y, dotSize
+        );
+        dotGrad.addColorStop(0, '#fffde7');
+        dotGrad.addColorStop(0.5, '#fbbf24');
+        dotGrad.addColorStop(1, 'rgba(245,158,11,0.1)');
+        ctx.fillStyle = dotGrad;
         ctx.fill();
+        ctx.restore();
       }
     }
   }
@@ -747,6 +814,12 @@ export class BoardCanvasRenderer {
         // ── 9. Waterfall droplets (Permanent on all tokens) ───────────────────
         this.updateWaterfallParticles(token.id, coords.x, coords.y, radius, pal);
         this.drawWaterfallParticles(token.id, pal);
+
+        // ── 10. Fire trail when token is animating ────────────────────────────
+        if (isAnimating) {
+          this.emitFireParticles(token.id, coords.x, coords.y, pal);
+        }
+        this.drawFireTrail(token.id);
       });
     });
   }
@@ -818,6 +891,80 @@ export class BoardCanvasRenderer {
       dropGrad.addColorStop(0.4, pal.top);
       dropGrad.addColorStop(1, pal.mid);
       ctx.fillStyle = dropGrad;
+      ctx.fill();
+
+      ctx.restore();
+    });
+  }
+
+  private emitFireParticles(
+    tokenId: string,
+    cx: number,
+    cy: number,
+    pal: { top: string; mid: string; bot: string; glow: string; ring: string }
+  ) {
+    if (!this.fireParticles.has(tokenId)) {
+      this.fireParticles.set(tokenId, []);
+    }
+    const particles = this.fireParticles.get(tokenId)!;
+
+    // Emit 4-6 fire sparks per frame from token bottom
+    const spawnCount = 4 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < spawnCount; i++) {
+      const angle = Math.PI + (Math.random() - 0.5) * 1.2; // downward spread
+      const speed = 0.8 + Math.random() * 2.5;
+      particles.push({
+        x: cx + (Math.random() - 0.5) * 10,
+        y: cy + 4,
+        vx: Math.cos(angle) * speed * 0.5,
+        vy: Math.sin(angle) * speed + 0.5,
+        life: 0,
+        maxLife: 14 + Math.floor(Math.random() * 12),
+        size: 2.5 + Math.random() * 4,
+        hue: 20 + Math.random() * 40, // orange-red range
+      });
+    }
+    // Age particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.18;
+      p.vx *= 0.93;
+      p.size *= 0.93;
+      p.life++;
+      if (p.life >= p.maxLife || p.size < 0.4) particles.splice(i, 1);
+    }
+  }
+
+  private drawFireTrail(tokenId: string) {
+    const { ctx } = this;
+    const particles = this.fireParticles.get(tokenId);
+    if (!particles || particles.length === 0) return;
+
+    particles.forEach((p) => {
+      const t = p.life / p.maxLife; // 0=fresh .. 1=dead
+      const alpha = (1 - t) * 0.9;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+
+      // Color: white -> yellow -> orange -> red as it ages
+      const r = 255;
+      const g = Math.round(255 * (1 - t * 0.8));
+      const b = Math.round(80 * (1 - t));
+
+      ctx.shadowColor = `rgb(${r},${g},${b})`;
+      ctx.shadowBlur = 10 + (1 - t) * 12;
+
+      const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+      grad.addColorStop(0, `rgba(255,255,${b},${alpha})`);
+      grad.addColorStop(0.4, `rgba(${r},${g},0,${alpha * 0.8})`);
+      grad.addColorStop(1, `rgba(${r},0,0,0)`);
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
       ctx.fill();
 
       ctx.restore();

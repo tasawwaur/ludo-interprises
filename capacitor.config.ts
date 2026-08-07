@@ -5,6 +5,8 @@ const config: CapacitorConfig = {
   appName: 'Ludo Legends',
   webDir: 'dist',
   server: {
+    url: 'https://ludo-interprises.onrender.com',
+    cleartext: true,
     androidScheme: 'https',
   },
   android: {

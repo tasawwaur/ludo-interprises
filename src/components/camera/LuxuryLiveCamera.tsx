@@ -171,19 +171,11 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
 
   const [opponentCamOn, setOpponentCamOn] = useState(false);
 
-  // Editable coordinates with localStorage save/retrieve (Defaults set to tuned mobile/PC coordinates)
-  const [localX, setLocalX] = useState(() => {
-    try { return Number(localStorage.getItem('debug_cam_local_x') || '213'); } catch { return 213; }
-  });
-  const [localY, setLocalY] = useState(() => {
-    try { return Number(localStorage.getItem('debug_cam_local_y') || '428'); } catch { return 428; }
-  });
-  const [oppX, setOppX] = useState(() => {
-    try { return Number(localStorage.getItem('debug_cam_opp_x') || '8'); } catch { return 8; }
-  });
-  const [oppY, setOppY] = useState(() => {
-    try { return Number(localStorage.getItem('debug_cam_opp_y') || '223'); } catch { return 223; }
-  });
+  // Fixed coordinate settings locked for all users (tuned positions)
+  const localX = 213;
+  const localY = 428;
+  const oppX = 8;
+  const oppY = 223;
 
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef     = useRef<MediaStream | null>(null);
@@ -200,16 +192,6 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
   useEffect(() => {
     try { localStorage.setItem('ludo_mic_on', localMicOn ? '1' : '0'); } catch {}
   }, [localMicOn]);
-
-  // Persist offset positions
-  useEffect(() => {
-    try {
-      localStorage.setItem('debug_cam_local_x', String(localX));
-      localStorage.setItem('debug_cam_local_y', String(localY));
-      localStorage.setItem('debug_cam_opp_x', String(oppX));
-      localStorage.setItem('debug_cam_opp_y', String(oppY));
-    } catch {}
-  }, [localX, localY, oppX, oppY]);
 
   // Auto-toggle opponent cam when local turns on
   useEffect(() => {
@@ -258,12 +240,6 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
     }
   };
 
-  const resetToDefault = () => {
-    setLocalX(213);
-    setLocalY(428);
-    setOppX(8);
-    setOppY(223);
-  };
 
   return (
     <>

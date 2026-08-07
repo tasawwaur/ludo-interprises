@@ -676,6 +676,12 @@ io.on("connection", (socket) => {
     console.log(`[Socket] Player (${socket.id}) joined game room ${data.roomCode}`);
     const room = activeRooms.get(data.roomCode);
     if (room) {
+      if ((room as any).reconnectTimer) {
+        clearTimeout((room as any).reconnectTimer);
+        (room as any).reconnectTimer = null;
+        socket.to(data.roomCode).emit("opponent_rejoined", { roomCode: data.roomCode });
+        console.log(`[Socket] Player (${socket.id}) rejoined room ${data.roomCode} — cancelled grace timeout`);
+      }
       // Start room timer if not already running
       if (!room.intervalId) {
         startRoomTimer(room);
@@ -784,18 +790,27 @@ io.on("connection", (socket) => {
     const socketData = (socket as any).data;
     if (socketData?.type === "gameplay" && socketData?.roomCode) {
       const room = activeRooms.get(socketData.roomCode);
-      if (room) {
-        if (room.intervalId) clearInterval(room.intervalId);
-
-        // Notify the remaining player that their opponent disconnected — they win by forfeit
-        socket.to(socketData.roomCode).emit("opponent_disconnected", {
+      if (room && room.gameStatus !== 'GAME_OVER') {
+        // Broadcast reconnecting grace notice to remaining player (15s grace)
+        socket.to(socketData.roomCode).emit("opponent_disconnected_grace", {
           disconnectedSocketId: socket.id,
           roomCode: socketData.roomCode,
+          seconds: 15,
         });
-        console.log(`[Opponent Disconnect] Notified remaining player in room ${socketData.roomCode}`);
 
-        activeRooms.delete(socketData.roomCode);
-        console.log(`[Authoritative Timer] Cleaned up room ${socketData.roomCode} due to gameplay disconnect`);
+        // Give 15 seconds grace period for page refresh / network reconnection
+        if ((room as any).reconnectTimer) clearTimeout((room as any).reconnectTimer);
+
+        (room as any).reconnectTimer = setTimeout(() => {
+          // If 15s elapsed without reconnection, declare forfeit winner!
+          socket.to(socketData.roomCode).emit("opponent_disconnected", {
+            disconnectedSocketId: socket.id,
+            roomCode: socketData.roomCode,
+          });
+          if (room.intervalId) clearInterval(room.intervalId);
+          activeRooms.delete(socketData.roomCode);
+          console.log(`[Authoritative Timer] Cleaned up room ${socketData.roomCode} after 15s reconnect grace timeout`);
+        }, 15000);
       }
     }
   });

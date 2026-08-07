@@ -348,24 +348,29 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
           />
         </button>
 
-        {/* Rejoin Active Game Button */}
+        {/* Rejoin Active Match Floating Banner */}
         {typeof window !== 'undefined' && !!localStorage.getItem("ludo_active_match_session") && (
-          <button
-            onClick={() => {
-              const activeSession = localStorage.getItem("ludo_active_match_session");
-              if (activeSession === "SNAKE_LADDER") onOpenView?.("SNAKE_LADDER");
-              else onOpenView?.("GAME_ARENA");
-            }}
-            className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 font-black text-sm uppercase rounded-2xl border-2 border-yellow-200 shadow-[0_0_20px_rgba(255,215,0,0.8)] hover:scale-105 active:scale-95 transition-all flex items-center justify-between animate-bounce cursor-pointer mb-2"
-          >
-            <span className="flex items-center gap-2">
-              <span className="w-3 h-3 bg-red-600 rounded-full animate-ping"></span>
-              🎮 GAME IN PROGRESS
-            </span>
-            <span className="bg-slate-950 text-amber-300 px-3 py-1 rounded-xl text-xs font-black shadow">
-              REJOIN MATCH ➜
-            </span>
-          </button>
+          <div className="fixed top-[12px] left-1/2 -translate-x-1/2 z-[999] w-[90%] max-w-[340px]">
+            <button
+              onClick={() => {
+                const activeSession = localStorage.getItem("ludo_active_match_session");
+                if (activeSession === "SNAKE_LADDER") onOpenView?.("SNAKE_LADDER");
+                else onOpenView?.("GAME_ARENA");
+              }}
+              className="w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 font-black text-xs uppercase rounded-2xl border-2 border-yellow-200 shadow-[0_0_25px_rgba(255,215,0,0.9)] hover:scale-105 active:scale-95 transition-all flex items-center justify-between animate-pulse cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-base">🎮</span>
+                <div className="flex flex-col text-left">
+                  <span className="font-black text-[11px] leading-tight">ACTIVE MATCH IN PROGRESS</span>
+                  <span className="text-[9px] text-slate-900 font-bold">Tap to Rejoin Game</span>
+                </div>
+              </div>
+              <span className="px-2.5 py-1 bg-slate-950 text-yellow-400 rounded-xl text-[10px] font-black border border-yellow-400">
+                REJOIN ▶
+              </span>
+            </button>
+          </div>
         )}
 
         {/* Name Banner — Auto-scaled font size with Hindi & English support */}

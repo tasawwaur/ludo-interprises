@@ -500,8 +500,14 @@ export const useGameStore = create<GameStoreState>()(
     const activePlayer = gameState.players[gameState.activePlayerIndex];
     if (!activePlayer) return;
 
-    // CRITICAL: Auto-play for AI players OR when timer hits 0 (forceAuto = true) OR isAutoMode enabled
-    if (!activePlayer.isAi && !forceAuto && !isAutoMode) {
+    // Check if active turn belongs to local human player
+    const isLocalTurn = !activePlayer.isAi && (get().localPlayerColor === activePlayer.color);
+
+    // Rule: Auto-play ONLY if:
+    // 1. Player is an AI bot (activePlayer.isAi === true)
+    // 2. Player is local human player AND (isAutoMode OR forceAuto)
+    // NEVER trigger auto-play for remote human opponent on local client!
+    if (!activePlayer.isAi && !(isLocalTurn && (isAutoMode || forceAuto))) {
       return;
     }
 

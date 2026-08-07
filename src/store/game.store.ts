@@ -341,7 +341,7 @@ export const useGameStore = create<GameStoreState>()(
       });
 
       if (stepCounter < totalSteps) {
-        setTimeout(animateStep, 160);
+        setTimeout(animateStep, 260);
       } else {
         const nextState = GameEngine.moveToken(gameState, tokenId);
 
@@ -839,6 +839,8 @@ export const useGameStore = create<GameStoreState>()(
             }));
           }
 
+          const numSteps = targetState.diceValue || 4;
+          const animDurationMs = numSteps * 260 + 150;
           // Schedule exact state sync after animation finishes
           setTimeout(() => {
             set({
@@ -847,7 +849,7 @@ export const useGameStore = create<GameStoreState>()(
               turnTimerSeconds: 15,
             });
             localStorage.setItem("ludo_classic_engine_state", JSON.stringify(targetState));
-          }, 400);
+          }, animDurationMs);
         }
       } else if (data.actionType === 'UNDO') {
         if (data.gameState) {

@@ -618,7 +618,7 @@ export class BoardCanvasRenderer {
 
         if (isAnimating && state.animatingToken) {
           const now = performance.now();
-          const stepDuration = 160;
+          const stepDuration = 260;
           const elapsed = now - (state.animatingToken.stepStartTime || now);
           const p = Math.min(1.0, Math.max(0.0, elapsed / stepDuration));
           // Smooth cubic ease-in-out curve

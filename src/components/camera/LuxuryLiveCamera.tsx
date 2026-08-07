@@ -156,14 +156,62 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
 }) => {
   if (!isOneVsOne) return null;
 
-  const [localCamOn, setLocalCamOn] = useState(false);
-  const [localPaused, setLocalPaused] = useState(false);
-  const [localMicOn, setLocalMicOn] = useState(VoiceChatService.isMicrophoneActive());
+  const [localCamOn, setLocalCamOn] = useState(() => {
+    try { return localStorage.getItem('ludo_cam_on') === '1'; } catch { return false; }
+  });
+  const [localPaused, setLocalPaused] = useState(() => {
+    try { return localStorage.getItem('ludo_cam_paused') === '1'; } catch { return false; }
+  });
+  const [localMicOn, setLocalMicOn] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ludo_mic_on');
+      return saved !== null ? saved === '1' : VoiceChatService.isMicrophoneActive();
+    } catch { return VoiceChatService.isMicrophoneActive(); }
+  });
 
   const [opponentCamOn, setOpponentCamOn] = useState(false);
 
+  // Editable coordinates with localStorage save/retrieve (Defaults match PC)
+  const [localX, setLocalX] = useState(() => {
+    try { return Number(localStorage.getItem('debug_cam_local_x') || '201'); } catch { return 201; }
+  });
+  const [localY, setLocalY] = useState(() => {
+    try { return Number(localStorage.getItem('debug_cam_local_y') || '358'); } catch { return 358; }
+  });
+  const [oppX, setOppX] = useState(() => {
+    try { return Number(localStorage.getItem('debug_cam_opp_x') || '-2'); } catch { return -2; }
+  });
+  const [oppY, setOppY] = useState(() => {
+    try { return Number(localStorage.getItem('debug_cam_opp_y') || '153'); } catch { return 153; }
+  });
+
+  const [showDebugger, setShowDebugger] = useState(true);
+
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef     = useRef<MediaStream | null>(null);
+
+  // Persist camera settings on change
+  useEffect(() => {
+    try { localStorage.setItem('ludo_cam_on', localCamOn ? '1' : '0'); } catch {}
+  }, [localCamOn]);
+
+  useEffect(() => {
+    try { localStorage.setItem('ludo_cam_paused', localPaused ? '1' : '0'); } catch {}
+  }, [localPaused]);
+
+  useEffect(() => {
+    try { localStorage.setItem('ludo_mic_on', localMicOn ? '1' : '0'); } catch {}
+  }, [localMicOn]);
+
+  // Persist offset positions
+  useEffect(() => {
+    try {
+      localStorage.setItem('debug_cam_local_x', String(localX));
+      localStorage.setItem('debug_cam_local_y', String(localY));
+      localStorage.setItem('debug_cam_opp_x', String(oppX));
+      localStorage.setItem('debug_cam_opp_y', String(oppY));
+    } catch {}
+  }, [localX, localY, oppX, oppY]);
 
   // Auto-toggle opponent cam when local turns on
   useEffect(() => {
@@ -195,6 +243,13 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
     };
   }, [localCamOn, localPaused]);
 
+  // Auto-restart mic
+  useEffect(() => {
+    if (localMicOn) {
+      VoiceChatService.startMicrophone().catch(() => {});
+    }
+  }, []);
+
   const handleToggleMic = async () => {
     if (localMicOn) {
       VoiceChatService.stopMicrophone();
@@ -205,14 +260,21 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
     }
   };
 
+  const resetToDefault = () => {
+    setLocalX(201);
+    setLocalY(358);
+    setOppX(-2);
+    setOppY(153);
+  };
+
   return (
     <>
-      {/* Camera Pod 1 — Local Player Pod (Bottom-Right X: 201, Y: 358, next to Bottom-Left profile!) */}
+      {/* Camera Pod 1 — Local Player Pod */}
       <CameraPod
         playerName={localPlayer?.name || "You"}
         playerAvatar={localPlayer?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"}
-        defaultX={201}
-        defaultY={358}
+        defaultX={localX}
+        defaultY={localY}
         isLocal={true}
         localVideoRef={localVideoRef}
         camOn={localCamOn}
@@ -223,17 +285,138 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
         onToggleMic={handleToggleMic}
       />
 
-      {/* Camera Pod 2 — Opponent Pod (Top-Left X: -2, Y: 153, next to Top-Right profile!) */}
+      {/* Camera Pod 2 — Opponent Pod */}
       <CameraPod
         playerName={opponentPlayer?.name || "Opponent"}
         playerAvatar={opponentPlayer?.avatar || "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80"}
-        defaultX={-2}
-        defaultY={153}
+        defaultX={oppX}
+        defaultY={oppY}
         isLocal={false}
         camOn={opponentCamOn}
         paused={false}
         micOn={false}
       />
+
+      {/* 🛠️ DEVELOPER INTERACTIVE COORDINATES DEBUGGER OVERLAY */}
+      <div 
+        className="fixed bottom-[130px] left-1/2 -translate-x-1/2 z-[99999] pointer-events-auto select-none"
+        style={{ width: '92%', maxWidth: '380px' }}
+      >
+        {!showDebugger ? (
+          <button
+            onClick={() => setShowDebugger(true)}
+            className="w-full py-1.5 rounded-xl bg-purple-950/90 border border-amber-400/40 text-[10px] font-black tracking-widest text-amber-300 shadow-md flex items-center justify-center gap-1.5 cursor-pointer uppercase"
+          >
+            ⚙️ Open Camera Debugger
+          </button>
+        ) : (
+          <div className="rounded-2xl bg-slate-950/95 border-2 border-amber-400/50 p-3 shadow-2xl flex flex-col gap-2.5">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-purple-500/20 pb-1.5">
+              <span className="text-[10px] font-black tracking-widest text-amber-400">🎥 CAMERA COORDINATE TUNER</span>
+              <div className="flex gap-2">
+                <button 
+                  onClick={resetToDefault}
+                  className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-600 text-[8px] font-bold text-gray-300 hover:text-white cursor-pointer"
+                >
+                  Reset Defaults
+                </button>
+                <button 
+                  onClick={() => setShowDebugger(false)}
+                  className="text-gray-400 hover:text-white text-xs font-black cursor-pointer px-1"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Adjusters grid */}
+            <div className="grid grid-cols-2 gap-2 text-[9.5px]">
+              {/* Local Player Box */}
+              <div className="p-2 rounded-xl bg-purple-950/40 border border-purple-900/50 flex flex-col gap-1.5">
+                <div className="font-extrabold text-purple-300 border-b border-purple-900/40 pb-0.5">👤 YOUR POD (BOTTOM)</div>
+                
+                {/* Adjust X */}
+                <div className="flex flex-col">
+                  <div className="flex justify-between font-bold text-slate-300">
+                    <span>X Coord</span>
+                    <span className="text-amber-300 font-black">{localX}px</span>
+                  </div>
+                  <div className="flex gap-1 mt-1 justify-between">
+                    <button onClick={() => setLocalX(p => p - 10)} className="flex-1 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-extrabold cursor-pointer">-10</button>
+                    <button onClick={() => setLocalX(p => p - 1)} className="flex-1 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-extrabold cursor-pointer">-1</button>
+                    <button onClick={() => setLocalX(p => p + 1)} className="flex-1 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-extrabold cursor-pointer">+1</button>
+                    <button onClick={() => setLocalX(p => p + 10)} className="flex-1 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-extrabold cursor-pointer">+10</button>
+                  </div>
+                </div>
+
+                {/* Adjust Y */}
+                <div className="flex flex-col">
+                  <div className="flex justify-between font-bold text-slate-300">
+                    <span>Y Coord</span>
+                    <span className="text-amber-300 font-black">{localY}px</span>
+                  </div>
+                  <div className="flex gap-1 mt-1 justify-between">
+                    <button onClick={() => setLocalY(p => p - 10)} className="flex-1 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-extrabold cursor-pointer">-10</button>
+                    <button onClick={() => setLocalY(p => p - 1)} className="flex-1 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-extrabold cursor-pointer">-1</button>
+                    <button onClick={() => setLocalY(p => p + 1)} className="flex-1 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-extrabold cursor-pointer">+1</button>
+                    <button onClick={() => setLocalY(p => p + 10)} className="flex-1 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-extrabold cursor-pointer">+10</button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Opponent Box */}
+              <div className="p-2 rounded-xl bg-purple-950/40 border border-purple-900/50 flex flex-col gap-1.5">
+                <div className="font-extrabold text-purple-300 border-b border-purple-900/40 pb-0.5">👥 OPPONENT POD (TOP)</div>
+                
+                {/* Adjust X */}
+                <div className="flex flex-col">
+                  <div className="flex justify-between font-bold text-slate-300">
+                    <span>X Coord</span>
+                    <span className="text-amber-300 font-black">{oppX}px</span>
+                  </div>
+                  <div className="flex gap-1 mt-1 justify-between">
+                    <button onClick={() => setOppX(p => p - 10)} className="flex-1 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-extrabold cursor-pointer">-10</button>
+                    <button onClick={() => setOppX(p => p - 1)} className="flex-1 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-extrabold cursor-pointer">-1</button>
+                    <button onClick={() => setOppX(p => p + 1)} className="flex-1 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-extrabold cursor-pointer">+1</button>
+                    <button onClick={() => setOppX(p => p + 10)} className="flex-1 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-extrabold cursor-pointer">+10</button>
+                  </div>
+                </div>
+
+                {/* Adjust Y */}
+                <div className="flex flex-col">
+                  <div className="flex justify-between font-bold text-slate-300">
+                    <span>Y Coord</span>
+                    <span className="text-amber-300 font-black">{oppY}px</span>
+                  </div>
+                  <div className="flex gap-1 mt-1 justify-between">
+                    <button onClick={() => setOppY(p => p - 10)} className="flex-1 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-extrabold cursor-pointer">-10</button>
+                    <button onClick={() => setOppY(p => p - 1)} className="flex-1 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-extrabold cursor-pointer">-1</button>
+                    <button onClick={() => setOppY(p => p + 1)} className="flex-1 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-extrabold cursor-pointer">+1</button>
+                    <button onClick={() => setOppY(p => p + 10)} className="flex-1 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-extrabold cursor-pointer">+10</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer display values to copy */}
+            <div className="flex items-center justify-between bg-slate-900 px-2 py-1.5 rounded-lg border border-slate-800">
+              <code className="text-[8px] text-gray-400 font-mono select-all">
+                L:({localX},{localY}) / O:({oppX},{oppY})
+              </code>
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(`Local: X={${localX}} Y={${localY}} \| Opponent: X={${oppX}} Y={${oppY}}`);
+                  alert("Copied coordinates to clipboard!");
+                }}
+                className="px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-600 text-[8px] font-black text-slate-900 cursor-pointer uppercase tracking-wider"
+              >
+                Copy Coords
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </>
   );
 };

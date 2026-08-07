@@ -644,6 +644,13 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
             />
           </button>
         </div>
+
+        {/* Luxury 1v1 Live Camera overlay (Inside centered overlay container) */}
+        <LuxuryLiveCamera
+          localPlayer={localPlayer}
+          opponentPlayer={opponentPlayer}
+          isOneVsOne={true}
+        />
       </div>
 
       {/* Gameplay Settings Dropdown Menu */}
@@ -962,13 +969,6 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
           </div>
         );
       })()}
-
-      {/* Luxury 1v1 Live Camera overlay */}
-      <LuxuryLiveCamera
-        localPlayer={localPlayer}
-        opponentPlayer={opponentPlayer}
-        isOneVsOne={true}
-      />
 
       {/* ⚡ Reconnecting Grace Period Overlay */}
       {opponentReconnectingSeconds !== null && (

@@ -857,6 +857,35 @@ export const useGameStore = create<GameStoreState>()(
           SoundEngine.play('DICE_STOP');
           set({ _isRolling: false });
         }, 600);
+      } else if (data.actionType === 'FORFEIT') {
+        const { localPlayerColor } = get();
+        const myColor = localPlayerColor || gameState.players[0].color;
+        const oppColor = gameState.players.find(p => p.color !== myColor)?.color || 'GREEN';
+
+        const nextState = {
+          ...gameState,
+          gameStatus: 'GAME_OVER' as const,
+          winnerRankings: [myColor, oppColor],
+          lastActionSummary: `🏆 Opponent quit the match! You win by forfeit!`,
+        };
+
+        set({
+          gameState: nextState,
+          _isRolling: false,
+        });
+
+        SoundEngine.play('WIN');
+        try {
+          confetti({
+            particleCount: 120,
+            spread: 80,
+            origin: { y: 0.6 },
+            colors: ['#FFD700', '#FFA500', '#10B981', '#3B82F6', '#EF4444'],
+          });
+        } catch (e) {}
+
+        localStorage.removeItem("ludo_active_match_session");
+        localStorage.removeItem("ludo_classic_engine_state");
       } else if (data.actionType === 'MOVE' && data.tokenId) {
         // Trigger smooth step-by-step 60 FPS gliding animation on remote player screen!
         get().moveToken(data.tokenId, true);
@@ -871,6 +900,26 @@ export const useGameStore = create<GameStoreState>()(
               avatar: currentPlayers[idx]?.avatar || p.avatar,
               equippedFrameId: currentPlayers[idx]?.equippedFrameId || p.equippedFrameId,
             }));
+          }
+
+          if (targetState.gameStatus === 'GAME_OVER') {
+            // Immediate result display on receiving client when match finishes!
+            set({
+              gameState: { ...targetState, animatingToken: null },
+              _isRolling: false,
+            });
+            SoundEngine.play('WIN');
+            try {
+              confetti({
+                particleCount: 120,
+                spread: 80,
+                origin: { y: 0.6 },
+                colors: ['#FFD700', '#FFA500', '#10B981', '#3B82F6', '#EF4444'],
+              });
+            } catch (e) {}
+            localStorage.removeItem("ludo_active_match_session");
+            localStorage.removeItem("ludo_classic_engine_state");
+            return;
           }
 
           const numSteps = targetState.diceValue || 4;
@@ -936,7 +985,7 @@ export const useGameStore = create<GameStoreState>()(
         }
 
         SoundEngine.play('GAME_START');
-      } else if (data.actionType === 'FORFEIT') {
+      } else if ((data.actionType as string) === 'FORFEIT') {
         const { gameState, localPlayerColor } = get();
         if (!gameState || gameState.gameStatus === 'GAME_OVER') return;
 

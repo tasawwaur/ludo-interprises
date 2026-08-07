@@ -14,6 +14,7 @@ import { ProtectButton } from '../components/ProtectButton';
 import { LuxuryLiveCamera } from '../../../components/camera/LuxuryLiveCamera';
 import { useGlobalModalStore } from '../../../store/global-modal.store';
 import { SoundEngine } from '../../../game/sound/SoundEngine';
+import { globalSocket } from '../../../multiplayer/socket/SocketClient';
 
 
 interface GameArenaPageProps {
@@ -826,8 +827,8 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
           };
 
           // 2. Emit forfeit event to socket so opponent gets WINNER declaration instantly
-          const roomCode = useRoomStore.getState().roomCode;
-          const gameSocket = useGameStore.getState().gameSocket;
+          const roomCode = useRoomStore.getState().roomCode || localStorage.getItem("ludo_classic_room_code");
+          const gameSocket = globalSocket.socket;
           if (gameSocket && roomCode) {
             gameSocket.emit("client_action", {
               roomCode,

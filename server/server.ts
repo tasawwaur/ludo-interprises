@@ -693,7 +693,7 @@ io.on("connection", (socket) => {
     // Broadcast the action to the other player in the room
     socket.to(data.roomCode).emit("server_action", data);
 
-    if (data.isGameOver) {
+    if (data.isGameOver || data.actionType === 'FORFEIT' as any) {
       room.gameStatus = 'GAME_OVER';
       if (room.intervalId) clearInterval(room.intervalId);
       return;

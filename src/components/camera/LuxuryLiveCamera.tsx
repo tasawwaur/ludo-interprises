@@ -184,10 +184,6 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
   const roomCode = useRoomStore((s: any) => s.roomCode) || localStorage.getItem('ludo_classic_room_code');
   const localPlayerColor = useGameStore((s: any) => s.localPlayerColor);
 
-  const handleToggleMic = () => {
-    setLocalMicOn((p) => !p);
-  };
-
   const [localCamOn, setLocalCamOn] = useState(() => {
     try { return localStorage.getItem('ludo_cam_on') === '1'; } catch { return false; }
   });
@@ -210,12 +206,19 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
 
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef     = useRef<MediaStream | null>(null);
+  
+  // PCM Audio References for recording and playing
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const playAudioCtxRef = useRef<AudioContext | null>(null);
   const audioStreamRef = useRef<MediaStream | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const oppHeartbeatRef = useRef<any>(null);
   const oppMicHeartbeatRef = useRef<any>(null);
+
+  const handleToggleMic = () => {
+    setLocalMicOn((p) => !p);
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -295,12 +298,12 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
     return () => clearInterval(interval);
   }, [localCamOn, localPaused, gameSocket, roomCode, localPlayerColor]);
 
-  // Microphone capture and streaming loop (MediaRecorder)
+  // Microphone capture and streaming loop (Pure PCM Web Audio API for iOS Safari and Android Chrome cross-compatibility)
   useEffect(() => {
     if (!localMicOn || !gameSocket || !roomCode) {
-      if (mediaRecorderRef.current) {
-        try { mediaRecorderRef.current.stop(); } catch (e) {}
-        mediaRecorderRef.current = null;
+      if (audioCtxRef.current) {
+        try { audioCtxRef.current.close(); } catch (e) {}
+        audioCtxRef.current = null;
       }
       if (audioStreamRef.current) {
         audioStreamRef.current.getTracks().forEach(t => t.stop());
@@ -309,7 +312,12 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
       return;
     }
 
+    let audioContext: AudioContext | null = null;
+    let scriptProcessor: ScriptProcessorNode | null = null;
+    let micSource: MediaStreamAudioSourceNode | null = null;
+    let activeStream: MediaStream | null = null;
     let active = true;
+
     (async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -319,50 +327,68 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
           stream.getTracks().forEach(t => t.stop());
           return;
         }
+        activeStream = stream;
         audioStreamRef.current = stream;
 
-        // Try getting a supported browser mimeType for audio
-        let mimeType = 'audio/webm;codecs=opus';
-        if (!MediaRecorder.isTypeSupported(mimeType)) {
-          mimeType = 'audio/ogg;codecs=opus';
-        }
-        if (!MediaRecorder.isTypeSupported(mimeType)) {
-          mimeType = ''; // Let browser fall back
-        }
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        audioContext = new AudioCtx({ sampleRate: 16000 }); // Downsample to 16kHz to save bandwidth
+        audioCtxRef.current = audioContext;
 
-        const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-        recorder.ondataavailable = async (e) => {
-          if (e.data.size > 0 && gameSocket && roomCode) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              const base64Audio = reader.result;
-              gameSocket.emit('client_action', {
-                roomCode,
-                actionType: 'STREAM_AUDIO',
-                audioChunk: base64Audio,
-                senderColor: localPlayerColor
-              });
-            };
-            reader.readAsDataURL(e.data);
+        micSource = audioContext.createMediaStreamSource(stream);
+        // buffer size 8192 (~500ms chunk sizes at 16kHz)
+        scriptProcessor = audioContext.createScriptProcessor(8192, 1, 1);
+
+        scriptProcessor.onaudioprocess = (e) => {
+          if (!active) return;
+          const inputData = e.inputBuffer.getChannelData(0);
+          
+          // Convert Float32 to Int16 and boost volume 12x (10x+ louder!)
+          const int16Buffer = new Int16Array(inputData.length);
+          for (let i = 0; i < inputData.length; i++) {
+            const boosted = inputData[i] * 12.0; 
+            const clamped = Math.max(-1.0, Math.min(1.0, boosted));
+            int16Buffer[i] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7FFF;
+          }
+
+          // Convert Int16 buffer to binary string -> Base64
+          let binary = '';
+          const bytes = new Uint8Array(int16Buffer.buffer);
+          const len = bytes.byteLength;
+          for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const base64 = btoa(binary);
+
+          if (gameSocket && roomCode) {
+            gameSocket.emit('client_action', {
+              roomCode,
+              actionType: 'STREAM_AUDIO',
+              audioChunk: base64,
+              senderColor: localPlayerColor
+            });
           }
         };
 
-        recorder.start(350); // 350ms chunks for low voice chat latency
-        mediaRecorderRef.current = recorder;
+        micSource.connect(scriptProcessor);
+        scriptProcessor.connect(audioContext.destination);
       } catch (err) {
-        console.warn("Microphone access error:", err);
+        console.warn("PCM Mic capture initialization failed:", err);
       }
     })();
 
     return () => {
       active = false;
-      if (mediaRecorderRef.current) {
-        try { mediaRecorderRef.current.stop(); } catch (e) {}
-        mediaRecorderRef.current = null;
+      if (scriptProcessor && micSource) {
+        try {
+          micSource.disconnect();
+          scriptProcessor.disconnect();
+        } catch (e) {}
       }
-      if (audioStreamRef.current) {
-        audioStreamRef.current.getTracks().forEach(t => t.stop());
-        audioStreamRef.current = null;
+      if (activeStream) {
+        activeStream.getTracks().forEach(t => t.stop());
+      }
+      if (audioContext) {
+        try { audioContext.close(); } catch (e) {}
       }
     };
   }, [localMicOn, gameSocket, roomCode, localPlayerColor]);
@@ -397,11 +423,46 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
       if (data.actionType === 'STREAM_AUDIO') {
         setOpponentMicOn(true);
 
-        // Playback opponent voice chunk if not muted by local settings
+        // Playback opponent voice chunk (decode Base64 Int16 PCM and play back)
         if (data.audioChunk && !voiceMuted) {
-          const audio = new Audio(data.audioChunk);
-          audio.volume = 1.0;
-          audio.play().catch(() => {});
+          try {
+            const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+            if (!playAudioCtxRef.current) {
+              playAudioCtxRef.current = new AudioCtx({ sampleRate: 16000 });
+            }
+            const ctx = playAudioCtxRef.current;
+            
+            // Resume context if suspended (browser security block workaround)
+            if (ctx.state === 'suspended') {
+              ctx.resume();
+            }
+
+            // Decode Base64 to Int16Array
+            const binaryString = atob(data.audioChunk);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            const int16Array = new Int16Array(bytes.buffer);
+
+            // Convert Int16 back to Float32 array
+            const float32Array = new Float32Array(int16Array.length);
+            for (let i = 0; i < int16Array.length; i++) {
+              float32Array[i] = int16Array[i] / (int16Array[i] < 0 ? 0x8000 : 0x7FFF);
+            }
+
+            // Create AudioBuffer and play back Float32 PCM values
+            const audioBuffer = ctx.createBuffer(1, float32Array.length, 16000);
+            audioBuffer.copyToChannel(float32Array, 0);
+
+            const sourceNode = ctx.createBufferSource();
+            sourceNode.buffer = audioBuffer;
+            sourceNode.connect(ctx.destination);
+            sourceNode.start(0);
+          } catch (playbackErr) {
+            console.warn("PCM audio playback error:", playbackErr);
+          }
         }
 
         // Heartbeat timer to detect opponent microphone mute
@@ -418,7 +479,7 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
       if (oppHeartbeatRef.current) clearTimeout(oppHeartbeatRef.current);
       if (oppMicHeartbeatRef.current) clearTimeout(oppMicHeartbeatRef.current);
     };
-  }, [localPlayerColor]);
+  }, [localPlayerColor, voiceMuted]);
 
   return (
     <>

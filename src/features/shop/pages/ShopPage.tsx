@@ -37,10 +37,10 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
 
   // Crowns packages (purchased via Coins or Diamonds)
   const crownPacks = [
-    { id: "cr1", label: "Bronze Crown", costType: "COINS" as const, costAmount: 5000, displayCost: "5,000 Coins", img: "/assets/images/icons/icon_gem.png", filter: "hue-rotate-[15deg] brightness-[0.7] sepia-[0.5]", isPopular: false },
-    { id: "cr2", label: "Silver Crown", costType: "COINS" as const, costAmount: 25000, displayCost: "25,000 Coins", img: "/assets/images/icons/icon_gem.png", filter: "saturate-[0.1] brightness-[1.3]", isPopular: true },
-    { id: "cr3", label: "Gold Crown", costType: "DIAMONDS" as const, costAmount: 500, displayCost: "500 Gems", img: "/assets/images/icons/icon_gem.png", filter: "brightness-[1.1] drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]", isPopular: false },
-    { id: "cr4", label: "Royal Crown", costType: "DIAMONDS" as const, costAmount: 2500, displayCost: "2,500 Gems", img: "/assets/images/icons/icon_gem.png", filter: "hue-rotate-[130deg] brightness-[1.2] drop-shadow-[0_0_10px_rgba(239,68,68,0.7)]", isPopular: false, isBest: true },
+    { id: "cr1", label: "Bronze Crown", costType: "COINS" as const, costAmount: 5000, displayCost: "5,000 Coins", crownsReward: 5, img: "/assets/images/icons/icon_gem.png", filter: "hue-rotate-[15deg] brightness-[0.7] sepia-[0.5]", isPopular: false },
+    { id: "cr2", label: "Silver Crown", costType: "COINS" as const, costAmount: 25000, displayCost: "25,000 Coins", crownsReward: 25, img: "/assets/images/icons/icon_gem.png", filter: "saturate-[0.1] brightness-[1.3]", isPopular: true },
+    { id: "cr3", label: "Gold Crown", costType: "DIAMONDS" as const, costAmount: 500, displayCost: "500 Gems", crownsReward: 50, img: "/assets/images/icons/icon_gem.png", filter: "brightness-[1.1] drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]", isPopular: false },
+    { id: "cr4", label: "Royal Crown", costType: "DIAMONDS" as const, costAmount: 2500, displayCost: "2,500 Gems", crownsReward: 250, img: "/assets/images/icons/icon_gem.png", filter: "hue-rotate-[130deg] brightness-[1.2] drop-shadow-[0_0_10px_rgba(239,68,68,0.7)]", isPopular: false, isBest: true },
   ];
 
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -202,6 +202,9 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
   };
 
   const handleUnlockCrown = (costType: "COINS" | "DIAMONDS", costAmount: number, label: string) => {
+    const pack = crownPacks.find((p) => p.label === label);
+    const rewardAmt = pack ? pack.crownsReward : 1;
+
     if (costType === "COINS") {
       if (currentCoins < costAmount) {
         triggerToast("❌ Insufficient Coins to purchase this Crown!");
@@ -209,7 +212,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
       }
       updateUser({
         coins: currentCoins - costAmount,
-        crowns: currentCrowns + 1
+        crowns: currentCrowns + rewardAmt
       });
     } else {
       if (currentGems < costAmount) {
@@ -218,11 +221,11 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
       }
       updateUser({
         gems: currentGems - costAmount,
-        crowns: currentCrowns + 1
+        crowns: currentCrowns + rewardAmt
       });
     }
     confetti({ particleCount: 50, spread: 70, colors: ['#FFD700', '#FFA500', '#9333EA'] });
-    triggerToast(`✅ ${label} unlocked! 👑`);
+    triggerToast(`✅ ${label} unlocked! +${rewardAmt} Crowns 👑`);
   };
 
   return (
@@ -425,47 +428,58 @@ export const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
             ))}
 
           {/* CROWNS SECTION */}
-          {activeTab === "CROWNS" &&
-            crownPacks.map((p) => (
-              <div
-                key={p.id}
-                onClick={() => handleUnlockCrown(p.costType, p.costAmount, p.label)}
-                className="bg-purple-950/60 border-2 border-purple-500/30 rounded-3xl p-3 flex flex-col items-center justify-between text-center relative shadow-lg hover:border-purple-400 active:scale-95 transition-all cursor-pointer group"
-              >
-                {p.isPopular && (
-                  <span className="absolute -top-2 bg-gradient-to-r from-rose-500 to-red-600 text-white text-[7.5px] font-black uppercase px-2 py-0.5 rounded-full border border-red-300 shadow animate-pulse">
-                    POPULAR
-                  </span>
-                )}
-                {p.isBest && (
-                  <span className="absolute -top-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-[7.5px] font-black uppercase px-2 py-0.5 rounded-full border border-emerald-300 shadow">
-                    ELITE VIP
-                  </span>
-                )}
-                
-                <span className="text-[10px] font-black text-purple-300 uppercase tracking-widest mt-1 block leading-none">
-                  {p.label}
-                </span>
-
-                <div className="w-20 h-20 flex items-center justify-center my-3 relative">
-                  <div className="absolute inset-0 bg-purple-500/5 rounded-full blur-xl group-hover:bg-purple-500/10 transition-colors"></div>
-                  <img
-                    src={p.img}
-                    alt={p.label}
-                    className={`w-[60px] h-[60px] object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)] animate-float-mid ${p.filter}`}
-                  />
-                </div>
-
-                <div className="w-full flex flex-col gap-1">
-                  <span className="text-[10px] font-black text-amber-200 uppercase tracking-wide leading-none">
-                    Unlocks 👑
-                  </span>
-                  <button className="w-full py-2 bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white font-black text-[10px] rounded-2xl shadow border border-purple-500 mt-1 uppercase">
-                    {p.displayCost}
-                  </button>
-                </div>
+          {activeTab === "CROWNS" && (
+            <>
+              <div className="col-span-2 bg-gradient-to-r from-purple-950/90 to-indigo-950/90 border-2 border-amber-500/40 p-3 rounded-2xl text-center mb-1 flex flex-col items-center justify-center">
+                <span className="text-[10px] font-black text-amber-300 uppercase tracking-widest block">👑 CROWN CONVERSION VALUE 👑</span>
+                <span className="text-[11px] font-black text-white block mt-0.5">1 Crown = ₹1.00 INR Cash Reward</span>
               </div>
-            ))}
+              
+              {crownPacks.map((p) => (
+                <div
+                  key={p.id}
+                  onClick={() => handleUnlockCrown(p.costType, p.costAmount, p.label)}
+                  className="bg-purple-950/60 border-2 border-purple-500/30 rounded-3xl p-3 flex flex-col items-center justify-between text-center relative shadow-lg hover:border-purple-400 active:scale-95 transition-all cursor-pointer group"
+                >
+                  {p.isPopular && (
+                    <span className="absolute -top-2 bg-gradient-to-r from-rose-500 to-red-600 text-white text-[7.5px] font-black uppercase px-2 py-0.5 rounded-full border border-red-300 shadow animate-pulse">
+                      POPULAR
+                    </span>
+                  )}
+                  {p.isBest && (
+                    <span className="absolute -top-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-[7.5px] font-black uppercase px-2 py-0.5 rounded-full border border-emerald-300 shadow">
+                      ELITE VIP
+                    </span>
+                  )}
+                  
+                  <span className="text-[10px] font-black text-purple-300 uppercase tracking-widest mt-1 block leading-none">
+                    {p.label}
+                  </span>
+
+                  <div className="w-20 h-20 flex items-center justify-center my-3 relative">
+                    <div className="absolute inset-0 bg-purple-500/5 rounded-full blur-xl group-hover:bg-purple-500/10 transition-colors"></div>
+                    <img
+                      src={p.img}
+                      alt={p.label}
+                      className={`w-[60px] h-[60px] object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)] animate-float-mid ${p.filter}`}
+                    />
+                  </div>
+
+                  <div className="w-full flex flex-col gap-1">
+                    <span className="text-[10px] font-black text-amber-200 uppercase tracking-wide leading-none">
+                      Unlocks {p.crownsReward} 👑
+                    </span>
+                    <span className="text-[8.5px] font-bold text-green-400 leading-none">
+                      Value: ₹{p.crownsReward}.00
+                    </span>
+                    <button className="w-full py-2 bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white font-black text-[10px] rounded-2xl shadow border border-purple-500 mt-1 uppercase">
+                      {p.displayCost}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
         </div>
       </div>
 

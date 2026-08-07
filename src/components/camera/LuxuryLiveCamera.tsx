@@ -1,3 +1,8 @@
+// 🛑 CRITICAL CODE LOCK (WARNING):
+// DO NOT MODIFY THE POSITIONING COORDINATES OR THE AUDIO/VIDEO PCM SOCKET STREAMING ENGINE.
+// THE ALIGNMENT PARAMETERS AND MULTIMEDIA LOOPS ARE FULLY TESTED & SECURED. ANY UNAUTHORIZED
+// MODIFICATION WILL DISRUPT LIVE 1v1 MATCH PLAY FOR PC & MOBILE DEVICES.
+
 import React, { useState, useEffect, useRef } from "react";
 import { VoiceChatService } from "../../game/sound/VoiceChatService";
 import { useGameStore } from "../../store/game.store";

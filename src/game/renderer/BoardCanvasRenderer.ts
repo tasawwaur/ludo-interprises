@@ -724,14 +724,9 @@ export class BoardCanvasRenderer {
 
         ctx.restore();
 
-        // ── 9. Waterfall droplets for moveable tokens ─────────────────────────
-        if (isMoveable) {
-          this.updateWaterfallParticles(token.id, coords.x, coords.y, radius, pal);
-          this.drawWaterfallParticles(token.id, pal);
-        } else {
-          // Clear particles when token is no longer moveable
-          this.waterfallParticles.delete(token.id);
-        }
+        // ── 9. Waterfall droplets (Permanent on all tokens) ───────────────────
+        this.updateWaterfallParticles(token.id, coords.x, coords.y, radius, pal);
+        this.drawWaterfallParticles(token.id, pal);
       });
     });
   }

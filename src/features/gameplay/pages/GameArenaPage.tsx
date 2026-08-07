@@ -500,7 +500,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
           {gameState.players.length === 2 && (
             <>
               {/* Top Center Royal Frame & Opponent 3D Dice */}
-              <div className="absolute -top-[90px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] z-50 flex items-center justify-center pointer-events-auto">
+              <div className="absolute -top-[20px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] z-50 flex items-center justify-center pointer-events-auto">
                 <img
                   src={getFrameImage(opponentPlayer?.color)}
                   alt="Opponent Royal Frame"
@@ -534,7 +534,7 @@ export const GameArenaPage: React.FC<GameArenaPageProps> = ({ onLeaveGame, onSho
               </div>
 
               {/* Bottom Center Royal Frame & Local User 3D Dice */}
-              <div className="absolute -bottom-[100px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] z-50 flex items-center justify-center pointer-events-auto">
+              <div className="absolute -bottom-[20px] left-1/2 -translate-x-1/2 w-[84px] h-[96px] z-50 flex items-center justify-center pointer-events-auto">
                 <img
                   src={getFrameImage(localPlayer?.color)}
                   alt="Local Royal Frame"

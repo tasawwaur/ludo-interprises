@@ -264,6 +264,7 @@ export const useGameStore = create<GameStoreState>()(
       const hasLegalMoves = nextState.movableTokens.length > 0;
       if (gameSocket && roomCode) {
         gameSocket.emit("client_action", {
+          actionId: `${Date.now()}_${Math.random()}`,
           roomCode,
           actionType: 'ROLL',
           diceValue: nextState.diceValue,
@@ -362,6 +363,7 @@ export const useGameStore = create<GameStoreState>()(
         const roomCode = useRoomStore.getState().roomCode;
         if (gameSocket && roomCode && !isRemote) {
           gameSocket.emit("client_action", {
+            actionId: `${Date.now()}_${Math.random()}`,
             roomCode,
             actionType: 'MOVE',
             tokenId,
@@ -756,7 +758,7 @@ export const useGameStore = create<GameStoreState>()(
       }
     });
 
-    socket.on("server_action", (data: { actionType: 'ROLL' | 'MOVE' | 'UNDO' | 'CHAT' | 'STATE_SYNC' | 'FORFEIT'; diceValue?: number; tokenId?: string; nextColor?: string; cost?: number; text?: string; senderName?: string; color?: string; gameState?: any; hasLegalMoves?: boolean; turnTimerSeconds?: number }) => {
+    socket.on("server_action", (data: { actionId?: string; actionType: 'ROLL' | 'MOVE' | 'UNDO' | 'CHAT' | 'STATE_SYNC' | 'FORFEIT'; diceValue?: number; tokenId?: string; nextColor?: string; cost?: number; text?: string; senderName?: string; color?: string; gameState?: any; hasLegalMoves?: boolean; turnTimerSeconds?: number }) => {
       const { gameState } = get();
       if (!gameState) return;
 
@@ -767,60 +769,60 @@ export const useGameStore = create<GameStoreState>()(
         return;
       }
 
-      // Deduplicate rapid repeat actions sent over socket
-      const actionKey = `${data.actionType}_${data.diceValue ?? ''}_${data.tokenId ?? ''}_${data.gameState?.currentTurnColor ?? ''}_${data.gameState?.gameStatus ?? ''}`;
-      if ((get() as any)._lastProcessedActionKey === actionKey) {
+      // Deduplicate actions by unique actionId
+      if (data.actionId && (get() as any)._lastProcessedActionId === data.actionId) {
         return;
       }
-      (set as any)({ _lastProcessedActionKey: actionKey });
+      if (data.actionId) {
+        (set as any)({ _lastProcessedActionId: data.actionId });
+      }
 
       console.log(`[Socket Sync] Action ${data.actionType} received`, data);
 
       if (data.actionType === 'ROLL' && data.diceValue !== undefined) {
-        if (data.gameState) {
-          // ✅ Sync full state received from active rolling client
-          set({
-            gameState: data.gameState,
-            _isRolling: false,
-            turnTimerSeconds: data.hasLegalMoves !== false ? 10 : 5,
-          });
-          localStorage.setItem("ludo_classic_engine_state", JSON.stringify(data.gameState));
-        } else {
-          // Opponent rolled the dice, sync their rolled value
-          const activePlayer = gameState.players[gameState.activePlayerIndex];
-          const newState = {
-            ...gameState,
-            diceValue: data.diceValue,
-            lastDiceValue: data.diceValue,
-            isDiceRolled: true,
-            gameStatus: 'MOVE_WAIT' as const,
-          };
+        // Trigger smooth 3D dice rolling animation & sound on remote player screen!
+        SoundEngine.play('DICE_ROLL');
+        set({ _isRolling: true });
 
-          const legalMoves = RuleValidator.getLegalMoves(newState, data.diceValue);
-          const hasLegalMoves = legalMoves.length > 0;
+        const activePlayer = gameState.players[gameState.activePlayerIndex];
+        const nextState = data.gameState ? {
+          ...data.gameState,
+          players: data.gameState.players.map((p: any, idx: number) => ({
+            ...p,
+            name: gameState.players[idx]?.name || p.name,
+            avatar: gameState.players[idx]?.avatar || p.avatar,
+            equippedFrameId: gameState.players[idx]?.equippedFrameId || p.equippedFrameId,
+          })),
+        } : {
+          ...gameState,
+          diceValue: data.diceValue,
+          lastDiceValue: data.diceValue,
+          isDiceRolled: true,
+          gameStatus: 'MOVE_WAIT' as const,
+          movableTokens: RuleValidator.getLegalMoves({ ...gameState, diceValue: data.diceValue, isDiceRolled: true, gameStatus: 'MOVE_WAIT' as const }, data.diceValue),
+          lastActionSummary: `${activePlayer.name} rolled ${data.diceValue}!`,
+        };
 
-          const finalState = {
-            ...newState,
-            movableTokens: legalMoves,
-            lastActionSummary: `${activePlayer.name} rolled ${data.diceValue}!`,
-          };
+        set({
+          gameState: nextState,
+          turnTimerSeconds: data.hasLegalMoves !== false ? 10 : 5,
+        });
 
-          set({
-            gameState: finalState,
-            _isRolling: false,
-            turnTimerSeconds: hasLegalMoves ? 10 : 5,
-          });
+        localStorage.setItem("ludo_classic_engine_state", JSON.stringify(nextState));
 
-          localStorage.setItem("ludo_classic_engine_state", JSON.stringify(finalState));
-        }
-
-        SoundEngine.play('DICE_STOP');
+        setTimeout(() => {
+          SoundEngine.play('DICE_STOP');
+          set({ _isRolling: false });
+        }, 600);
       } else if (data.actionType === 'MOVE' && data.tokenId) {
+        // Trigger smooth step-by-step 60 FPS gliding animation on remote player screen!
+        get().moveToken(data.tokenId, true);
+
         if (data.gameState) {
+          const targetState = data.gameState;
           const currentPlayers = gameState.players;
-          const incomingState = data.gameState;
-          if (incomingState && incomingState.players) {
-            incomingState.players = incomingState.players.map((p: any, idx: number) => ({
+          if (targetState && targetState.players) {
+            targetState.players = targetState.players.map((p: any, idx: number) => ({
               ...p,
               name: currentPlayers[idx]?.name || p.name,
               avatar: currentPlayers[idx]?.avatar || p.avatar,
@@ -828,14 +830,15 @@ export const useGameStore = create<GameStoreState>()(
             }));
           }
 
-          set({
-            gameState: incomingState,
-            _isRolling: false,
-            turnTimerSeconds: 15,
-          });
-          localStorage.setItem("ludo_classic_engine_state", JSON.stringify(incomingState));
-        } else {
-          get().moveToken(data.tokenId, true);
+          // Schedule exact state sync after animation finishes
+          setTimeout(() => {
+            set({
+              gameState: { ...targetState, animatingToken: null },
+              _isRolling: false,
+              turnTimerSeconds: 15,
+            });
+            localStorage.setItem("ludo_classic_engine_state", JSON.stringify(targetState));
+          }, 400);
         }
       } else if (data.actionType === 'UNDO') {
         if (data.gameState) {

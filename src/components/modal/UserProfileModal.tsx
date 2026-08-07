@@ -205,7 +205,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             <div className="bg-black/30 border border-purple-900/35 rounded-xl px-2.5 py-1.5 h-10 flex flex-col justify-center">
               <span className="text-[7.5px] font-black uppercase text-purple-200 tracking-wider">Current gold</span>
               <span className="text-xs font-extrabold text-amber-400 font-mono">
-                {userStats.currentGold.toLocaleString()}
+                {(userStats.currentGold ?? 0).toLocaleString()}
               </span>
             </div>
             {/* Current League Box */}

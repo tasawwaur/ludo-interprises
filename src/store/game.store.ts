@@ -68,20 +68,27 @@ export const useGameStore = create<GameStoreState>()(
         if (savedStateRaw) {
           try {
             const parsed = JSON.parse(savedStateRaw);
-            const localUser = useUserStore.getState().user;
-            const localPlayer = parsed.players.find((p: any) => p.name === localUser?.username || p.name === localUser?.displayName) || parsed.players[0];
-            
-            const recorder = new ReplayRecorder();
-            set({
-              gameState: parsed,
-              localPlayerColor: localPlayer.color as PlayerColor,
-              replayRecorder: recorder,
-              activeHoverTokenId: null,
-              selectedTokenId: null,
-              turnTimerSeconds: 10,
-              isAutoMode: false,
-            });
-            return;
+            const maxPlayers = useRoomStore.getState().maxPlayers;
+            const expectedPlayerCount = maxPlayers;
+
+            if (parsed.players.length !== expectedPlayerCount) {
+              localStorage.removeItem("ludo_classic_engine_state");
+            } else {
+              const localUser = useUserStore.getState().user;
+              const localPlayer = parsed.players.find((p: any) => p.name === localUser?.username || p.name === localUser?.displayName) || parsed.players[0];
+              
+              const recorder = new ReplayRecorder();
+              set({
+                gameState: parsed,
+                localPlayerColor: localPlayer.color as PlayerColor,
+                replayRecorder: recorder,
+                activeHoverTokenId: null,
+                selectedTokenId: null,
+                turnTimerSeconds: 10,
+                isAutoMode: false,
+              });
+              return;
+            }
           } catch (e) {
             localStorage.removeItem("ludo_classic_engine_state");
           }

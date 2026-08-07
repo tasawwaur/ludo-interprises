@@ -73,6 +73,32 @@ const isRealLoggedInUser = (user: UserProfile | null): boolean => {
 
 const _initialProfile = getInitialProfile();
 
+const persistUserProfile = (user: UserProfile) => {
+  if (!user || typeof window === 'undefined') return;
+  try {
+    const dataStr = JSON.stringify(user);
+    localStorage.setItem(STORAGE_KEY, dataStr);
+
+    if (user.id) {
+      localStorage.setItem(`ludo_acc_id_${user.id.toLowerCase()}`, dataStr);
+    }
+    if (user.email) {
+      const sanitizedEmail = user.email.toLowerCase().trim().replace(/\s+/g, '_');
+      localStorage.setItem(`ludo_acc_email_${sanitizedEmail}`, dataStr);
+    }
+    if (user.loginProvider) {
+      localStorage.setItem(`ludo_${user.loginProvider}_account`, dataStr);
+      const activeName = user.displayName || user.username;
+      if (activeName) {
+        const key = `ludo_${user.loginProvider}_${activeName.toLowerCase().trim().replace(/\s+/g, '_')}`;
+        localStorage.setItem(key, dataStr);
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to persist user profile:', e);
+  }
+};
+
 export const useUserStore = create<UserState>((set) => ({
   user: _initialProfile,
   isAuthenticated: isRealLoggedInUser(_initialProfile),
@@ -81,20 +107,8 @@ export const useUserStore = create<UserState>((set) => ({
   setJustClaimedWelcome: (claimed) => set({ justClaimedWelcome: claimed }),
 
   setUser: (user) => {
-    if (user && typeof window !== 'undefined') {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-        if (user.loginProvider) {
-          localStorage.setItem(`ludo_${user.loginProvider}_account`, JSON.stringify(user));
-          const activeName = user.displayName || user.username;
-          if (activeName) {
-            const key = `ludo_${user.loginProvider}_${activeName.toLowerCase().trim().replace(/\s+/g, '_')}`;
-            localStorage.setItem(key, JSON.stringify(user));
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to save user to localStorage:', e);
-      }
+    if (user) {
+      persistUserProfile(user);
     }
     set({ user, isAuthenticated: isRealLoggedInUser(user) });
   },
@@ -103,21 +117,7 @@ export const useUserStore = create<UserState>((set) => ({
     set((state) => {
       if (!state.user) return state;
       const updated = { ...state.user, ...updates };
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-          if (updated.loginProvider) {
-            localStorage.setItem(`ludo_${updated.loginProvider}_account`, JSON.stringify(updated));
-            const activeName = updated.displayName || updated.username;
-            if (activeName) {
-              const key = `ludo_${updated.loginProvider}_${activeName.toLowerCase().trim().replace(/\s+/g, '_')}`;
-              localStorage.setItem(key, JSON.stringify(updated));
-            }
-          }
-        } catch (e) {
-          console.warn('Failed to persist user updates:', e);
-        }
-      }
+      persistUserProfile(updated);
       return { user: updated };
     });
   },

@@ -45,35 +45,38 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
   }, []);
 
   // 💾 Account Persistence Helpers for Returning Users (Restores exact saved coins & profile)
-  const getSavedAccount = (provider: 'guest' | 'google' | 'facebook' | 'phone', nameOrId?: string): UserProfile | null => {
+  const getSavedAccount = (provider: 'guest' | 'google' | 'facebook' | 'phone', identifier?: string): UserProfile | null => {
     try {
-      if (nameOrId) {
-        const sanitized = nameOrId.toLowerCase().trim().replace(/\s+/g, '_');
-        const key = `ludo_${provider}_${sanitized}`;
+      if (typeof window === 'undefined') return null;
+
+      const keysToTry: string[] = [];
+      if (identifier) {
+        const sanitized = identifier.toLowerCase().trim().replace(/\s+/g, '_');
+        keysToTry.push(`ludo_acc_email_${sanitized}`);
+        keysToTry.push(`ludo_acc_id_${sanitized}`);
+        keysToTry.push(`ludo_${provider}_${sanitized}`);
+      }
+      keysToTry.push(`ludo_${provider}_account`);
+      keysToTry.push('ludo_user_profile_v8');
+
+      for (const key of keysToTry) {
         const saved = localStorage.getItem(key);
         if (saved) {
-          const parsed = JSON.parse(saved);
-          return {
-            ...parsed,
-            uid: parsed.uid || formatPlayerUID(parsed),
-            coins: (parsed.coins !== undefined && parsed.coins > 0) ? parsed.coins : 20000,
-            gems: (parsed.gems !== undefined && parsed.gems > 0) ? parsed.gems : 200,
-            crowns: parsed.crowns !== undefined ? parsed.crowns : 10,
-          };
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed && (parsed.id || parsed.username)) {
+              return {
+                ...parsed,
+                uid: parsed.uid || formatPlayerUID(parsed),
+                coins: parsed.coins !== undefined ? parsed.coins : 20000,
+                gems: parsed.gems !== undefined ? parsed.gems : 200,
+                crowns: parsed.crowns !== undefined ? parsed.crowns : 10,
+                level: parsed.level !== undefined ? parsed.level : 1,
+                xp: parsed.xp !== undefined ? parsed.xp : 0,
+              };
+            }
+          } catch (e) {}
         }
-        return null; // Return null if specific account name/ID was requested but not found
-      }
-
-      const defaultSaved = localStorage.getItem(`ludo_${provider}_account`);
-      if (defaultSaved) {
-        const parsed = JSON.parse(defaultSaved);
-        return {
-          ...parsed,
-          uid: parsed.uid || formatPlayerUID(parsed),
-          coins: (parsed.coins !== undefined && parsed.coins > 0) ? parsed.coins : 20000,
-          gems: (parsed.gems !== undefined && parsed.gems > 0) ? parsed.gems : 200,
-          crowns: parsed.crowns !== undefined ? parsed.crowns : 10,
-        };
       }
     } catch (e) {
       console.warn(`Failed to read saved ${provider} account:`, e);
@@ -81,13 +84,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccessLogin }) => {
     return null;
   };
 
-  const saveAccountForProvider = (userProfile: UserProfile, provider: 'guest' | 'google' | 'facebook' | 'phone', nameOrId?: string) => {
+  const saveAccountForProvider = (userProfile: UserProfile, provider: 'guest' | 'google' | 'facebook' | 'phone', identifier?: string) => {
     try {
-      if (nameOrId) {
-        const key = `ludo_${provider}_${nameOrId.toLowerCase().trim().replace(/\s+/g, '_')}`;
-        localStorage.setItem(key, JSON.stringify(userProfile));
+      if (typeof window === 'undefined') return;
+      const dataStr = JSON.stringify(userProfile);
+
+      if (userProfile.id) {
+        localStorage.setItem(`ludo_acc_id_${userProfile.id.toLowerCase()}`, dataStr);
       }
-      localStorage.setItem(`ludo_${provider}_account`, JSON.stringify(userProfile));
+      if (userProfile.email) {
+        const sanitizedEmail = userProfile.email.toLowerCase().trim().replace(/\s+/g, '_');
+        localStorage.setItem(`ludo_acc_email_${sanitizedEmail}`, dataStr);
+      }
+      if (identifier) {
+        const sanitized = identifier.toLowerCase().trim().replace(/\s+/g, '_');
+        localStorage.setItem(`ludo_${provider}_${sanitized}`, dataStr);
+      }
+      localStorage.setItem(`ludo_${provider}_account`, dataStr);
+      localStorage.setItem('ludo_user_profile_v8', dataStr);
     } catch (e) {
       console.warn(`Failed to save ${provider} account:`, e);
     }

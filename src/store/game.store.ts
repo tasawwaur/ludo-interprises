@@ -761,13 +761,20 @@ export const useGameStore = create<GameStoreState>()(
       }
     });
 
-    socket.on("server_action", (data: { actionId?: string; actionType: 'ROLL' | 'MOVE' | 'UNDO' | 'CHAT' | 'STATE_SYNC' | 'FORFEIT'; diceValue?: number; tokenId?: string; nextColor?: string; cost?: number; text?: string; senderName?: string; color?: string; gameState?: any; hasLegalMoves?: boolean; turnTimerSeconds?: number }) => {
+    socket.on("server_action", (data: { actionId?: string; actionType: 'ROLL' | 'MOVE' | 'UNDO' | 'CHAT' | 'STATE_SYNC' | 'FORFEIT' | 'STREAM_VIDEO' | 'STREAM_AUDIO'; diceValue?: number; tokenId?: string; nextColor?: string; cost?: number; text?: string; senderName?: string; color?: string; gameState?: any; hasLegalMoves?: boolean; turnTimerSeconds?: number; videoFrame?: string; audioChunk?: string }) => {
       const { gameState } = get();
       if (!gameState) return;
 
       if (data.actionType === 'CHAT') {
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('game_chat_message', { detail: data }));
+        }
+        return;
+      }
+
+      if (data.actionType === 'STREAM_VIDEO' || data.actionType === 'STREAM_AUDIO') {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('game_media_stream', { detail: data }));
         }
         return;
       }

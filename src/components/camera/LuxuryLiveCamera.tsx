@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { VoiceChatService } from "../../game/sound/VoiceChatService";
+import { useGameStore } from "../../store/game.store";
+import { useRoomStore } from "../../store/room.store";
 
 interface CameraPodProps {
   playerName: string;
@@ -14,11 +16,13 @@ interface CameraPodProps {
   onToggleCam?: () => void;
   onTogglePause?: () => void;
   onToggleMic?: () => void;
+  opponentVideoFrame?: string | null;
 }
 
 const CameraPod: React.FC<CameraPodProps> = ({
   playerName, playerAvatar, defaultX, defaultY, isLocal, localVideoRef,
   camOn, paused, micOn, onToggleCam, onTogglePause, onToggleMic,
+  opponentVideoFrame
 }) => {
   const size = 140;
 
@@ -52,12 +56,21 @@ const CameraPod: React.FC<CameraPodProps> = ({
           <video
             ref={localVideoRef}
             autoPlay playsInline muted
-            className="w-full h-full object-cover scale-x-[-1]"
+            className="w-full h-full object-cover scale-x-[-1] absolute inset-0"
           />
         )}
 
-        {/* Avatar placeholder when camera OFF or opponent */}
-        {(!camOn || paused || !isLocal) && (
+        {/* Video stream for opponent */}
+        {!isLocal && camOn && opponentVideoFrame && (
+          <img
+            src={opponentVideoFrame}
+            alt="Opponent live stream"
+            className="w-full h-full object-cover scale-x-[-1] absolute inset-0 z-10"
+          />
+        )}
+
+        {/* Avatar placeholder when camera OFF or opponent is not streaming */}
+        {(!camOn || paused || (!isLocal && !opponentVideoFrame)) && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-purple-950/90">
             <img
               src={playerAvatar || "/assets/images/icons/icon_club_crown.png"}
@@ -79,7 +92,7 @@ const CameraPod: React.FC<CameraPodProps> = ({
         )}
 
         {/* HD indicator */}
-        {isLocal && camOn && !paused && (
+        {((isLocal && camOn && !paused) || (!isLocal && camOn && opponentVideoFrame)) && (
           <div className="absolute top-2 left-2 z-20">
             <span className="text-[9px] text-emerald-400 font-bold">● HD</span>
           </div>
@@ -137,6 +150,15 @@ const CameraPod: React.FC<CameraPodProps> = ({
             </button>
           </div>
         )}
+
+        {/* 🎙️ Opponent micro indicator when talking */}
+        {!isLocal && micOn && (
+          <div className="absolute bottom-2 left-2 z-30 pointer-events-none">
+            <span className="w-5 h-5 rounded-full bg-emerald-500/90 border border-emerald-300 flex items-center justify-center text-[10px] animate-pulse">
+              🎙️
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -156,6 +178,14 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
 }) => {
   if (!isOneVsOne) return null;
 
+  const gameSocket = useGameStore((s: any) => s.gameSocket);
+  const roomCode = useRoomStore((s: any) => s.roomCode) || localStorage.getItem('ludo_classic_room_code');
+  const localPlayerColor = useGameStore((s: any) => s.localPlayerColor);
+
+  const handleToggleMic = () => {
+    setLocalMicOn((p) => !p);
+  };
+
   const [localCamOn, setLocalCamOn] = useState(() => {
     try { return localStorage.getItem('ludo_cam_on') === '1'; } catch { return false; }
   });
@@ -169,13 +199,24 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
     } catch { return VoiceChatService.isMicrophoneActive(); }
   });
 
+  // Opponent States
   const [opponentCamOn, setOpponentCamOn] = useState(false);
+  const [opponentVideoFrame, setOpponentVideoFrame] = useState<string | null>(null);
+  const [opponentMicOn, setOpponentMicOn] = useState(false);
 
   const [isMobile, setIsMobile] = useState(false);
 
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef     = useRef<MediaStream | null>(null);
+  const audioStreamRef = useRef<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const oppHeartbeatRef = useRef<any>(null);
+  const oppMicHeartbeatRef = useRef<any>(null);
+
   useEffect(() => {
     const handleResize = () => {
-      // If screen width is less than 640px or user-agent is mobile, treat as mobile coordinates
       const checkMobile = window.innerWidth <= 640 || /Mobi|Android|iPhone/i.test(navigator.userAgent);
       setIsMobile(checkMobile);
     };
@@ -190,9 +231,6 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
   const oppX = isMobile ? 8 : -2;
   const oppY = isMobile ? 223 : 153;
 
-  const localVideoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef     = useRef<MediaStream | null>(null);
-
   // Persist camera settings on change
   useEffect(() => {
     try { localStorage.setItem('ludo_cam_on', localCamOn ? '1' : '0'); } catch {}
@@ -206,17 +244,7 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
     try { localStorage.setItem('ludo_mic_on', localMicOn ? '1' : '0'); } catch {}
   }, [localMicOn]);
 
-  // Auto-toggle opponent cam when local turns on
-  useEffect(() => {
-    if (localCamOn) {
-      const t = setTimeout(() => setOpponentCamOn(true), 1500);
-      return () => clearTimeout(t);
-    } else {
-      setOpponentCamOn(false);
-    }
-  }, [localCamOn]);
-
-  // Webcam stream
+  // Webcam stream activation
   useEffect(() => {
     if (localCamOn && !localPaused) {
       (async () => {
@@ -225,7 +253,7 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
           const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
           streamRef.current = stream;
           if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-        } catch (e) { console.warn("Camera:", e); }
+        } catch (e) { console.warn("Camera getUserMedia error:", e); }
       })();
     } else {
       if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
@@ -236,23 +264,159 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
     };
   }, [localCamOn, localPaused]);
 
-  // Auto-restart mic
+  // Real-time video frame streaming loop (base64 via socket)
+  useEffect(() => {
+    if (!localCamOn || localPaused || !gameSocket || !roomCode) return;
+
+    const interval = setInterval(() => {
+      if (localVideoRef.current && localVideoRef.current.readyState === 4) {
+        const canvas = canvasRef.current || document.createElement('canvas');
+        canvas.width = 120;
+        canvas.height = 120;
+        canvasRef.current = canvas;
+
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(localVideoRef.current, 0, 0, 120, 120);
+          // Compress frame to low-res JPEG
+          const base64Frame = canvas.toDataURL('image/jpeg', 0.45);
+          gameSocket.emit('client_action', {
+            roomCode,
+            actionType: 'STREAM_VIDEO',
+            videoFrame: base64Frame,
+            senderColor: localPlayerColor
+          });
+        }
+      }
+    }, 150); // 6.5 FPS for light network consumption
+
+    return () => clearInterval(interval);
+  }, [localCamOn, localPaused, gameSocket, roomCode, localPlayerColor]);
+
+  // Microphone capture and streaming loop (MediaRecorder)
+  useEffect(() => {
+    if (!localMicOn || !gameSocket || !roomCode) {
+      if (mediaRecorderRef.current) {
+        try { mediaRecorderRef.current.stop(); } catch (e) {}
+        mediaRecorderRef.current = null;
+      }
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach(t => t.stop());
+        audioStreamRef.current = null;
+      }
+      return;
+    }
+
+    let active = true;
+    (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+        });
+        if (!active) {
+          stream.getTracks().forEach(t => t.stop());
+          return;
+        }
+        audioStreamRef.current = stream;
+
+        // Try getting a supported browser mimeType for audio
+        let mimeType = 'audio/webm;codecs=opus';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'audio/ogg;codecs=opus';
+        }
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = ''; // Let browser fall back
+        }
+
+        const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+        recorder.ondataavailable = async (e) => {
+          if (e.data.size > 0 && gameSocket && roomCode) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const base64Audio = reader.result;
+              gameSocket.emit('client_action', {
+                roomCode,
+                actionType: 'STREAM_AUDIO',
+                audioChunk: base64Audio,
+                senderColor: localPlayerColor
+              });
+            };
+            reader.readAsDataURL(e.data);
+          }
+        };
+
+        recorder.start(350); // 350ms chunks for low voice chat latency
+        mediaRecorderRef.current = recorder;
+      } catch (err) {
+        console.warn("Microphone access error:", err);
+      }
+    })();
+
+    return () => {
+      active = false;
+      if (mediaRecorderRef.current) {
+        try { mediaRecorderRef.current.stop(); } catch (e) {}
+        mediaRecorderRef.current = null;
+      }
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach(t => t.stop());
+        audioStreamRef.current = null;
+      }
+    };
+  }, [localMicOn, gameSocket, roomCode, localPlayerColor]);
+
+  // Voice volume analysis fallback (updates VoiceChatService active state)
   useEffect(() => {
     if (localMicOn) {
       VoiceChatService.startMicrophone().catch(() => {});
-    }
-  }, []);
-
-  const handleToggleMic = async () => {
-    if (localMicOn) {
-      VoiceChatService.stopMicrophone();
-      setLocalMicOn(false);
     } else {
-      const success = await VoiceChatService.startMicrophone();
-      setLocalMicOn(success);
+      VoiceChatService.stopMicrophone();
     }
-  };
+  }, [localMicOn]);
 
+  // Receive media stream socket events (video image frame & voice chunks)
+  useEffect(() => {
+    const handleIncomingMedia = (e: Event) => {
+      const data = (e as CustomEvent).detail;
+      if (!data || data.senderColor === localPlayerColor) return;
+
+      if (data.actionType === 'STREAM_VIDEO') {
+        setOpponentVideoFrame(data.videoFrame);
+        setOpponentCamOn(true);
+
+        // Heartbeat timer to detect opponent camera stops
+        if (oppHeartbeatRef.current) clearTimeout(oppHeartbeatRef.current);
+        oppHeartbeatRef.current = setTimeout(() => {
+          setOpponentCamOn(false);
+          setOpponentVideoFrame(null);
+        }, 1200);
+      }
+
+      if (data.actionType === 'STREAM_AUDIO') {
+        setOpponentMicOn(true);
+
+        // Playback opponent voice chunk
+        if (data.audioChunk) {
+          const audio = new Audio(data.audioChunk);
+          audio.volume = 1.0;
+          audio.play().catch(() => {});
+        }
+
+        // Heartbeat timer to detect opponent microphone mute
+        if (oppMicHeartbeatRef.current) clearTimeout(oppMicHeartbeatRef.current);
+        oppMicHeartbeatRef.current = setTimeout(() => {
+          setOpponentMicOn(false);
+        }, 1500);
+      }
+    };
+
+    window.addEventListener('game_media_stream', handleIncomingMedia);
+    return () => {
+      window.removeEventListener('game_media_stream', handleIncomingMedia);
+      if (oppHeartbeatRef.current) clearTimeout(oppHeartbeatRef.current);
+      if (oppMicHeartbeatRef.current) clearTimeout(oppMicHeartbeatRef.current);
+    };
+  }, [localPlayerColor]);
 
   return (
     <>
@@ -281,8 +445,10 @@ export const LuxuryLiveCamera: React.FC<LuxuryLiveCameraProps> = ({
         isLocal={false}
         camOn={opponentCamOn}
         paused={false}
-        micOn={false}
-      />    </>
+        micOn={opponentMicOn}
+        opponentVideoFrame={opponentVideoFrame}
+      />
+    </>
   );
 };
 

@@ -6,7 +6,7 @@ import { useFriendsStore } from "../../../store/friends.store";
 import { GLOBAL_PLAYER_DATABASE } from "../../../store/player-database.store";
 import confetti from "canvas-confetti";
 import { loginWithFacebook } from "../../../auth/utils/fb";
-import { getFrameFilter } from "../../../store/cosmetics.store";
+import { getFrameFilter, getFrameSrc, getAvatarInnerStyle } from "../../../store/cosmetics.store";
 import { getDefaultAvatar } from "../../../utils/avatar";
 import { globalSocket } from "../../../multiplayer/socket/SocketClient";
 
@@ -414,7 +414,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = ({ onBack, onInviteFriend
             <div className="w-[84px] h-[84px] relative flex-shrink-0">
               <div
                 className="absolute rounded-full overflow-hidden bg-slate-900 border border-[#1e0736] z-10"
-                style={{ top: '16%', left: '20%', right: '20%', bottom: '28%' }}
+                style={getAvatarInnerStyle(user?.equippedFrame)}
               >
                 {user?.avatar ? (
                   <img
@@ -433,7 +433,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = ({ onBack, onInviteFriend
                 )}
               </div>
               <img
-                src="/assets/images/icons/profile_frame_v3.png"
+                src={getFrameSrc(user?.equippedFrame)}
                 alt="Gold Profile Frame"
                 className="w-full h-full object-contain absolute inset-0 z-20 pointer-events-none drop-shadow-[0_2px_5px_rgba(0,0,0,0.8)]"
                 style={{ filter: getFrameFilter(user?.equippedFrame) }}

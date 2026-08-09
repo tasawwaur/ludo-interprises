@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="100%" height="100%">
+  <defs>
+    <!-- Glow Filters -->
+    <filter id="crown-gold-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    <filter id="diamond-sparkle-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <!-- Solar Gold Aura -->
+    <radialGradient id="solarGoldAura" cx="50%" cy="50%" r="50%">
+      <stop offset="60%" stop-color="#FFD700" stop-opacity="0.08"/>
+      <stop offset="85%" stop-color="#F59E0B" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#D97706" stop-opacity="0.85"/>
+    </radialGradient>
+
+    <!-- Crown Light Peak Beam -->
+    <linearGradient id="crownLightBeam" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#FFE066" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#FFD700" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 🌟 Ambient Pulsing Golden Glow Behind Frame 🌟 -->
+  <rect x="60" y="60" width="904" height="904" rx="120" fill="url(#solarGoldAura)" filter="url(#crown-gold-glow)">
+    <animate attributeName="opacity" values="0.5;1;0.6;0.95;0.5" dur="2s" repeatCount="indefinite" />
+  </rect>
+
+  <!-- 🖼️ THE TRANSPARENT USER 3D GOLDEN CROWN FRAME PNG 🖼️ -->
+  <image href="/assets/images/shop/user_crown_frame_transparent.png" x="0" y="0" width="1024" height="1024" preserveAspectRatio="xMidYMid meet" filter="url(#crown-gold-glow)" />
+
+  <!-- 👑 CROWN PEAK LIGHT FLASH & SHINE SWEEP 👑 -->
+  <g filter="url(#diamond-sparkle-glow)">
+    <circle cx="512" cy="72" r="32" fill="url(#crownLightBeam)">
+      <animate attributeName="r" values="24;42;24" dur="1.2s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="0.4;1;0.4" dur="1.2s" repeatCount="indefinite" />
+    </circle>
+  </g>
+
+  <!-- 💎 CORNER DIAMOND LIGHT FLASHES 💎 -->
+  <g filter="url(#diamond-sparkle-glow)">
+    <!-- Bottom Left Diamond Flash -->
+    <circle cx="102" cy="902" r="28" fill="#FFFFFF">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="1.4s" repeatCount="indefinite" />
+    </circle>
+    <!-- Bottom Right Diamond Flash -->
+    <circle cx="922" cy="902" r="28" fill="#FFFFFF">
+      <animate attributeName="opacity" values="1;0.3;1" dur="1.4s" repeatCount="indefinite" />
+    </circle>
+    <!-- Top Left Filigree Diamond -->
+    <circle cx="102" cy="102" r="20" fill="#FFE79A">
+      <animate attributeName="opacity" values="0.4;1;0.4" dur="1.8s" repeatCount="indefinite" />
+    </circle>
+    <!-- Top Right Filigree Diamond -->
+    <circle cx="922" cy="102" r="20" fill="#FFE79A">
+      <animate attributeName="opacity" values="1;0.4;1" dur="1.8s" repeatCount="indefinite" />
+    </circle>
+  </g>
+
+  <!-- 🔥 LIVE ASCENDING GOLD FIRE EMBERS & SPARKS 🔥 -->
+  <g filter="url(#crown-gold-glow)">
+    <!-- Embers Left Side -->
+    <circle cx="120" cy="850" r="8" fill="#FFD700">
+      <animate attributeName="cy" values="850;150;850" dur="2.8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;0.1;1" dur="2.8s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="150" cy="880" r="6" fill="#FFA500">
+      <animate attributeName="cy" values="880;200;880" dur="2.2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.9;0.2;0.9" dur="2.2s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- Embers Right Side -->
+    <circle cx="904" cy="850" r="8" fill="#FFD700">
+      <animate attributeName="cy" values="850;150;850" dur="2.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;0.1;1" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="874" cy="880" r="6" fill="#FFA500">
+      <animate attributeName="cy" values="880;200;880" dur="2.0s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.9;0.2;0.9" dur="2.0s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- Embers Bottom Bar -->
+    <circle cx="512" cy="940" r="10" fill="#FFF5D6">
+      <animate attributeName="cy" values="940;100;940" dur="3.2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;0;1" dur="3.2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- 🌟 FLICKERING SPARKLE STARS ALONG THE ARCH 🌟 -->
+  <g filter="url(#crown-gold-glow)">
+    <path d="M 280 140 L 286 156 L 302 162 L 286 168 L 280 184 L 274 168 L 258 162 L 274 156 Z" fill="#FFF5D6">
+      <animate attributeName="opacity" values="0.2;1;0.2" dur="1.5s" repeatCount="indefinite"/>
+    </path>
+    <path d="M 744 140 L 750 156 L 766 162 L 750 168 L 744 184 L 738 168 L 722 162 L 738 156 Z" fill="#FFF5D6">
+      <animate attributeName="opacity" values="1;0.2;1" dur="1.5s" repeatCount="indefinite"/>
+    </path>
+  </g>
+</svg>

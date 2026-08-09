@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getFrameFilter } from '../../store/cosmetics.store';
+import { getFrameFilter, getFrameSrc, getAvatarInnerStyle } from '../../store/cosmetics.store';
 import { formatPlayerUID } from '../../utils/uuid';
 
 export interface UserStats {
@@ -94,10 +94,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             <div className="w-20 h-20 relative flex-shrink-0">
               <div
                 className="absolute rounded-full overflow-hidden bg-slate-950 border border-purple-950 z-10"
-                style={{ top: '15%', left: '15%', right: '15%', bottom: '26%' }}
+                style={getAvatarInnerStyle(userStats.equippedFrame)}
               >
                 {userStats.avatarUrl ? (
-                  <img src={userStats.avatarUrl} alt={userStats.name} className="w-full h-full object-cover" />
+                  <img src={userStats.avatarUrl} alt={userStats.name} className="w-full h-full object-cover rounded-full transform-gpu" />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-purple-800 to-indigo-900 flex items-center justify-center text-2xl font-black text-purple-200">
                     {userStats.name.charAt(0)}
@@ -105,7 +105,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 )}
               </div>
               <img
-                src="/assets/images/icons/profile_frame_v3.png"
+                src={getFrameSrc(userStats.equippedFrame)}
                 alt="Profile Frame"
                 className="w-full h-full object-contain absolute inset-0 z-20 pointer-events-none"
                 style={{ filter: getFrameFilter(userStats.equippedFrame) }}

@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <!-- 3D Diamond & Gold Glow Filters -->
+    <filter id="diamond-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="gold-glow-rose" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="7" result="blur" />
+      <feComponentTransfer in="blur" result="glow">
+        <feFuncA type="linear" slope="1.4"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode in="glow" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Metallic 24K Rose Gold Gradients -->
+    <linearGradient id="roseGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF5D6"/>
+      <stop offset="25%" stop-color="#FFD700"/>
+      <stop offset="50%" stop-color="#F59E0B"/>
+      <stop offset="75%" stop-color="#D48800"/>
+      <stop offset="100%" stop-color="#8B4513"/>
+    </linearGradient>
+
+    <!-- Diamond Refraction Gradients -->
+    <linearGradient id="diamondGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="35%" stop-color="#E0F2FE"/>
+      <stop offset="70%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#1E3A8A"/>
+    </linearGradient>
+
+    <radialGradient id="roseAura" cx="50%" cy="50%" r="50%">
+      <stop offset="60%" stop-color="#FFD700" stop-opacity="0.15"/>
+      <stop offset="85%" stop-color="#F59E0B" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#D97706" stop-opacity="0.9"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 🌟 Ambient Golden Rose & Diamond Solar Aura 🌟 -->
+  <circle cx="200" cy="200" r="176" fill="url(#roseAura)" filter="url(#gold-glow-rose)">
+    <animate attributeName="opacity" values="0.6;1;0.6" dur="2.2s" repeatCount="indefinite" />
+  </circle>
+
+  <!-- 🌌 Animated Rotating Inner Gold Rays 🌌 -->
+  <g filter="url(#gold-glow-rose)">
+    <circle cx="200" cy="200" r="154" fill="none" stroke="#FFF5D6" stroke-width="4" stroke-dasharray="24 16 12 16" opacity="0.9">
+      <animateTransform attributeName="transform" type="rotate" from="0 200 200" to="360 200 200" dur="6s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="200" cy="200" r="146" fill="none" stroke="#FFD700" stroke-width="2.5" stroke-dasharray="10 10" opacity="0.85">
+      <animateTransform attributeName="transform" type="rotate" from="360 200 200" to="0 200 200" dur="4s" repeatCount="indefinite" />
+    </circle>
+  </g>
+
+  <!-- 👑 Outer 3D Gold Cursive Swirl Ring 👑 -->
+  <circle cx="200" cy="200" r="162" fill="none" stroke="url(#roseGoldGrad)" stroke-width="15" filter="url(#gold-glow-rose)" />
+  <circle cx="200" cy="200" r="170" fill="none" stroke="#FFE79A" stroke-width="2" opacity="0.9" />
+
+  <!-- 🌹 TOP LEFT: 3D BLOOMING GOLDEN ROSE WITH DIAMONDS 🌹 -->
+  <g transform="translate(110, 48)" filter="url(#gold-glow-rose)">
+    <!-- Rose Outer Petals -->
+    <path d="M 0 -22 Q -18 -32 -30 -14 Q -35 10 -15 25 Q 15 28 28 10 Q 32 -15 0 -22 Z" fill="url(#roseGoldGrad)"/>
+    <!-- Inner Rose Petal Layer -->
+    <path d="M 0 -14 Q -12 -20 -18 -8 Q -20 6 -8 15 Q 10 16 16 6 Q 18 -8 0 -14 Z" fill="#FFE79A"/>
+    <path d="M 0 -6 Q -6 -10 -10 -3 Q -11 3 -3 8 Q 5 8 8 3 Q 8 -4 0 -6 Z" fill="#D48800"/>
+    <!-- Rose Diamond Sparkle Center -->
+    <circle cx="0" cy="0" r="4.5" fill="url(#diamondGrad)" filter="url(#diamond-glow)">
+      <animate attributeName="r" values="3.5;5.5;3.5" dur="1.2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- 💎 TOP RIGHT: CLUSTER OF 3D SPARKLING DIAMONDS 💎 -->
+  <g transform="translate(290, 48)" filter="url(#diamond-glow)">
+    <!-- Big Center Diamond -->
+    <polygon points="0,-22 18,-6 0,22 -18,-6" fill="url(#diamondGrad)" stroke="#FFFFFF" stroke-width="1.5"/>
+    <polygon points="0,-22 0,22" stroke="#E0F2FE" stroke-width="1" opacity="0.7"/>
+    <polygon points="-18,-6 18,-6" stroke="#E0F2FE" stroke-width="1" opacity="0.7"/>
+    
+    <!-- Small Left Diamond -->
+    <polygon points="-24,-12 -12,0 -24,12 -36,0" fill="url(#diamondGrad)" stroke="#FFFFFF" stroke-width="1"/>
+    <!-- Small Right Diamond -->
+    <polygon points="24,-12 36,0 24,12 12,0" fill="url(#diamondGrad)" stroke="#FFFFFF" stroke-width="1"/>
+
+    <!-- Diamond Flashes -->
+    <circle cx="0" cy="-6" r="3" fill="#FFFFFF">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="0.9s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- 🌟 TOP ARCH SWIRL & GOLDEN STARS HANGING 🌟 -->
+  <g filter="url(#gold-glow-rose)">
+    <path d="M 120 40 Q 200 15 280 40" fill="none" stroke="url(#roseGoldGrad)" stroke-width="6" stroke-linecap="round"/>
+    
+    <!-- Hanging Gold Stars -->
+    <path d="M 170 60 L 173 69 L 182 72 L 173 75 L 170 84 L 167 75 L 158 72 L 167 69 Z" fill="#FFF5D6">
+      <animate attributeName="opacity" values="0.4;1;0.4" dur="1.4s" repeatCount="indefinite"/>
+    </path>
+    <path d="M 200 65 L 204 76 L 215 80 L 204 84 L 200 95 L 196 84 L 185 80 L 196 76 Z" fill="#FFD700">
+      <animate attributeName="opacity" values="1;0.4;1" dur="1.4s" repeatCount="indefinite"/>
+    </path>
+    <path d="M 230 60 L 233 69 L 242 72 L 233 75 L 230 84 L 227 75 L 218 72 L 227 69 Z" fill="#FFF5D6">
+      <animate attributeName="opacity" values="0.4;1;0.4" dur="1.4s" repeatCount="indefinite"/>
+    </path>
+  </g>
+
+  <!-- 🏅 BOTTOM GOLDEN VIP MEDALLION BADGE 🏅 -->
+  <g transform="translate(200, 365)" filter="url(#gold-glow-rose)">
+    <path d="M -50 -18 L 50 -18 L 36 18 L -36 18 Z" fill="url(#roseGoldGrad)" />
+    <text x="0" y="6" font-family="'Outfit', 'Inter', sans-serif" font-weight="900" font-size="13" fill="#8B4513" text-anchor="middle" letter-spacing="2">GOLDEN ROSE</text>
+  </g>
+
+  <!-- 🌿 Side Gold Leaves 🌿 -->
+  <g filter="url(#gold-glow-rose)">
+    <path d="M 42 160 Q 18 190 42 220" fill="none" stroke="url(#roseGoldGrad)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M 358 160 Q 382 190 358 220" fill="none" stroke="url(#roseGoldGrad)" stroke-width="5" stroke-linecap="round"/>
+  </g>
+
+  <!-- ✨ Cascading Sparkles & Embers ✨ -->
+  <g filter="url(#gold-glow-rose)">
+    <circle cx="80" cy="310" r="3.5" fill="#FFF5D6">
+      <animate attributeName="cy" values="320;80;320" dur="2.3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;0.1;1" dur="2.3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="320" cy="310" r="3.5" fill="#FFD700">
+      <animate attributeName="cy" values="320;80;320" dur="2.0s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;0.1;1" dur="2.0s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+</svg>

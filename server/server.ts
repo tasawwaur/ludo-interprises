@@ -60,6 +60,10 @@ app.get("/terms.html", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/terms.html"));
 });
 
+app.get("/ad_promo.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "../public/ad_promo.html"));
+});
+
 app.get("/api/status", (req, res) => {
   res.json({ status: "online", service: "LUDO-ENTERPRISE Multiplayer Server", timestamp: Date.now() });
 });

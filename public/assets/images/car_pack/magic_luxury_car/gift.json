@@ -1,0 +1,70 @@
+{
+  "id": "magic_luxury_car_1786209121433",
+  "name": "Magic Luxury Car",
+  "category": "Luxury",
+  "price": 150000,
+  "duration": 8,
+  "animation": "royal_entrance",
+  "effects": [
+    "portal",
+    "gold_particles",
+    "glow",
+    "fireworks"
+  ],
+  "fullConfig": {
+    "portal": {
+      "enabled": true,
+      "color": "#8B5CF6",
+      "size": 1.2,
+      "start": 0.5,
+      "end": 3.5
+    },
+    "particles": {
+      "enabled": true,
+      "type": "gold_particles",
+      "count": 45,
+      "speed": 1.5,
+      "start": 0.8,
+      "end": 7.5
+    },
+    "carEntrance": {
+      "enabled": true,
+      "style": "drive_in",
+      "scale": 1,
+      "start": 1.2,
+      "end": 8
+    },
+    "glow": {
+      "enabled": true,
+      "color": "#00C6E0",
+      "radius": 40,
+      "start": 1.5,
+      "end": 8
+    },
+    "lightRays": {
+      "enabled": true,
+      "color": "#FFB800",
+      "count": 8,
+      "start": 2,
+      "end": 6
+    },
+    "text": {
+      "enabled": true,
+      "sender": "TASAVVUR",
+      "text": "sent you a Magic Luxury Car",
+      "start": 3.5,
+      "end": 8
+    },
+    "fireworks": {
+      "enabled": true,
+      "color": "#EC4899",
+      "density": 15,
+      "start": 4.5,
+      "end": 7.5
+    },
+    "sound": {
+      "enabled": true,
+      "preset": "vroom_fanfare"
+    }
+  }
+}

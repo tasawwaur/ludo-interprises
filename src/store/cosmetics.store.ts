@@ -16,7 +16,8 @@ export interface CosmeticItem {
 
 const generateFrames = (): CosmeticItem[] => {
   const list: CosmeticItem[] = [
-    { id: 'frame_default', name: 'Classic Wood Frame', type: 'FRAME', rarity: 'COMMON', isUnlocked: true, imgUrl: '/assets/images/icons/profile_frame_v3.png' }
+    { id: 'frame_default', name: 'Classic Wood Frame', type: 'FRAME', rarity: 'COMMON', isUnlocked: true, imgUrl: '/assets/images/icons/profile_frame_v3.png' },
+    { id: 'royal_vip_frame', name: 'Royal VIP Crown Frame', type: 'FRAME', rarity: 'LEGENDARY', isUnlocked: true, imgUrl: '/assets/images/shop/luxury_avatar_frame.svg' }
   ];
   const colors = ["Gold", "Platinum", "Ruby", "Sapphire", "Emerald", "Diamond", "Obsidian", "Amethyst", "Jade", "Crystal", "Rainbow", "Fire", "Ice", "Shadow", "Stellar", "Cosmic", "Neon", "Cyber", "Royal", "Glitch"];
   const designs = ["Emperor", "Imperial", "Majestic", "Elite", "Grand", "Royal", "Legendary", "Ancient", "Vip", "Champion"];
@@ -248,8 +249,41 @@ export const useCosmeticsStore = create<CosmeticsState>((set, get) => {
   };
 });
 
+export const getFrameSrc = (frameId: string | undefined): string => {
+  if (!frameId || frameId === 'frame_default') {
+    return '/assets/images/icons/profile_frame_v3.png';
+  }
+  if (frameId.includes('classic_gold')) {
+    return '/assets/images/shop/classic_gold_animated_frame.svg';
+  }
+  if (frameId === 'royal_vip_frame' || frameId.includes('luxury_avatar_frame')) {
+    return '/assets/images/shop/luxury_avatar_frame.svg';
+  }
+  if (frameId === 'imperial_crown_frame' || frameId.includes('user_crown')) {
+    return '/assets/images/shop/user_crown_frame_transparent.png';
+  }
+  if (frameId.startsWith('/assets/')) return frameId;
+  return '/assets/images/icons/profile_frame_v3.png';
+};
+
+export const getAvatarInnerStyle = (frameId: string | undefined): React.CSSProperties => {
+  if (!frameId || frameId === 'frame_default') {
+    return { top: '16.5%', bottom: '26.5%', left: '16.5%', right: '16.5%', borderRadius: '9999px' };
+  }
+  if (frameId === 'imperial_crown_frame' || frameId?.includes('user_crown')) {
+    return { top: '16%', bottom: '12%', left: '12%', right: '12%', borderRadius: '42% 42% 20% 20%' };
+  }
+  if (frameId === 'royal_vip_frame' || frameId?.includes('luxury_avatar_frame')) {
+    return { top: '15.5%', bottom: '15.5%', left: '15.5%', right: '15.5%', borderRadius: '9999px' };
+  }
+  return { top: '15.5%', bottom: '15.5%', left: '15.5%', right: '15.5%', borderRadius: '9999px' };
+};
+
 export const getFrameFilter = (frameId: string | undefined): string => {
   if (!frameId || frameId === 'frame_default') return '';
+  if (frameId === 'royal_vip_frame' || frameId.includes('luxury_avatar_frame')) {
+    return 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.9))';
+  }
   if (frameId === 'frame_vip') {
     // Beautiful golden-purple VIP glow!
     return 'hue-rotate(280deg) saturate(2.5) brightness(1.2) drop-shadow(0 0 8px rgba(168, 85, 247, 0.95))';

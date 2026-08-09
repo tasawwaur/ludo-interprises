@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Player } from '../../../game/engine/Engine.types';
 import { VoiceChatService } from '../../../game/sound/VoiceChatService';
-import { getFrameFilter } from '../../../store/cosmetics.store';
+import { getFrameFilter, getFrameSrc, getAvatarInnerStyle } from '../../../store/cosmetics.store';
 
 interface CornerPlayerAvatarProps {
   player?: Player;
@@ -151,7 +151,7 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
           {/* Avatar image cutout inside the frame */}
           <div
             className="absolute rounded-full overflow-hidden bg-slate-950 border border-purple-950/20"
-            style={{ top: '15%', left: '15%', right: '15%', bottom: '26%' }}
+            style={getAvatarInnerStyle(player?.equippedFrameId)}
           >
             {player.avatar ? (
               <img
@@ -168,10 +168,10 @@ export const CornerPlayerAvatar: React.FC<CornerPlayerAvatarProps> = ({
           
           {/* The visual profile frame overlay */}
           <img
-            src="/assets/images/icons/profile_frame_v3.png"
+            src={getFrameSrc(player?.equippedFrameId)}
             alt="Profile Frame"
             className="w-full h-full object-contain absolute inset-0 z-20 pointer-events-none"
-            style={{ filter: getFrameFilter(player.equippedFrameId) }}
+            style={{ filter: getFrameFilter(player?.equippedFrameId) }}
             draggable={false}
           />
         </button>

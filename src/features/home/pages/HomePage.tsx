@@ -11,7 +11,7 @@ import { useUserStore } from "../../../user/user.store";
 import { usePlayerStatsStore } from "../../../store/player-stats.store";
 import { useGlobalModalStore } from "../../../store/global-modal.store";
 
-import { getFrameFilter } from "../../../store/cosmetics.store";
+import { getFrameFilter, getFrameSrc, getAvatarInnerStyle } from "../../../store/cosmetics.store";
 import { getDefaultAvatar } from "../../../utils/avatar";
 import { InboxModal } from "../../../components/modal/InboxModal";
 import { BellRewardsModal } from "../../../components/modal/BellRewardsModal";
@@ -322,25 +322,25 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectMode, onOpenView }) 
           {/* Avatar inside round circle — perfectly centered in frame opening */}
           <div
             className="absolute rounded-full overflow-hidden z-10"
-            style={{ top: '16%', left: '20%', right: '20%', bottom: '28%' }}
+            style={getAvatarInnerStyle(user?.equippedFrame)}
           >
             {playerPhoto ? (
               <img
                 src={playerPhoto}
                 alt="Player"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover rounded-full shadow-inner transform-gpu"
               />
             ) : (
               <img
                 src={getDefaultAvatar(user?.id || 'default')}
                 alt="Player Default"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover rounded-full shadow-inner transform-gpu"
               />
             )}
           </div>
           {/* Luxury Frame overlay v3 */}
           <img
-            src="/assets/images/icons/profile_frame_v3.png"
+            src={getFrameSrc(user?.equippedFrame)}
             alt="Profile Frame"
             className="absolute inset-0 w-full h-full object-contain z-20 pointer-events-none"
             draggable={false}

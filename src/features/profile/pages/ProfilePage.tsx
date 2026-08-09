@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useUserStore } from "../../../user/user.store";
 import { LudoPageBackground } from "../../../components/effects/LudoPageBackground";
-import { getFrameFilter } from "../../../store/cosmetics.store";
+import { getFrameFilter, getFrameSrc, getAvatarInnerStyle } from "../../../store/cosmetics.store";
 import { usePlayerStatsStore } from "../../../store/player-stats.store";
 import { LevelBadge } from "../../../components/badges/LevelBadge";
 import { UserProfileModal } from "../../../components/modal/UserProfileModal";
@@ -292,7 +292,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
                   <div className="w-20 h-20 relative flex-shrink-0 cursor-pointer hover:scale-105 active:scale-95 transition-transform" onClick={handleAvatarClick}>
                     <div
                       className="absolute rounded-full overflow-hidden bg-slate-950 border border-purple-950 z-10"
-                      style={{ top: '15%', left: '15%', right: '15%', bottom: '26%' }}
+                      style={getAvatarInnerStyle(user?.equippedFrame)}
                     >
                       {user?.avatar ? (
                         <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
@@ -303,7 +303,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack, onOpenHistory,
                       )}
                     </div>
                     <img
-                      src="/assets/images/icons/profile_frame_v3.png"
+                      src={getFrameSrc(user?.equippedFrame)}
                       alt="Profile Frame"
                       className="w-full h-full object-contain absolute inset-0 z-20 pointer-events-none"
                       style={{ filter: getFrameFilter(user?.equippedFrame) }}

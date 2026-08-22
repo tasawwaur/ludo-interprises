@@ -65,11 +65,6 @@ export const VIPLoungePage: React.FC<VIPLoungePageProps> = ({
   };
 
   const handlePlayVIP = () => {
-    const userCoins = user?.coins ?? 0;
-    if (userCoins < 50000) {
-      alert("❌ 50,000 Coins are required to play in the VIP Lounge!");
-      return;
-    }
     onStartVIPMatch();
   };
 

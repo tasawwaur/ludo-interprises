@@ -21,7 +21,7 @@ export const INITIAL_DICE_SKINS: DiceSkin[] = [
     assetPath: '/assets/images/dice/star_cyan.png',
     glowColor: 'shadow-cyan-400/40 border-cyan-400',
     particleEffect: 'sparks',
-    isUnlocked: false,
+    isUnlocked: true,
     cost: { coins: 1500 },
   },
   {
@@ -33,7 +33,7 @@ export const INITIAL_DICE_SKINS: DiceSkin[] = [
     assetPath: '/assets/images/dice/magma_orange.png',
     glowColor: 'shadow-orange-500/50 border-orange-500',
     particleEffect: 'fire',
-    isUnlocked: false,
+    isUnlocked: true,
     cost: { gems: 40 },
   },
   {
@@ -45,7 +45,7 @@ export const INITIAL_DICE_SKINS: DiceSkin[] = [
     assetPath: '/assets/images/dice/gold_emperor.png',
     glowColor: 'shadow-amber-400/60 border-yellow-400',
     particleEffect: 'gold_dust',
-    isUnlocked: false,
+    isUnlocked: true,
     cost: { gems: 120 },
   },
 ];

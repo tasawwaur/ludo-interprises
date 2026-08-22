@@ -35,7 +35,7 @@ const generateFrames = (): CosmeticItem[] => {
       costGems: rarity === 'EPIC' ? 100 + i : rarity === 'LEGENDARY' ? 250 + i * 2 : undefined,
       imgUrl: `/assets/images/icons/profile_frame_v3.png`,
       styleClass: `luxury-frame-style-${i}`,
-      isUnlocked: false
+      isUnlocked: true
     });
   }
   return list;
@@ -61,7 +61,7 @@ const generateTokens = (): CosmeticItem[] => {
       costCoins: rarity === 'COMMON' ? 3000 + i * 30 : rarity === 'RARE' ? 8000 + i * 50 : undefined,
       costGems: rarity === 'EPIC' ? 50 + i : rarity === 'LEGENDARY' ? 150 + i : undefined,
       colorBg: `bg-${color.toLowerCase()}-600`,
-      isUnlocked: false
+      isUnlocked: true
     });
   }
   return list;
@@ -86,7 +86,7 @@ const generateBoards = (): CosmeticItem[] => {
       costCoins: rarity === 'COMMON' ? 10000 + i * 100 : rarity === 'RARE' ? 25000 + i * 200 : undefined,
       costGems: rarity === 'EPIC' ? 200 + i : rarity === 'LEGENDARY' ? 500 + i * 2 : undefined,
       imgUrl: `/assets/images/board_classic.png`,
-      isUnlocked: false
+      isUnlocked: true
     });
   }
   return list;

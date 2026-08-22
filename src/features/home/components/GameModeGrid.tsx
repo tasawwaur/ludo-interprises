@@ -68,21 +68,15 @@ export const GameModeGrid: React.FC<GameModeGridProps> = ({ onSelectMode }) => {
         <button
           key={mode.id}
           onClick={(e) => handleButtonClick(e, mode.modeKey)}
-          className="w-full h-[72px] relative rounded-[14px] overflow-hidden hover:scale-[1.02] active:scale-[0.96] transition-all duration-150 cursor-pointer bg-transparent border-0 outline-none p-0 opacity-85"
+          className="w-full h-[72px] relative rounded-[14px] overflow-hidden hover:scale-[1.03] active:scale-[0.96] transition-all duration-150 cursor-pointer bg-transparent border-0 outline-none p-0 shadow-md hover:shadow-amber-500/20"
           style={{ WebkitTapHighlightColor: "transparent" }}
         >
           <img
             src={mode.imgSrc}
             alt={mode.title}
-            className="w-full h-full object-fill rounded-[14px] filter grayscale-[30%]"
+            className="w-full h-full object-fill rounded-[14px]"
             draggable={false}
           />
-          {/* Lock Overlay */}
-          <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-[0.5px] flex items-center justify-center rounded-[14px]">
-            <span className="bg-slate-900/90 border border-amber-400/80 text-amber-300 text-[8px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-lg flex items-center gap-1">
-              🔒 LOCKED
-            </span>
-          </div>
         </button>
       ))}
     </div>

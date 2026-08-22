@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { safeStorage } from '../utils/storage';
+
 export interface UserProfile {
   id: string;
   username: string;
@@ -46,30 +48,28 @@ const isTargetVIPID = (user: UserProfile | null): boolean => {
 };
 
 const getInitialProfile = (): UserProfile | null => {
-  if (typeof window !== 'undefined') {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (isTargetVIPID(parsed)) {
-          return {
-            ...parsed,
-            id: 'LUDO-63554281',
-            uid: 'LUDO-63554281',
-            coins: 1000000000,
-            gems: 1000000000,
-          };
-        }
+  try {
+    const saved = safeStorage.get(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (isTargetVIPID(parsed)) {
         return {
           ...parsed,
-          coins: parsed.coins !== undefined ? parsed.coins : 20000,
-          gems: parsed.gems !== undefined ? parsed.gems : 200,
-          crowns: parsed.crowns !== undefined ? parsed.crowns : 10,
+          id: 'LUDO-63554281',
+          uid: 'LUDO-63554281',
+          coins: 1000000000,
+          gems: 1000000000,
         };
       }
-    } catch (e) {
-      console.warn('Failed to load profile from localStorage:', e);
+      return {
+        ...parsed,
+        coins: parsed.coins !== undefined ? parsed.coins : 20000,
+        gems: parsed.gems !== undefined ? parsed.gems : 200,
+        crowns: parsed.crowns !== undefined ? parsed.crowns : 10,
+      };
     }
+  } catch (e) {
+    console.warn('Failed to load profile from localStorage:', e);
   }
   return null; // No saved session — user must login
 };
@@ -90,26 +90,10 @@ if (_initialProfile && isTargetVIPID(_initialProfile)) {
 }
 
 const persistUserProfile = (user: UserProfile) => {
-  if (!user || typeof window === 'undefined') return;
+  if (!user) return;
   try {
     const dataStr = JSON.stringify(user);
-    localStorage.setItem(STORAGE_KEY, dataStr);
-
-    if (user.id) {
-      localStorage.setItem(`ludo_acc_id_${user.id.toLowerCase()}`, dataStr);
-    }
-    if (user.email) {
-      const sanitizedEmail = user.email.toLowerCase().trim().replace(/\s+/g, '_');
-      localStorage.setItem(`ludo_acc_email_${sanitizedEmail}`, dataStr);
-    }
-    if (user.loginProvider) {
-      localStorage.setItem(`ludo_${user.loginProvider}_account`, dataStr);
-      const activeName = user.displayName || user.username;
-      if (activeName) {
-        const key = `ludo_${user.loginProvider}_${activeName.toLowerCase().trim().replace(/\s+/g, '_')}`;
-        localStorage.setItem(key, dataStr);
-      }
-    }
+    safeStorage.set(STORAGE_KEY, dataStr);
   } catch (e) {
     console.warn('Failed to persist user profile:', e);
   }

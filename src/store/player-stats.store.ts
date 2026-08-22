@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { useUserStore } from '../user/user.store';
+import { safeStorage } from '../utils/storage';
 
 export interface CompletedMatchData {
   gameMode: "1VS1" | "2VS2" | "4PLAYER" | "PRIVATE" | "TOURNAMENT";
@@ -113,13 +114,11 @@ const calculateNextLevelXp = (level: number) => {
 };
 
 const getInitialDetailedStats = (username: string = "TASAVVUR"): PlayerDetailedStats => {
-  if (typeof window !== 'undefined') {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_STATS);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.warn('Failed to load stats:', e);
-    }
+  try {
+    const saved = safeStorage.get(STORAGE_KEY_STATS);
+    if (saved) return JSON.parse(saved);
+  } catch (e) {
+    console.warn('Failed to load stats:', e);
   }
 
   // Base default stats for a fresh player
@@ -191,11 +190,11 @@ export const usePlayerStatsStore = create<PlayerStatsState>((set, get) => {
       if (!user) return;
       
       set((state) => {
-        const updated = {
+        const updated: PlayerDetailedStats = {
           ...state.stats,
           playerId: user.uid || user.id || state.stats.playerId,
           username: user.displayName || user.username || state.stats.username,
-          avatarUrl: user.avatar || state.stats.avatarUrl,
+          avatarUrl: user.avatar ? (user.avatar.length > 500 ? '' : user.avatar) : state.stats.avatarUrl,
           equippedFrame: user.equippedFrame || state.stats.equippedFrame,
           currentCoins: user.coins !== undefined ? user.coins : state.stats.currentCoins,
           currentDiamonds: user.gems !== undefined ? user.gems : state.stats.currentDiamonds,
@@ -204,9 +203,7 @@ export const usePlayerStatsStore = create<PlayerStatsState>((set, get) => {
           nextLevelXp: user.nextLevelXp !== undefined ? user.nextLevelXp : (state.stats.nextLevelXp || 1000),
         };
         
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(STORAGE_KEY_STATS, JSON.stringify(updated));
-        }
+        safeStorage.set(STORAGE_KEY_STATS, JSON.stringify(updated));
         return { stats: updated };
       });
     },
@@ -217,9 +214,7 @@ export const usePlayerStatsStore = create<PlayerStatsState>((set, get) => {
           ...state.stats,
           ...updates
         };
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(STORAGE_KEY_STATS, JSON.stringify(updated));
-        }
+        safeStorage.set(STORAGE_KEY_STATS, JSON.stringify(updated));
         return { stats: updated };
       });
     },

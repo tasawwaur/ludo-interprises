@@ -25,10 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private handleReset = () => {
     try {
-      localStorage.removeItem("ludo_sl_engine_state");
-      localStorage.removeItem("ludo_classic_engine_state");
-      localStorage.removeItem("ludo_active_match_session");
-      localStorage.removeItem("ludo_room_code");
+      localStorage.clear();
     } catch (e) {}
     this.setState({ hasError: false, error: null });
     window.location.href = "/";

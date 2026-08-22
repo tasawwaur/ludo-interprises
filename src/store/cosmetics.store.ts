@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { useUserStore } from '../user/user.store';
+import { safeStorage } from '../utils/storage';
 
 export interface CosmeticItem {
   id: string;
@@ -109,21 +110,19 @@ const STORAGE_EQUIPPED_ITEMS = 'ludo_cosmetics_equipped_map_v1';
 
 const getInitialItems = (type: 'FRAME' | 'TOKEN' | 'BOARD'): CosmeticItem[] => {
   const defaults = type === 'FRAME' ? generateFrames() : type === 'TOKEN' ? generateTokens() : generateBoards();
-  if (typeof window !== 'undefined') {
-    try {
-      const savedUnlocked = localStorage.getItem(STORAGE_UNLOCKED_ITEMS);
-      if (savedUnlocked) {
-        const unlockedIds: string[] = JSON.parse(savedUnlocked);
-        return defaults.map(item => {
-          if (unlockedIds.includes(item.id)) {
-            return { ...item, isUnlocked: true };
-          }
-          return item;
-        });
-      }
-    } catch (e) {
-      console.warn('Failed to load unlocked cosmetics', e);
+  try {
+    const savedUnlocked = safeStorage.get(STORAGE_UNLOCKED_ITEMS);
+    if (savedUnlocked) {
+      const unlockedIds: string[] = JSON.parse(savedUnlocked);
+      return defaults.map(item => {
+        if (unlockedIds.includes(item.id)) {
+          return { ...item, isUnlocked: true };
+        }
+        return item;
+      });
     }
+  } catch (e) {
+    console.warn('Failed to load unlocked cosmetics', e);
   }
   return defaults;
 };
@@ -134,15 +133,13 @@ const getInitialEquippedMap = (): Record<string, string> => {
     TOKEN: 'token_default',
     BOARD: 'board_default'
   };
-  if (typeof window !== 'undefined') {
-    try {
-      const saved = localStorage.getItem(STORAGE_EQUIPPED_ITEMS);
-      if (saved) {
-        return { ...defaultMap, ...JSON.parse(saved) };
-      }
-    } catch (e) {
-      console.warn('Failed to load equipped cosmetics map', e);
+  try {
+    const saved = safeStorage.get(STORAGE_EQUIPPED_ITEMS);
+    if (saved) {
+      return { ...defaultMap, ...JSON.parse(saved) };
     }
+  } catch (e) {
+    console.warn('Failed to load equipped cosmetics map', e);
   }
   return defaultMap;
 };
@@ -191,13 +188,11 @@ export const useCosmeticsStore = create<CosmeticsState>((set, get) => {
       else if (type === 'TOKEN') set({ tokens: updated });
       else if (type === 'BOARD') set({ boards: updated });
 
-      if (typeof window !== 'undefined') {
-        const unlockedIds: string[] = [];
-        get().frames.forEach(i => i.isUnlocked && unlockedIds.push(i.id));
-        get().tokens.forEach(i => i.isUnlocked && unlockedIds.push(i.id));
-        get().boards.forEach(i => i.isUnlocked && unlockedIds.push(i.id));
-        localStorage.setItem(STORAGE_UNLOCKED_ITEMS, JSON.stringify(unlockedIds));
-      }
+      const unlockedIds: string[] = [];
+      get().frames.forEach(i => i.isUnlocked && unlockedIds.push(i.id));
+      get().tokens.forEach(i => i.isUnlocked && unlockedIds.push(i.id));
+      get().boards.forEach(i => i.isUnlocked && unlockedIds.push(i.id));
+      safeStorage.set(STORAGE_UNLOCKED_ITEMS, JSON.stringify(unlockedIds));
 
       return true;
     },
@@ -240,9 +235,7 @@ export const useCosmeticsStore = create<CosmeticsState>((set, get) => {
         }
       }
 
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_EQUIPPED_ITEMS, JSON.stringify(currentEquipped));
-      }
+      safeStorage.set(STORAGE_EQUIPPED_ITEMS, JSON.stringify(currentEquipped));
 
       return true;
     }
